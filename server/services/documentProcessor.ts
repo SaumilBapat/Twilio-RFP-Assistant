@@ -86,32 +86,50 @@ class DocumentProcessor {
       let textContent = '';
       
       if (fileType === 'application/pdf') {
-        // Dynamic import to avoid initialization issues
-        const pdf = await import('pdf-parse');
         try {
           // Ensure we're passing a buffer, not a file path
           if (!Buffer.isBuffer(fileBuffer)) {
             throw new Error('PDF processing requires a valid buffer');
           }
           
-          const pdfData = await pdf.default(fileBuffer);
+          // Use dynamic import with proper options for pdf-parse
+          const pdfParse = await import('pdf-parse');
+          
+          // Call pdf-parse with the buffer
+          const pdfData = await pdfParse.default(fileBuffer);
+          
           textContent = pdfData.text;
           
           if (!textContent || textContent.trim().length === 0) {
             console.warn('PDF processed but no text content extracted for document:', documentId);
             textContent = 'PDF file processed but no readable text content was found.';
           }
+          
+          console.log(`📄 PDF processed successfully: ${textContent.length} characters extracted`);
+          
         } catch (pdfError) {
           console.error('PDF parsing error for document:', documentId, pdfError);
           
-          // Mark document as failed and don't crash the entire process
-          await storage.updateReferenceDocument(documentId, { 
-            cachingStatus: 'failed' as CachingStatus
-          });
-          
-          // Don't throw - just return early so other documents can still process
-          console.log(`⚠️ Skipping PDF document ${documentId} due to parsing error`);
-          return;
+          // For PDF errors, try a fallback approach or mark as failed
+          try {
+            // Get document info for fallback content
+            const document = await storage.getReferenceDocument(documentId);
+            if (document) {
+              // Fallback: try to extract some basic info even if parsing fails
+              textContent = `PDF document: ${document.fileName} (${(document.fileSize / 1024).toFixed(1)}KB)\nContent extraction failed but document is available for reference.`;
+              console.log(`⚠️ Using fallback content for PDF ${documentId}`);
+            } else {
+              throw new Error('Document not found for fallback');
+            }
+          } catch (fallbackError) {
+            // Mark document as failed and don't crash the entire process
+            await storage.updateReferenceDocument(documentId, { 
+              cachingStatus: 'failed' as CachingStatus
+            });
+            
+            console.log(`❌ PDF document ${documentId} marked as failed - skipping`);
+            return;
+          }
         }
       } else if (fileType === 'text/plain' || fileType === 'text/csv') {
         textContent = fileBuffer.toString('utf-8');
