@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
 interface WebSocketMessage {
-  type: string;
-  payload: any;
+  event: string;
+  data: any;
 }
 
 export function useWebSocket(userId: string | null) {
@@ -14,30 +14,38 @@ export function useWebSocket(userId: string | null) {
     if (!userId) return;
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws?userId=${userId}`;
+    // Use same host:port as current page, but handle cases where port might be empty
+    const wsUrl = window.location.port 
+      ? `${protocol}//${window.location.hostname}:${window.location.port}/ws?userId=${userId}`
+      : `${protocol}//${window.location.host}/ws?userId=${userId}`;
+    
+    console.log('🔌 [WebSocket] Connecting to:', wsUrl);
     
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      console.log('✅ [WebSocket] Connected successfully');
       setIsConnected(true);
     };
 
     ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
+        console.log('📨 [WebSocket] Received message:', message);
         setLastMessage(message);
       } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
+        console.error('❌ [WebSocket] Failed to parse message:', error);
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      console.log('🔌 [WebSocket] Connection closed:', event.code, event.reason);
       setIsConnected(false);
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.error('❌ [WebSocket] Connection error:', error);
       setIsConnected(false);
     };
 

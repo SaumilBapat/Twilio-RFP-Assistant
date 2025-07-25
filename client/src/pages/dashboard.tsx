@@ -64,11 +64,13 @@ export default function Dashboard() {
   // Handle WebSocket messages
   useEffect(() => {
     if (lastMessage) {
-      switch (lastMessage.type) {
-        case 'JOB_STARTED':
-        case 'JOB_COMPLETED':
-        case 'JOB_PAUSED':
-        case 'JOB_PROGRESS':
+      console.log('🔄 [Dashboard] Processing WebSocket message:', lastMessage);
+      switch (lastMessage.event) {
+        case 'jobStarted':
+        case 'jobCompleted':
+        case 'jobPaused':
+        case 'rowProcessed':
+          console.log('🔄 [Dashboard] Invalidating queries due to job update');
           queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
           queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
           break;

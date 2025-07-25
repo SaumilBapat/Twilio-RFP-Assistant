@@ -75,24 +75,27 @@ export default function Spreadsheet() {
   useEffect(() => {
     if (!lastMessage) return;
     
-    const { type, payload } = lastMessage;
-    if (payload?.jobId === jobId) {
-      switch (type) {
+    const { event, data } = lastMessage;
+    if (data?.jobId === jobId) {
+      console.log('🔄 [Spreadsheet] Processing WebSocket message:', lastMessage);
+      switch (event) {
         case 'jobStarted':
         case 'jobPaused':
         case 'jobCompleted':
         case 'jobError':
           // Refetch job data
+          console.log('🔄 [Spreadsheet] Invalidating job queries');
           queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
           break;
         case 'rowProcessed':
           // Refetch both job and CSV data for progress updates
+          console.log('🔄 [Spreadsheet] Invalidating CSV data queries');
           queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
           queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId, 'csv-data'] });
           
           toast({
             title: "Processing Update",
-            description: `Row ${payload.rowIndex + 1} processed (${payload.progress}% complete)`,
+            description: `Row ${data.rowIndex + 1} processed (${data.progress}% complete)`,
           });
           break;
       }
