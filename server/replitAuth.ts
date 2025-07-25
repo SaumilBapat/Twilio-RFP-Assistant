@@ -48,21 +48,9 @@ export function setupAuth(app: Express) {
 
   passport.deserializeUser(async (id: string, done) => {
     try {
-      // Handle different user types
-      if (id === 'admin-user') {
-        // Return admin user for preview mode
-        const adminUser = {
-          id: 'admin-user',
-          email: 'admin@twilio.com',
-          name: 'Admin User (Preview)',
-          googleId: null
-        };
-        return done(null, adminUser);
-      } else {
-        // Try to get from database (OAuth users)
-        const user = await storage.getUser(id);
-        done(null, user);
-      }
+      // Get user from database
+      const user = await storage.getUser(id);
+      done(null, user);
     } catch (error) {
       done(error, false);
     }
@@ -76,29 +64,22 @@ export function setupAuth(app: Express) {
         try {
           // Simple hardcoded admin user (only works in preview)
           if (username === 'admin' && password === 'twilio') {
-            const adminUser = {
-              id: 'admin-user',
-              email: 'admin@twilio.com',
-              name: 'Admin User (Preview)',
-              googleId: null
-            };
+            // Check if admin user exists by email
+            let existingUser = await storage.getUserByEmail('admin@twilio.com');
             
-            // Ensure admin user exists in database
-            const existingUser = await storage.getUser('admin-user');
             if (!existingUser) {
               // User doesn't exist, create it
-              await storage.createUser({
-                id: 'admin-user',
+              existingUser = await storage.createUser({
                 email: 'admin@twilio.com',
                 name: 'Admin User (Preview)',
-                googleId: null
+                googleId: 'preview-admin'
               });
               console.log('✓ Created admin user in database');
             } else {
               console.log('✓ Admin user already exists in database');
             }
             
-            return done(null, adminUser);
+            return done(null, existingUser);
           }
           
           // Invalid credentials
@@ -139,16 +120,28 @@ export function setupAuth(app: Express) {
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
+        // Extract email from profile
+        const email = profile.emails?.[0]?.value || '';
+        
+        // Validate email domain - only allow @twilio.com
+        if (!email.endsWith('@twilio.com')) {
+          console.log(`🚫 Access denied for non-Twilio email: ${email}`);
+          return done(null, false, { message: 'Access restricted to @twilio.com email addresses only' });
+        }
+        
         // Check if user exists
         let user = await storage.getUserByGoogleId(profile.id);
         
         if (!user) {
           // Create new user
           user = await storage.createUser({
-            email: profile.emails?.[0]?.value || '',
+            email: email,
             name: profile.displayName || '',
             googleId: profile.id,
           });
+          console.log(`✓ Created new Twilio user: ${email}`);
+        } else {
+          console.log(`✓ Existing Twilio user logged in: ${email}`);
         }
         
         return done(null, user);

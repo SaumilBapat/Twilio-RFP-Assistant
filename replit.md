@@ -101,6 +101,13 @@ Preferred communication style: Simple, everyday language.
 - Frontend dynamically shows appropriate login options based on environment
 - Prevents unauthorized access using hardcoded credentials in deployed applications
 
+### ✅ Twilio-Only Access Restriction (January 25, 2025)
+- Implemented email domain validation to only allow @twilio.com email addresses
+- Google OAuth authentication now rejects non-@twilio.com users with clear error message
+- Updated landing page to display "Access restricted: Only @twilio.com email addresses are allowed to sign in"
+- Preview mode admin user still works with admin@twilio.com email for development
+- Ensures application is only accessible to Twilio employees for internal use
+
 ### ✅ Reference-Based AI Pipeline (January 25, 2025)
 - Updated default pipeline to focus on reference gathering and citation-based responses
 - First step "Reference Research" now searches for authoritative sources and extracts quotes

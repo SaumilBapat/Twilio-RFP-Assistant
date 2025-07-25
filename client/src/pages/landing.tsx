@@ -42,7 +42,12 @@ export default function Landing() {
       if (errorType === 'auth_error') {
         setError(`Authentication error: ${errorMessage || 'Unknown error occurred'}`);
       } else if (errorType === 'auth_failed') {
-        setError(`Authentication failed: ${errorMessage || 'Unable to authenticate with Google'}`);
+        // Special handling for @twilio.com restriction
+        if (errorMessage && errorMessage.includes('@twilio.com')) {
+          setError('Access restricted: Only @twilio.com email addresses are allowed to sign in');
+        } else {
+          setError(`Authentication failed: ${errorMessage || 'Unable to authenticate with Google'}`);
+        }
       } else if (errorType === 'login_error') {
         setError(`Login error: ${errorMessage || 'Failed to establish session'}`);
       } else {
