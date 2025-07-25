@@ -131,6 +131,14 @@ export class DatabaseStorage implements IStorage {
     return pipeline;
   }
 
+  async updatePipeline(id: string, updates: Partial<InsertPipeline>): Promise<Pipeline> {
+    const [pipeline] = await db.update(pipelines)
+      .set(updates)
+      .where(eq(pipelines.id, id))
+      .returning();
+    return pipeline;
+  }
+
   // Job Steps
   async getJobSteps(jobId: string): Promise<JobStep[]> {
     return await db.select().from(jobSteps)

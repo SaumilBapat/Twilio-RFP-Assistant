@@ -188,6 +188,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Use default pipeline if none specified
+      let pipelineId = req.body.pipelineId;
+      if (!pipelineId) {
+        const defaultPipelines = await storage.getDefaultPipelines();
+        if (defaultPipelines.length === 0) {
+          return res.status(400).json({ message: 'No default pipeline available' });
+        }
+        pipelineId = defaultPipelines[0].id;
+      }
+
       const jobData = insertJobSchema.parse({
         userId: userId,
         name: req.body.name || csvFile.originalname,
@@ -195,7 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileSize: csvFile.size,
         filePath: csvFile.path,
         totalRows: validation.rowCount,
-        pipelineId: req.body.pipelineId,
+        pipelineId: pipelineId,
         status: 'not_started',
         // New RFP-specific fields
         rfpInstructions: req.body.rfpInstructions || null,
@@ -412,6 +422,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(pipelines);
     } catch (error) {
       res.status(500).json({ message: 'Failed to get pipelines' });
+    }
+  });
+
+  // Get default pipeline
+  app.get('/api/pipelines/default', async (req, res) => {
+    try {
+      const pipelines = await storage.getAllPipelines();
+      const defaultPipeline = pipelines.find(p => p.isDefault);
+      
+      if (!defaultPipeline) {
+        return res.status(404).json({ error: 'Default pipeline not found' });
+      }
+      
+      res.json(defaultPipeline);
+    } catch (error) {
+      console.error('Failed to fetch default pipeline:', error);
+      res.status(500).json({ error: 'Failed to fetch default pipeline' });
+    }
+  });
+
+  // Update pipeline
+  app.put('/api/pipelines/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { name, steps } = req.body;
+      
+      const updatedPipeline = await storage.updatePipeline(id, {
+        name,
+        steps
+      });
+      
+      res.json(updatedPipeline);
+    } catch (error) {
+      console.error('Failed to update pipeline:', error);
+      res.status(500).json({ error: 'Failed to update pipeline' });
     }
   });
 

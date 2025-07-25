@@ -1,0 +1,329 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, ArrowRight, Save, Settings, Zap, Brain, Target } from "lucide-react";
+import { authService } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+interface PipelineStep {
+  name: string;
+  model: string;
+  tools: string[];
+  maxTokens: number;
+  temperature: number;
+  systemPrompt: string;
+  userPrompt: string;
+}
+
+interface Pipeline {
+  id: string;
+  name: string;
+  steps: PipelineStep[];
+}
+
+export default function PipelineEditor() {
+  const [, setLocation] = useLocation();
+  const [editingStep, setEditingStep] = useState<number | null>(null);
+  const [editedStep, setEditedStep] = useState<PipelineStep | null>(null);
+  const user = authService.getCurrentUser();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: pipeline, isLoading } = useQuery({
+    queryKey: ['/api/pipelines/default'],
+    queryFn: () => fetch('/api/pipelines/default', {
+      credentials: 'include',
+      headers: { 'x-user-id': user?.id || 'user-1' }
+    }).then(res => res.json()),
+  });
+
+  const updatePipelineMutation = useMutation({
+    mutationFn: (updatedPipeline: Pipeline) => 
+      apiRequest('PUT', `/api/pipelines/${updatedPipeline.id}`, updatedPipeline),
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Pipeline updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/pipelines/default'] });
+      setEditingStep(null);
+      setEditedStep(null);
+    },
+    onError: () => {
+      toast({
+        title: "Error", 
+        description: "Failed to update pipeline",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const startEdit = (stepIndex: number) => {
+    if (pipeline) {
+      setEditingStep(stepIndex);
+      setEditedStep({ ...pipeline.steps[stepIndex] });
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingStep(null);
+    setEditedStep(null);
+  };
+
+  const saveStep = () => {
+    if (pipeline && editedStep && editingStep !== null) {
+      const updatedSteps = [...pipeline.steps];
+      updatedSteps[editingStep] = editedStep;
+      
+      updatePipelineMutation.mutate({
+        ...pipeline,
+        steps: updatedSteps
+      });
+    }
+  };
+
+  const getStepIcon = (stepName: string) => {
+    switch (stepName) {
+      case "Reference Research":
+        return <Zap className="h-5 w-5 text-blue-600" />;
+      case "Generic Draft Generation":
+        return <Brain className="h-5 w-5 text-purple-600" />;
+      case "Tailored RFP Response":
+        return <Target className="h-5 w-5 text-green-600" />;
+      default:
+        return <Settings className="h-5 w-5 text-gray-600" />;
+    }
+  };
+
+  const getStepColor = (stepName: string) => {
+    switch (stepName) {
+      case "Reference Research":
+        return "border-blue-200 bg-blue-50";
+      case "Generic Draft Generation":
+        return "border-purple-200 bg-purple-50";
+      case "Tailored RFP Response":
+        return "border-green-200 bg-green-50";
+      default:
+        return "border-gray-200 bg-gray-50";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+
+  if (!pipeline) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900">Pipeline not found</h2>
+          <Button onClick={() => setLocation('/dashboard')} className="mt-4">
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setLocation('/dashboard')}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">AI Pipeline Editor</h1>
+              <p className="text-gray-600 mt-1">Configure the AI processing steps for RFP responses</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Pipeline Overview */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Settings className="h-5 w-5" />
+                <span>{pipeline.name}</span>
+              </CardTitle>
+              <CardDescription>
+                This pipeline processes RFP questions through {pipeline.steps.length} AI-powered steps
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+
+        {/* Pipeline Steps Flow */}
+        <div className="space-y-6">
+          {pipeline.steps.map((step: PipelineStep, index: number) => (
+            <div key={index} className="relative">
+              <Card className={`${getStepColor(step.name)} border-2`}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-2">
+                        <div className="bg-white rounded-full p-2 shadow-sm">
+                          {getStepIcon(step.name)}
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">Step {index + 1}: {step.name}</CardTitle>
+                          <div className="flex items-center space-x-4 mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              Model: {step.model}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              Temp: {step.temperature}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              Max Tokens: {step.maxTokens}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => startEdit(index)}
+                      disabled={editingStep !== null}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Edit Prompts
+                    </Button>
+                  </div>
+                </CardHeader>
+                
+                {editingStep === index && editedStep ? (
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="model">AI Model</Label>
+                        <Input
+                          id="model"
+                          value={editedStep.model}
+                          onChange={(e) => setEditedStep({...editedStep, model: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="temperature">Temperature</Label>
+                        <Input
+                          id="temperature"
+                          type="number"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={editedStep.temperature}
+                          onChange={(e) => setEditedStep({...editedStep, temperature: parseFloat(e.target.value)})}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="maxTokens">Max Tokens</Label>
+                        <Input
+                          id="maxTokens"
+                          type="number"
+                          value={editedStep.maxTokens}
+                          onChange={(e) => setEditedStep({...editedStep, maxTokens: parseInt(e.target.value)})}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="systemPrompt">System Prompt</Label>
+                      <Textarea
+                        id="systemPrompt"
+                        rows={4}
+                        value={editedStep.systemPrompt}
+                        onChange={(e) => setEditedStep({...editedStep, systemPrompt: e.target.value})}
+                        placeholder="Define the AI's role and behavior..."
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="userPrompt">User Prompt</Label>
+                      <Textarea
+                        id="userPrompt"
+                        rows={6}
+                        value={editedStep.userPrompt}
+                        onChange={(e) => setEditedStep({...editedStep, userPrompt: e.target.value})}
+                        placeholder="Specify the task and requirements..."
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Available placeholders: {"{FIRST_COLUMN}"}, {"{RFP_INSTRUCTIONS}"}, {"{ADDITIONAL_DOCUMENTS}"}, {"{Reference Research}"}, {"{Generic Draft Generation}"}
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <Button 
+                        onClick={saveStep}
+                        disabled={updatePipelineMutation.isPending}
+                        className="bg-success-600 hover:bg-success-700"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </Button>
+                      <Button 
+                        onClick={cancelEdit}
+                        variant="outline"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </CardContent>
+                ) : (
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">System Prompt</h4>
+                        <div className="bg-white rounded-lg p-3 text-sm text-gray-700 border">
+                          {step.systemPrompt.length > 200 
+                            ? `${step.systemPrompt.substring(0, 200)}...` 
+                            : step.systemPrompt}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">User Prompt</h4>
+                        <div className="bg-white rounded-lg p-3 text-sm text-gray-700 border">
+                          {step.userPrompt.length > 300 
+                            ? `${step.userPrompt.substring(0, 300)}...` 
+                            : step.userPrompt}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+              
+              {/* Arrow to next step */}
+              {index < pipeline.steps.length - 1 && (
+                <div className="flex justify-center my-4">
+                  <div className="bg-white rounded-full p-2 shadow-sm border">
+                    <ArrowRight className="h-4 w-4 text-gray-400" />
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -32,14 +32,12 @@ interface Pipeline {
 interface UploadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  pipelines: Pipeline[];
   onUploadComplete: () => void;
 }
 
-export function UploadModal({ open, onOpenChange, pipelines, onUploadComplete }: UploadModalProps) {
+export function UploadModal({ open, onOpenChange, onUploadComplete }: UploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [jobName, setJobName] = useState("");
-  const [selectedPipeline, setSelectedPipeline] = useState("");
   const [priority, setPriority] = useState("normal");
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -170,10 +168,10 @@ Please customize these instructions based on the specific RFP requirements and y
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !selectedPipeline) {
+    if (!selectedFile) {
       toast({
         title: "Missing information",
-        description: "Please select a file and pipeline",
+        description: "Please select a file",
         variant: "destructive",
       });
       return;
@@ -194,7 +192,7 @@ Please customize these instructions based on the specific RFP requirements and y
       const formData = new FormData();
       formData.append('csvFile', selectedFile);
       formData.append('name', jobName || selectedFile.name);
-      formData.append('pipelineId', selectedPipeline);
+      // Use default pipeline - backend will handle this
       formData.append('priority', priority);
       formData.append('rfpInstructions', rfpInstructions);
       
@@ -227,7 +225,6 @@ Please customize these instructions based on the specific RFP requirements and y
       // Reset form
       setSelectedFile(null);
       setJobName("");
-      setSelectedPipeline("");
       setPriority("normal");
       setAdditionalDocuments([]);
       setRfpInstructions(getDefaultRfpInstructions());
@@ -326,7 +323,7 @@ Please customize these instructions based on the specific RFP requirements and y
           </div>
 
           {/* Job Configuration */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div>
               <Label htmlFor="job-name">Job Name</Label>
               <Input
@@ -335,21 +332,6 @@ Please customize these instructions based on the specific RFP requirements and y
                 onChange={(e) => setJobName(e.target.value)}
                 placeholder="Enter job name"
               />
-            </div>
-            <div>
-              <Label htmlFor="pipeline">Pipeline</Label>
-              <Select value={selectedPipeline} onValueChange={setSelectedPipeline}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select pipeline" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pipelines.map((pipeline) => (
-                    <SelectItem key={pipeline.id} value={pipeline.id}>
-                      {pipeline.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 

@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Spreadsheet from "@/pages/spreadsheet";
+import PipelineEditor from "@/pages/pipeline-editor";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -21,6 +22,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/spreadsheet/:id" component={Spreadsheet} />
+          <Route path="/pipeline" component={PipelineEditor} />
         </>
       )}
       <Route component={NotFound} />

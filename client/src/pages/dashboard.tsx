@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Bell, Settings, Upload, ChevronDown, User } from "lucide-react";
+import { Bell, Settings, Upload, ChevronDown, User, Cog } from "lucide-react";
+import { useLocation } from "wouter";
 import { StatsCards } from "@/components/stats-cards";
 import { JobTable } from "@/components/job-table";
 import { UploadModal } from "@/components/upload-modal";
@@ -16,6 +17,7 @@ import { queryClient } from "@/lib/queryClient";
 
 export default function Dashboard() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const { lastMessage } = useWebSocket(user?.id || null);
@@ -57,9 +59,7 @@ export default function Dashboard() {
     }
   });
 
-  const { data: pipelines = [] } = useQuery({
-    queryKey: ['/api/pipelines'],
-  });
+
 
   // Handle WebSocket messages
   useEffect(() => {
@@ -86,10 +86,7 @@ export default function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
   };
 
-  const handlePipelineBuilder = () => {
-    // TODO: Implement pipeline builder
-    console.log('Open pipeline builder');
-  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -146,9 +143,9 @@ export default function Dashboard() {
               <p className="text-gray-600 mt-1">Manage your RFP processing jobs and AI pipelines</p>
             </div>
             <div className="mt-4 sm:mt-0 flex space-x-3">
-              <Button variant="outline">
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
+              <Button variant="outline" onClick={() => setLocation('/pipeline')}>
+                <Cog className="mr-2 h-4 w-4" />
+                Edit AI Pipeline
               </Button>
               <Button onClick={() => setUploadModalOpen(true)}>
                 <Upload className="mr-2 h-4 w-4" />
@@ -192,7 +189,7 @@ export default function Dashboard() {
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <QuickActions 
             onUploadClick={() => setUploadModalOpen(true)}
-            onPipelineBuilderClick={handlePipelineBuilder}
+            onPipelineBuilderClick={() => setLocation('/pipeline')}
           />
           <RecentActivity />
           <SystemHealth />
@@ -203,7 +200,6 @@ export default function Dashboard() {
       <UploadModal
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}
-        pipelines={pipelines}
         onUploadComplete={handleUploadComplete}
       />
     </div>
