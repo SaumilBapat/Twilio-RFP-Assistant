@@ -1,0 +1,42 @@
+# App Creation Prompt – plain text
+
+Purpose
+Create an internal Twilio web application that lets employees sign in with Google OAuth, upload customer RFP or security‑questionnaire CSV files, view and edit them in a spreadsheet‑style grid, run a configurable multi‑step AI pipeline that answers every question, revisit previous uploads interactively, pause or resume processing with revised instructions, and export enriched CSVs.
+
+Core Requirements
+
+Requirement 1 – Authentication
+Login and signup must use Google OAuth tied to Twilio’s Google Workspace. After authentication, each user sees a dashboard listing every CSV they have uploaded with job status (Not started, In‑progress, Paused, Completed) and timestamps.
+
+Requirement 2 – File Upload and Preview
+The user uploads a CSV up to 25 MB or 5000 rows. The server validates headers, stores the raw file in secure persistent storage of your choice, and renders the data in a spreadsheet grid where cells can be sorted, filtered, and edited.
+
+Requirement 3 – Spreadsheet Interface and History
+Each saved sheet can be reopened later in the same grid showing original columns plus AI‑generated answers. Cell edits persist immediately. The user can download the enriched sheet as a CSV at any time.
+
+Requirement 4 – Configurable AI Pipeline
+The UI allows users to build a chain of any number of sub‑agents. For each sub‑agent they select a model from the dynamically fetched OpenAI model list, set parameters such as temperature and max\_tokens, choose enabled tools such as web\_search when supported, and supply system and user prompt templates that may reference column values with placeholders like {{Question}}.
+
+Requirement 5 – Execution Controls
+When processing starts, the backend iterates rows, feeding each through the agent chain and streaming tokens back to the UI. The user can pause; all in‑flight rows finish their current agent step and the job moves to Paused. While paused the user can change agent settings or prompts, then resume. Cancel stops further processing but keeps completed results.
+
+Requirement 6 – Step‑by‑Step Inspection
+Clicking an answer opens a side panel that shows, for every agent step, the input payload, the exact prompt text, the full output, latency, and any errors.
+
+Requirement 7 – Security and Compliance
+Files are encrypted at rest. Requests to OpenAI use Twilio’s enterprise key via a private proxy. Only request‑level metadata is logged. Default data‑retention policy is 30 days with an admin override.
+
+System Sketch
+Frontend: Next.js / React with a spreadsheet component (for example TanStack Spreadsheet or AG‑Grid) and Google OAuth integration using Google Identity Services.
+Backend: Node.js (could be implemented as API routes in Next.js or as a separate Fastify/Express service). It handles file upload, job orchestration, token streaming, and persistent storage. Worker pool: a queue‑based worker system of your choice processes rows asynchronously, invokes OpenAI chat completions for each agent step, and logs step outputs. Real‑time updates use server‑sent events or WebSockets. Choose any database, object store, and queue technology appropriate to Twilio’s environment; the prompt deliberately omits hard dependencies so the implementation agent can decide.
+
+Non‑Functional Targets
+Throughput at least 2 rows per second with a 10‑step chain, 50 parallel jobs, 99.5 percent availability for internal use, and WCAG 2.1 AA accessibility.
+
+Seed Configuration Example (for the first‑run experience)
+System prompt: “You are Twilio RFP Assistant. For each CSV row run the following pipeline.”
+Step 1 ResearchAgent – model gpt‑4o, tool web\_search, temperature 0, output JSON containing sources array.
+Step 2 ComposeAgent – model o3, temperature 0.2, writes a concise answer using the row’s Question and the sources, appending a References section.
+
+Deliverables
+React/Next.js frontend, Node.js/Next.js backend with worker queue, sample JSON agent presets, and a README explaining local setup, security considerations, and how to plug in chosen storage and queue services.
