@@ -59,7 +59,11 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
   }
 
   async resumeJob(jobId: string): Promise<void> {
+    // Remove from paused jobs and active jobs to ensure clean state
     this.pausedJobs.delete(jobId);
+    this.activeJobs.delete(jobId);
+    
+    // Now start the job fresh
     await this.startJob(jobId);
   }
 

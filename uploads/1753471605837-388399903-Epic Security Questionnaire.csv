@@ -1,0 +1,93 @@
+﻿Question
+"Please answer these questions regarding the policies, procedures, and controls you've implemented as part of the product or service that Nebula is looking to use. Please include comments in your response as they help us understand your safeguards. "
+"Do your services support configurable/granular role permissions for Epic administrator accounts? If yes, please describe. "
+"Can Epic integrate our Azure Active Directory accounts to manage Epic administrative access to your services? If no, please describe available options for administrative account SSO (single sign on) integration your services offers. "
+Are there any administrator accounts that cannot be disabled? 
+Do your services support multi-factor authentication? 
+"Do your services have APIs for all administrative actions?  If no, what admin actions require interaction with a UI/portal? "
+Do your services have an audit log of Epic’s administrative operations? Please describe the audit logs and whether those are available to customers on demand or at request.
+"Do you have an incident response process for addressing potential and confirmed security incidents that includes investigation and documentation of incidents, preservation of evidence associated with incidents and responses, and root cause analysis to prevent recurrence of similar incidents?"
+"Do you conduct security incident response plan testing? If so, how often?"
+How will your services notify Epic if there is an incident or disruption? How frequently will Epic be updated on the status of the event? 
+Are your services’ incident notifications automated or manual? 
+What are the criteria you use for when an incident/disruption warrants Epic notification? 
+"How will Epic learn about application changes? (E.g. change log, release note, etc.) "
+"Can you provide any availability metrics over the last year? If yes, please include in comments. "
+"Do your services offer monitoring tools such as metrics and logs? If yes, please describe and specify update frequency. (real-time, daily, etc.)"
+Can Epic monitor discrete usage by each Epic customer? 
+"Do your services offer any availability guarantees? (i.e. SLA) If yes, please describe."
+Do you maintain contractual Recovery Point Objectives (RPO) or Recovery Time Objectives (RTO)?
+"Does the Vendor carry cyber insurance that covers identity theft, cyber extortion, cyber terrorism, information asset network security, web content, errors and omissions, and network business interruptions? What is the coverage limit per incident? What is the cumulative limit?"
+Do you provide RCA reports to customers on vendor caused multi (Epic) customer outages?
+"Do you maintain a business continuity plan that includes technical and organizational measures such as redundant infrastructure systems, on-site and off-site backups, and mitigation and recovery procedures?"
+"Do you conduct testing of your business continuity plan? If so, how often?"
+"Do your services offer regional data center redundancy in the case of a disaster? If yes, please describe."
+How can Epic create support tickets and escalate issues? 
+What off-hours and weekend support do your services provide? 
+"In the past five years, have you notified any customers that their information was breached or inappropriately disclosed? If yes, please provide details."
+What rate limiting and quotas do you impose for your services’ service APIs? 
+"Are there monetary fees associated with hitting the quotas? If yes, please describe. "
+"Do you have an example invoice that shows us what type of line items Epic can expect to see? If yes, please attach. "
+Can billing invoices and reports be broken down by Epic customer entities? 
+What is the frequency of billing? 
+"Do you have any independent audits or certifications for the product/service that Epic is using or looking to use (for example: SOC 2 Type II, ISO 27001, HITRUST)? If you do, please send us any relevant reports or certificates. "
+"If the answer to the above question is No, do you have plans to obtain such audits or certificates, and if so, what are the timelines?"
+Can Epic provide your services’ security certification reports (e.g. SOC2) to our customers? 
+"Do you implement and maintain formal policies and procedures to control risks associated with access, use, storage, availability, sharing, retention, and destruction of Epic Confidential Information, and which are regularly reviewed for accuracy and effectiveness and updated as needed?"
+"Are all relevant organizational policies and associated procedures reviewed at least annually, or when a substantial organizational change occurs?"
+"Do you have internal policies and procedures for personnel security including staff training, confidentiality, and acceptable use policies, as well as conducting background checks as appropriate?"
+Do you maintain risk-based change control policies for systems you manage and which may be used to process Epic Confidential Information?
+Do you implement a formal process to install vendor-recommended security patches in a timely manner for all information technology assets which may be used to process Epic Confidential Information?
+Do you have an established IT asset management process in place that includes the tracking and monitoring of hardware and software assets?
+"Does your information security program includes assessing the risks associated with use of a vendor or subcontractor, practicing due diligence in vendor selection, implementing appropriate contract terms, evaluating the vendor’s controls, and overseeing vendor performance on an ongoing basis?"
+"Which authentication mechanisms do your services use? (e.g. OAuth, API keys, etc.) "
+Are encryption keys managed by your services or Epic?  
+Does Epic have permission to rotate credentials? 
+How do your services manage separation of resources between Epic and your other customers? 
+Can we manage different service level configuration between Epic customers? 
+What network security/restrictions are we able to control? (e.g. IP allowlists/VPNs/mTLS) 
+Which TLS versions do your services require?
+What is the amount of time before automatic logout due to inactivity? Is this configurable?
+Do you send notifications to your customers for vulnerabilities they need to take action on?
+Do you publish formal CVEs?
+"Do you implement controls to protect physical access to areas which may contain Epic Confidential Information? Such areas may include data centers, document and media storage rooms, or printing rooms."
+Do you have technical and administrative controls to limit access to Epic Confidential Information to authorized personnel only?
+Do you require unique usernames and passwords that meet reasonable complexity requirements for all user accounts that are used to access Epic Confidential Information?
+Do you require the use of multi-factor authentication where appropriate such as for remote access to Epic Confidential Information?
+Do you promptly disable access upon termination or transfer of employees?
+"Do you have a formal emergency patch procedure for widely exploitable critical vulnerabilities such that affected machines are patched immediately, outside of regular patching cycles?"
+"Do you implement anti-malware, application control, endpoint detection and response, or similar security solutions on laptops, desktops, and servers which may be used to process Epic Confidential Information?"
+"Do you use an email security solution that includes spam filtering, virus and malware blocking, and phishing protection?"
+"Do you require storage-level encryption for any devices or media (such as laptops, desktops, network storage devices, removable media devices) which may be used to store Epic Confidential Information?"
+Do you require encryption in-transit for Epic Confidential Information that is transmitted over public or wireless networks?
+"If hardware requires disposal and may contain Epic Confidential Information, do you follow procedures for secure hardware disposal, such as NIST 800-88r1 or equivalent standards."
+"Do you implement controls to protect and monitor your IT networks that may be used to process Epic Confidential Information? Examples include firewalls, intrusion detection and prevention systems, DNS filtering, and periodic scanning for vulnerabilities."
+Do you perform periodic penetration tests of critical infrastructure used to process Epic Confidential Information?
+"Do you use a Security Information and Event Management (SIEM) system to collect and analyze logs and events, and to generate dashboards and alerts? If no, please describe any processes for threat detection and response."
+"Do you subcontract any data processing services (for example: infrastructure hosting, technical support) that would expose Epic Confidential Information to a subcontract/vendor you use? If yes, please provide the list of subcontractors and the type of processing they perform in the comments."
+"If the answer to the above question is yes, do you require such vendors to follow security policies and procedures that are no less robust than the information security safeguards you employ?"
+"Do you or your subprocessors use AI/ML as part of your services? If yes, please describe and verify whether or not the customer data used to train the models."
+Do your services implement geo-blocking? 
+How would your organization respond to a notification that Epic's Active Directory (and therefore our SSO accounts for your services) have been compromised?
+Please fill out the table in the other tab (named Global Avail. & Data Residency) for the availability and data residency support of your services by country or region. 
+"Please list all locations (countries) of where Epic Confidential Information may be stored. This includes locations where the infrastructure components (such as data centers, servers, storage appliances, etc.) which may be used to store Epic Confidential Information are located."
+"Please list all locations (countries) where your staff who may access Epic Confidential Information are located. This applies to your support staff such as system administrators, technical support, helpdesk, etc.  "
+"Do your services support other languages and Unicode? If yes, please describe."
+"Is any application data stored persistently? If yes, what are the data elements?"
+"If application data is stored persistently, is that data encrypted at rest? With what method? "
+"If application data is stored persistently, how long is that data retained? "
+Are service logs encrypted at rest? With what method? 
+How long are service logs retained? 
+Do service logs contain sensitive or confidential information? 
+How is sensitive information redacted from request bodies if they are logged?
+Does Epic have the ability to request data deletion?
+What is your audit log retention policy?
+"Do your services have an SBOM (Software Bill of Materials) or similar software inventory management system? If yes, can you provide it?"
+"Do your services offer self-service troubleshooting and reporting tools? If yes, please describe. "
+"Do you have an audit log of all your organization’s administrative operations? If yes, please list the operations and details."
+Is there separation between production and non-production resources/services?  
+Are separate keys and credentials provisioned for non-production resources/services? 
+"Do you employ an automated testing strategy for changes to services before rolling out to production? If yes, please describe your automated testing strategy. "
+Please describe your process for rolling out changes to your services. 
+"Is there a process to roll back changes to a previously known stable state in case of errors or security concerns? If yes, please describe. "
+"Feel free to provide any additional information you’d like to share with us regarding your information security policies, procedures, and controls.  "

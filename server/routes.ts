@@ -303,19 +303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/jobs/:id/resume', isAuthenticated, async (req: any, res) => {
-    try {
-      const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.user.id) {
-        return res.status(404).json({ message: 'Job not found' });
-      }
 
-      await jobProcessor.resumeJob(job.id);
-      res.json({ message: 'Job resumed' });
-    } catch (error) {
-      res.status(500).json({ message: 'Failed to resume job' });
-    }
-  });
 
   app.post('/api/jobs/:id/reprocess', isAuthenticated, async (req: any, res) => {
     try {
