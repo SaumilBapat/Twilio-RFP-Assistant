@@ -478,9 +478,6 @@ export default function Spreadsheet() {
                       {column}
                     </th>
                   ))}
-                  <th className="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase w-24">
-                    Actions
-                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white">
@@ -614,11 +611,6 @@ export default function Spreadsheet() {
                         </td>
                       );
                     })}
-                    <td className="border border-gray-300 px-4 py-2 text-center">
-                      <Button variant="ghost" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
