@@ -119,7 +119,19 @@ export default function Dashboard() {
               timestamp: new Date(),
               jobId: data.jobId
             };
-            setProcessingLogs(prev => [...prev.slice(-20), newLog]); // Keep last 20 logs
+            setProcessingLogs(prev => {
+              const updated = [...prev.slice(-19), newLog]; // Keep last 20 logs
+              
+              // Auto-scroll processing console to bottom
+              setTimeout(() => {
+                const console = document.getElementById('processing-console');
+                if (console) {
+                  console.scrollTop = console.scrollHeight;
+                }
+              }, 50);
+              
+              return updated;
+            });
           }
           break;
       }
@@ -254,29 +266,29 @@ export default function Dashboard() {
         )}
 
         {/* Real-time Processing Console */}
-        {activeJobs.size > 0 && processingLogs.length > 0 && (
+        {processingLogs.length > 0 && (
           <div className="mt-6 bg-slate-900 rounded-xl shadow-sm border border-gray-700 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-700">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-slate-100">Processing Console</h3>
+                <h3 className="text-sm font-medium text-slate-100">Live Processing Console</h3>
                 <div className="flex items-center space-x-2">
                   <span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                   <span className="text-xs text-slate-400">
-                    {activeJobs.size} active job{activeJobs.size > 1 ? 's' : ''}
+                    Processing active • {processingLogs.length} recent logs
                   </span>
                 </div>
               </div>
             </div>
-            <div className="px-6 py-4 space-y-2 max-h-64 overflow-y-auto">
+            <div className="px-6 py-4 space-y-2 max-h-80 overflow-y-auto" id="processing-console">
               {processingLogs.map((log, index) => (
                 <div key={index} className="flex items-start space-x-3 text-sm">
                   <div className="flex-shrink-0 mt-0.5">
-                    <span className="inline-block w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                    <span className="inline-block w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start space-x-2">
-                      <span className="text-slate-400 font-medium whitespace-nowrap">{log.step}:</span>
-                      <span className="text-slate-200 break-words">{log.log}</span>
+                      <span className="text-blue-400 font-medium whitespace-nowrap">{log.step}:</span>
+                      <span className="text-slate-100 break-words">{log.log}</span>
                     </div>
                     <div className="text-xs text-slate-500 mt-1">
                       {log.timestamp.toLocaleTimeString()}
