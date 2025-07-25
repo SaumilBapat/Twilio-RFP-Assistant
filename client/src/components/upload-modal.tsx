@@ -252,14 +252,24 @@ Please customize these instructions based on the specific RFP requirements and y
         <DialogHeader>
           <DialogTitle>Upload RFP CSV - 3-Step Process</DialogTitle>
           <p className="text-sm text-gray-500">
-            Step 1: Reference Research (cached) → Step 2: Generic Draft (cached) → Step 3: Tailored Response (o3 model)
+            Reference Research (cached) → Generic Draft (cached) → Tailored Response (o3 model)
           </p>
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* File Upload Area */}
+          {/* CSV File Upload Area - Step 1 */}
+          <div className="space-y-2">
+            <Label className="text-base font-semibold flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Step 1: Upload RFP CSV File
+            </Label>
+            <p className="text-sm text-gray-500">
+              Upload your main RFP CSV file for processing through the 3-step pipeline
+            </p>
+          </div>
+          
           <div
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+            className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
               dragActive 
                 ? 'border-primary-400 bg-primary-50' 
                 : 'border-gray-300 hover:border-primary-400'
@@ -270,35 +280,35 @@ Please customize these instructions based on the specific RFP requirements and y
             onDrop={handleDrop}
           >
             {selectedFile ? (
-              <div className="space-y-4">
-                <div className="w-16 h-16 bg-success-50 rounded-full flex items-center justify-center mx-auto">
-                  <FileText className="text-success-500 h-8 w-8" />
+              <div className="space-y-3">
+                <div className="w-12 h-12 bg-success-50 rounded-full flex items-center justify-center mx-auto">
+                  <FileText className="text-success-500 h-6 w-6" />
                 </div>
                 <div>
-                  <h4 className="text-lg font-medium text-gray-900">{selectedFile.name}</h4>
-                  <p className="text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                  <h4 className="text-base font-medium text-gray-900">{selectedFile.name}</h4>
+                  <p className="text-sm text-gray-500">{formatFileSize(selectedFile.size)}</p>
                 </div>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => setSelectedFile(null)}
-                  className="mt-2"
                 >
                   Choose Different File
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto">
-                  <CloudUpload className="text-primary-500 h-8 w-8" />
+              <div className="space-y-3">
+                <div className="w-12 h-12 bg-primary-50 rounded-full flex items-center justify-center mx-auto">
+                  <CloudUpload className="text-primary-500 h-6 w-6" />
                 </div>
                 <div>
-                  <h4 className="text-lg font-medium text-gray-900">Drop your CSV file here</h4>
-                  <p className="text-gray-500 mb-4">or click to browse</p>
+                  <h4 className="text-base font-medium text-gray-900">Drop your CSV file here</h4>
+                  <p className="text-sm text-gray-500 mb-3">or click to browse (one file only)</p>
                   <label htmlFor="file-upload">
                     <Button asChild className="cursor-pointer">
                       <div>
                         <FolderOpen className="mr-2 h-4 w-4" />
-                        Choose File
+                        Choose CSV File
                       </div>
                     </Button>
                   </label>
@@ -350,10 +360,10 @@ Please customize these instructions based on the specific RFP requirements and y
             <div>
               <Label className="text-base font-semibold flex items-center gap-2">
                 <FileIcon className="w-4 h-4" />
-                Additional RFP Documents (Optional)
+                Step 2: Additional RFP Documents (Optional)
               </Label>
               <p className="text-sm text-gray-500 mt-1">
-                Upload supporting documents that will be used in Step 3 for tailored responses
+                Upload supporting documents that will be used in Step 3 for tailored responses (company info, technical specs, etc.)
               </p>
             </div>
 
@@ -371,7 +381,7 @@ Please customize these instructions based on the specific RFP requirements and y
               <div className="space-y-2">
                 <Plus className="w-6 h-6 text-gray-400 mx-auto" />
                 <div>
-                  <p className="text-sm text-gray-600">Drop additional documents here</p>
+                  <p className="text-sm text-gray-600">Drop additional documents here or click to browse</p>
                   <label htmlFor="additional-docs">
                     <Button variant="outline" size="sm" className="cursor-pointer mt-2">
                       Browse Files
@@ -386,7 +396,7 @@ Please customize these instructions based on the specific RFP requirements and y
                     accept=".pdf,.doc,.docx,.txt,.md"
                   />
                 </div>
-                <p className="text-xs text-gray-400">PDF, DOC, TXT, MD files supported</p>
+                <p className="text-xs text-gray-400">PDF, DOC, TXT, MD files supported (up to 5 files)</p>
               </div>
             </div>
 
@@ -425,10 +435,10 @@ Please customize these instructions based on the specific RFP requirements and y
             <div>
               <Label className="text-base font-semibold flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />
-                RFP Response Instructions
+                Step 3: RFP Response Instructions
               </Label>
               <p className="text-sm text-gray-500 mt-1">
-                Customize instructions for Step 3 tailored responses. Default instructions are pre-populated.
+                Customize instructions for Step 3 tailored responses. Default Twilio instructions are pre-populated.
               </p>
             </div>
 
@@ -484,30 +494,6 @@ Please customize these instructions based on the specific RFP requirements and y
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <Separator />
-
-          {/* RFP Instructions Section */}
-          <div className="space-y-4">
-            <div>
-              <Label className="text-base font-semibold flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
-                RFP Response Instructions
-              </Label>
-              <p className="text-sm text-gray-500 mt-1">
-                Customize instructions for Step 3 tailored responses. Default instructions are pre-populated.
-              </p>
-            </div>
-
-            <ScrollArea className="h-48 w-full rounded border">
-              <Textarea
-                value={rfpInstructions}
-                onChange={(e) => setRfpInstructions(e.target.value)}
-                placeholder="Enter RFP-specific instructions..."
-                className="min-h-[180px] border-0 resize-none focus-visible:ring-0"
-              />
-            </ScrollArea>
           </div>
 
           {/* Action Buttons */}

@@ -166,7 +166,7 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
       currentData['RFP_INSTRUCTIONS'] = job.rfpInstructions;
     }
     
-    if (job?.additionalDocuments) {
+    if (job?.additionalDocuments && Array.isArray(job.additionalDocuments)) {
       currentData['ADDITIONAL_DOCUMENTS'] = await this.loadAdditionalDocuments(job.additionalDocuments);
     }
     
