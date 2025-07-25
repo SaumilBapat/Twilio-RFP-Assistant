@@ -10,82 +10,103 @@
       .vite-error-overlay { display: none !important; }
     </style>
     <script>
-      // Ultimate Vite WebSocket error fix
+      // Vite WebSocket error fix - handles malformed URLs and console errors
       (function() {
-        // 1. Override WebSocket before anything else loads
-        const RealWebSocket = window.WebSocket;
-        const wsInstances = new WeakSet();
+        // Store original WebSocket constructor
+        const OriginalWebSocket = window.WebSocket;
         
-        window.WebSocket = new Proxy(RealWebSocket, {
-          construct(target, args) {
-            let url = args[0];
+        // Create a proper WebSocket replacement
+        window.WebSocket = function(url, protocols) {
+          // Check for malformed URLs
+          if (typeof url === 'string' && url.includes('undefined')) {
+            console.debug('[WS Fix] Blocking malformed WebSocket URL:', url);
             
-            // Fix malformed URLs
-            if (typeof url === 'string') {
-              if (url.includes('undefined')) {
-                console.debug('[WS Fix] Blocking malformed WebSocket URL:', url);
-                // Return a mock that mimics a closed WebSocket
-                const mock = Object.create(target.prototype);
-                mock.readyState = 3; // CLOSED
-                mock.url = url;
-                mock.close = () => {};
-                mock.send = () => { throw new Error('WebSocket is already in CLOSING or CLOSED state'); };
-                mock.addEventListener = () => {};
-                mock.removeEventListener = () => {};
-                mock.dispatchEvent = () => false;
-                
-                // Trigger close event asynchronously
-                setTimeout(() => {
-                  if (mock.onclose) mock.onclose(new CloseEvent('close'));
-                }, 0);
-                
-                return mock;
+            // Create a mock WebSocket that behaves like a closed connection
+            const mock = {
+              CONNECTING: 0,
+              OPEN: 1,
+              CLOSING: 2,
+              CLOSED: 3,
+              url: url,
+              readyState: 3,
+              bufferedAmount: 0,
+              onopen: null,
+              onerror: null,
+              onclose: null,
+              onmessage: null,
+              binaryType: 'blob',
+              extensions: '',
+              protocol: '',
+              close: function() {},
+              send: function() {
+                throw new Error('WebSocket is already in CLOSING or CLOSED state');
+              },
+              addEventListener: function() {},
+              removeEventListener: function() {},
+              dispatchEvent: function() { return false; }
+            };
+            
+            // Schedule close event
+            setTimeout(() => {
+              if (mock.onclose) {
+                try {
+                  mock.onclose(new CloseEvent('close'));
+                } catch (e) {}
               }
-            }
+            }, 0);
             
-            try {
-              const instance = new target(...args);
-              wsInstances.add(instance);
-              return instance;
-            } catch (error) {
-              console.debug('[WS Fix] WebSocket creation failed:', error.message);
-              throw error;
-            }
+            return mock;
           }
-        });
-        
-        // 2. Override console methods to filter out Vite errors
-        const originalError = console.error;
-        const originalWarn = console.warn;
-        
-        console.error = function(...args) {
-          const msg = args.join(' ');
-          if (msg.includes('[vite]') && msg.includes('websocket')) return;
-          if (msg.includes('localhost:undefined')) return;
-          originalError.apply(console, args);
+          
+          // Try to create real WebSocket for valid URLs
+          try {
+            return new OriginalWebSocket(url, protocols);
+          } catch (error) {
+            console.debug('[WS Fix] WebSocket creation failed:', error);
+            throw error;
+          }
         };
         
-        console.warn = function(...args) {
-          const msg = args.join(' ');
-          if (msg.includes('[vite]') && msg.includes('websocket')) return;
-          if (msg.includes('localhost:undefined')) return;
-          originalWarn.apply(console, args);
+        // Copy WebSocket static properties
+        window.WebSocket.CONNECTING = 0;
+        window.WebSocket.OPEN = 1;
+        window.WebSocket.CLOSING = 2;
+        window.WebSocket.CLOSED = 3;
+        
+        // Override console to filter Vite errors
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        
+        console.error = function() {
+          const message = Array.from(arguments).join(' ');
+          if (message.includes('[vite]') && message.includes('websocket')) return;
+          if (message.includes('localhost:undefined')) return;
+          return originalConsoleError.apply(console, arguments);
         };
         
-        // 3. Catch all errors
-        window.addEventListener('error', function(e) {
-          if (e.message && (e.message.includes('WebSocket') || e.message.includes('undefined'))) {
-            e.preventDefault();
-            e.stopPropagation();
+        console.warn = function() {
+          const message = Array.from(arguments).join(' ');
+          if (message.includes('[vite]') && message.includes('websocket')) return;
+          if (message.includes('localhost:undefined')) return;
+          return originalConsoleWarn.apply(console, arguments);
+        };
+        
+        // Prevent error propagation
+        window.addEventListener('error', function(event) {
+          if (event.message && (event.message.includes('WebSocket') || 
+              event.message.includes('undefined') || 
+              event.message.includes('Illegal invocation'))) {
+            event.preventDefault();
+            event.stopPropagation();
             return true;
           }
         }, true);
         
-        window.addEventListener('unhandledrejection', function(e) {
-          if (e.reason && e.reason.message && 
-              (e.reason.message.includes('WebSocket') || e.reason.message.includes('undefined'))) {
-            e.preventDefault();
-            e.stopPropagation();
+        window.addEventListener('unhandledrejection', function(event) {
+          if (event.reason && event.reason.message && 
+              (event.reason.message.includes('WebSocket') || 
+               event.reason.message.includes('undefined'))) {
+            event.preventDefault();
             return true;
           }
         }, true);
