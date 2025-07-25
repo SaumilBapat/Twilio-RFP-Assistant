@@ -370,7 +370,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const csvData = await storage.getJobCsvData(job.id);
-      res.json(csvData);
+      
+      // Add FULL_CONTEXTUAL_QUESTION to originalData for proper column ordering
+      const processedCsvData = csvData.map(row => ({
+        ...row,
+        originalData: {
+          ...row.originalData,
+          ...(row.fullContextualQuestion ? { FULL_CONTEXTUAL_QUESTION: row.fullContextualQuestion } : {})
+        }
+      }));
+      
+      res.json(processedCsvData);
     } catch (error) {
       res.status(500).json({ message: 'Failed to get CSV data' });
     }
@@ -399,12 +409,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const csvData = await storage.getJobCsvData(job.id);
       
+      // Debug logging
+      console.log('CSV Data structure:', {
+        rowCount: csvData.length,
+        firstRowOriginal: csvData[0]?.originalData ? Object.keys(csvData[0].originalData) : [],
+        firstRowEnriched: csvData[0]?.enrichedData ? Object.keys(csvData[0].enrichedData) : []
+      });
+      
       // Filter columns to match grid view (keep FULL_CONTEXTUAL_QUESTION visible)
       const excludedColumns = ["RFP_INSTRUCTIONS", "ADDITIONAL_DOCUMENTS"];
       
       const exportData = csvData.map(row => {
         const combinedData = {
           ...(row.originalData || {}),
+          // Add the full contextual question from the database
+          ...(row.fullContextualQuestion ? { FULL_CONTEXTUAL_QUESTION: row.fullContextualQuestion } : {}),
           ...(row.enrichedData || {})
         };
         
@@ -420,30 +439,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Ensure proper column ordering: Question → Full Contextual Question → Other Original → Pipeline steps
-      if (exportData.length > 0) {
+      if (exportData.length > 0 && csvData.length > 0) {
         const firstRow = csvData[0];
         const originalColumns = Object.keys(firstRow.originalData || {}).filter(
           key => !excludedColumns.includes(key)
         );
         const enrichedColumns = Object.keys(firstRow.enrichedData || {}).filter(
-          key => !originalColumns.includes(key) && !excludedColumns.includes(key)
+          key => !excludedColumns.includes(key)
         );
+        
+        // Debug logging
+        console.log('Column extraction:', { originalColumns, enrichedColumns });
         
         // Extract the original question column and FULL_CONTEXTUAL_QUESTION
         const questionColumn = originalColumns.find(col => col !== 'FULL_CONTEXTUAL_QUESTION');
         const contextualQuestionColumn = originalColumns.includes('FULL_CONTEXTUAL_QUESTION') ? 'FULL_CONTEXTUAL_QUESTION' : null;
         const otherOriginalColumns = originalColumns.filter(col => col !== questionColumn && col !== 'FULL_CONTEXTUAL_QUESTION');
         
+        // Check if FULL_CONTEXTUAL_QUESTION might be in enrichedData
+        const contextualQuestionInEnriched = enrichedColumns.includes('FULL_CONTEXTUAL_QUESTION') ? 'FULL_CONTEXTUAL_QUESTION' : null;
+        
         // Pipeline order
         const pipelineOrder = ["Reference Research", "Generic Draft Generation", "Tailored RFP Response"];
         const orderedEnrichedColumns = pipelineOrder.filter(col => enrichedColumns.includes(col));
-        const otherEnrichedColumns = enrichedColumns.filter(col => !pipelineOrder.includes(col));
+        const otherEnrichedColumns = enrichedColumns.filter(col => !pipelineOrder.includes(col) && col !== 'FULL_CONTEXTUAL_QUESTION');
         
         // Build final column order: Question → Full Contextual Question → Other Original → Pipeline Steps → Other Enriched
-        const allColumns = [];
+        const allColumns: string[] = [];
         if (questionColumn) allColumns.push(questionColumn);
-        if (contextualQuestionColumn) allColumns.push(contextualQuestionColumn);
+        
+        // Add Full Contextual Question as second column (from wherever it is)
+        if (contextualQuestionColumn) {
+          allColumns.push(contextualQuestionColumn);
+        } else if (contextualQuestionInEnriched) {
+          allColumns.push(contextualQuestionInEnriched);
+        }
+        
         allColumns.push(...otherOriginalColumns, ...orderedEnrichedColumns, ...otherEnrichedColumns);
+        
+        console.log('Final column order:', allColumns);
         
         // Reorder export data to match column order
         const reorderedExportData = exportData.map(row => {
@@ -463,6 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.download(exportPath);
       }
     } catch (error) {
+      console.error('Export error:', error);
       res.status(500).json({ message: 'Failed to export CSV' });
     }
   });

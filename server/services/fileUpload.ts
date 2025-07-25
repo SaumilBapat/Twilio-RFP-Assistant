@@ -209,7 +209,18 @@ export class FileUploadService {
       const values = headers.map(header => {
         let value = row[header] || '';
         
-        // Fix UTF-8 encoding issues (mojibake)
+        // Convert objects and arrays to string representation
+        if (typeof value === 'object' && value !== null) {
+          if (Array.isArray(value)) {
+            // For arrays, join elements with newlines
+            value = value.join('\n');
+          } else {
+            // For objects, stringify them
+            value = JSON.stringify(value);
+          }
+        }
+        
+        // Fix UTF-8 encoding issues (mojibake) for all string values
         if (typeof value === 'string') {
           value = this.fixEncodingIssues(value);
           
@@ -218,6 +229,7 @@ export class FileUploadService {
             return `"${value.replace(/"/g, '""')}"`;
           }
         }
+        
         return value;
       });
       csvRows.push(values.join(','));
