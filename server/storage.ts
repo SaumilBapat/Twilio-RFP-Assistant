@@ -1,4 +1,4 @@
-import { users, jobs, pipelines, jobSteps, csvData, type User, type InsertUser, type Job, type InsertJob, type Pipeline, type InsertPipeline, type JobStep, type InsertJobStep, type CsvData, type InsertCsvData, type JobStatus } from "@shared/schema";
+import { users, jobs, pipelines, jobSteps, csvData, referenceCache, type User, type InsertUser, type Job, type InsertJob, type Pipeline, type InsertPipeline, type JobStep, type InsertJobStep, type CsvData, type InsertCsvData, type ReferenceCache, type InsertReferenceCache, type JobStatus } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
 
@@ -36,6 +36,12 @@ export interface IStorage {
   getCsvDataByRow(jobId: string, rowIndex: number): Promise<CsvData | undefined>;
   createCsvData(data: InsertCsvData): Promise<CsvData>;
   updateCsvData(id: string, updates: Partial<CsvData>): Promise<CsvData>;
+
+  // Reference Cache
+  getReferenceCache(): Promise<ReferenceCache[]>;
+  findSimilarReferences(questionEmbedding: number[], threshold?: number): Promise<ReferenceCache[]>;
+  createReferenceCache(cache: InsertReferenceCache): Promise<ReferenceCache>;
+  updateReferenceCacheValidation(id: string, validatedAt: Date): Promise<ReferenceCache>;
 
   // Statistics
   getUserJobStats(userId: string): Promise<{
@@ -170,6 +176,45 @@ export class DatabaseStorage implements IStorage {
       .where(eq(csvData.id, id))
       .returning();
     return data;
+  }
+
+  // Reference Cache
+  async getReferenceCache(): Promise<ReferenceCache[]> {
+    return await db.select().from(referenceCache).orderBy(desc(referenceCache.createdAt));
+  }
+
+  async findSimilarReferences(questionEmbedding: number[], threshold: number = 0.85): Promise<ReferenceCache[]> {
+    // Since we don't have vector search in this setup, we'll fetch all and filter in memory
+    // In production, you'd want to use pgvector extension for proper vector similarity search
+    const allCache = await this.getReferenceCache();
+    
+    const embeddingsService = await import('./services/embeddings').then(m => m.embeddingsService);
+    const similar: ReferenceCache[] = [];
+    
+    for (const cache of allCache) {
+      const cachedEmbedding = JSON.parse(cache.questionEmbedding);
+      const similarity = embeddingsService.cosineSimilarity(questionEmbedding, cachedEmbedding);
+      
+      if (similarity >= threshold) {
+        similar.push(cache);
+      }
+    }
+    
+    return similar;
+  }
+
+  async createReferenceCache(cache: InsertReferenceCache): Promise<ReferenceCache> {
+    const [created] = await db.insert(referenceCache).values(cache).returning();
+    return created;
+  }
+
+  async updateReferenceCacheValidation(id: string, validatedAt: Date): Promise<ReferenceCache> {
+    const [updated] = await db
+      .update(referenceCache)
+      .set({ validatedAt })
+      .where(eq(referenceCache.id, id))
+      .returning();
+    return updated;
   }
 
   // Statistics

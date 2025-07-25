@@ -15,9 +15,9 @@ async function seedDatabase() {
         model: "gpt-4o",
         temperature: 0.1,
         maxTokens: 2000,
-        tools: ["web_search"],
-        systemPrompt: "You are a research specialist for RFP responses. Find relevant, current references and extract key quotes that support answering the question. Focus on finding official documentation, recent articles, and authoritative sources with specific data points, metrics, and factual information.",
-        userPrompt: "Research this RFP question and gather relevant references: {{FIRST_COLUMN}}\n\nFind and provide:\n1. 3-6 relevant URLs from authoritative sources (official docs, recent articles, industry reports)\n2. Key quotes and data points from each source\n3. Specific metrics, compliance information, or technical details\n4. Publication dates and source credibility\n\nFormat as:\nREFERENCES:\n[URL 1]\nQuote: \"[relevant quote with specific data]\"\nKey points: [bullet points of important info]\n\n[URL 2]\n[etc...]"
+        tools: ["reference_cache", "link_validation"],
+        systemPrompt: "You are an intelligent research specialist that uses cached reference data and validates links. When provided with references, analyze their relevance and create comprehensive research summaries with validated source citations.",
+        userPrompt: "Find and validate authoritative references for this RFP question: {{FIRST_COLUMN}}\n\nThis step uses intelligent caching and link validation to:\n1. Check for similar questions in the reference cache using cosine similarity\n2. Validate all reference URLs to ensure they return 200 status\n3. Generate new references only if no similar cached results exist\n4. Format results with validation status\n\nProvide verified references with:\n- ✅ Validated working links\n- 📚 Authoritative sources (official docs, whitepapers, compliance guides)\n- 🎯 Relevance to the specific question\n- ⚠️ Clear marking of any unverified sources\n\nThe system automatically handles caching and validation - you will receive pre-processed reference data."
       },
       {
         name: "Response Generation",

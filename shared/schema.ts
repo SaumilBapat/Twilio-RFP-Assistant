@@ -80,6 +80,18 @@ export const csvData = pgTable("csv_data", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Cache table for reference research with embeddings for cosine similarity
+export const referenceCache = pgTable("reference_cache", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  question: text("question").notNull(),
+  questionEmbedding: text("question_embedding").notNull(), // Store as JSON string for now
+  references: jsonb("references").notNull(), // Array of {url, title, description, status}
+  validatedAt: timestamp("validated_at").notNull(), // Last link validation time
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_reference_cache_question").on(table.question)
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   jobs: many(jobs),
@@ -145,6 +157,11 @@ export const insertCsvDataSchema = createInsertSchema(csvData).omit({
   updatedAt: true,
 });
 
+export const insertReferenceCacheSchema = createInsertSchema(referenceCache).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -156,5 +173,7 @@ export type JobStep = typeof jobSteps.$inferSelect;
 export type InsertJobStep = z.infer<typeof insertJobStepSchema>;
 export type CsvData = typeof csvData.$inferSelect;
 export type InsertCsvData = z.infer<typeof insertCsvDataSchema>;
+export type ReferenceCache = typeof referenceCache.$inferSelect;
+export type InsertReferenceCache = z.infer<typeof insertReferenceCacheSchema>;
 export type JobStatus = "not_started" | "in_progress" | "paused" | "completed" | "error" | "cancelled";
 export type StepStatus = "pending" | "running" | "completed" | "error";

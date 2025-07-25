@@ -44,6 +44,11 @@ export class OpenAIService {
     const startTime = Date.now();
     
     try {
+      // Special handling for Reference Research step
+      if (agent.name === "Reference Research") {
+        return await this.processReferenceResearch(agent, rowData);
+      }
+
       // Replace placeholders in prompts with actual data
       const processedSystemPrompt = this.replacePlaceholders(agent.systemPrompt, rowData);
       const processedUserPrompt = this.replacePlaceholders(agent.userPrompt, rowData);
@@ -103,6 +108,66 @@ export class OpenAIService {
         output: '',
         latency,
         inputPrompt: `System: ${agent.systemPrompt}\nUser: ${agent.userPrompt}`,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  private async processReferenceResearch(
+    agent: AgentConfig,
+    rowData: Record<string, any>
+  ): Promise<ProcessingResult> {
+    const startTime = Date.now();
+    
+    try {
+      // Import the reference research service dynamically to avoid circular dependencies
+      const { referenceResearchService } = await import('./referenceResearch');
+      
+      // Extract the question from the first column
+      const firstColumnKey = Object.keys(rowData)[0];
+      const question = firstColumnKey ? String(rowData[firstColumnKey] || '') : '';
+      
+      if (!question) {
+        throw new Error('No question found in input data');
+      }
+
+      console.log(`🔍 Using intelligent reference research for: ${question.substring(0, 100)}...`);
+      
+      // Use the enhanced reference research service
+      const result = await referenceResearchService.findReferences(question);
+      
+      // Format the output using the service
+      const output = referenceResearchService.formatReferencesForOutput(result.references);
+      
+      const latency = Date.now() - startTime;
+      
+      if (result.fromCache) {
+        console.log(`💰 Used cached references (similarity: ${result.similarity?.toFixed(3)})`);
+      } else {
+        console.log(`🆕 Generated new references with validation`);
+      }
+
+      return {
+        output,
+        latency,
+        inputPrompt: `Reference Research for: ${question}`,
+        metadata: {
+          model: agent.model,
+          fromCache: result.fromCache,
+          similarity: result.similarity,
+          referenceCount: result.references.length,
+          validReferences: result.references.filter(r => r.status === 'valid').length
+        }
+      };
+
+    } catch (error) {
+      const latency = Date.now() - startTime;
+      console.error(`❌ Reference research failed after ${latency}ms:`, error);
+      
+      return {
+        output: '',
+        latency,
+        inputPrompt: `Reference Research failed`,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
