@@ -31,6 +31,7 @@ export default function Spreadsheet() {
   const [, setLocation] = useLocation();
   const [inspectionOpen, setInspectionOpen] = useState(false);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
+  const [expandedCells, setExpandedCells] = useState<Set<string>>(new Set());
   const user = authService.getCurrentUser();
   const jobId = params.id;
   const queryClient = useQueryClient();
@@ -107,6 +108,21 @@ export default function Spreadsheet() {
   const handleStepInspection = (rowIndex: number) => {
     setSelectedRowIndex(rowIndex);
     setInspectionOpen(true);
+  };
+
+  const toggleCellExpansion = (rowId: string, column: string) => {
+    const cellKey = `${rowId}-${column}`;
+    const newExpanded = new Set(expandedCells);
+    if (newExpanded.has(cellKey)) {
+      newExpanded.delete(cellKey);
+    } else {
+      newExpanded.add(cellKey);
+    }
+    setExpandedCells(newExpanded);
+  };
+
+  const isCellExpanded = (rowId: string, column: string) => {
+    return expandedCells.has(`${rowId}-${column}`);
   };
 
   const handleJobAction = async (action: string) => {
@@ -333,15 +349,31 @@ export default function Spreadsheet() {
                           <div className="max-w-md">
                             {typeof value === 'string' && value.length > 200 ? (
                               <div>
-                                {value.substring(0, 200)}...
-                                <Button
-                                  variant="link"
-                                  size="sm"
-                                  className="text-xs p-0 h-auto"
-                                  onClick={() => {/* TODO: Show full text */}}
-                                >
-                                  Show more
-                                </Button>
+                                {isCellExpanded(row.id, column) ? (
+                                  <>
+                                    {value}
+                                    <Button
+                                      variant="link"
+                                      size="sm"
+                                      className="text-xs p-0 h-auto ml-2"
+                                      onClick={() => toggleCellExpansion(row.id, column)}
+                                    >
+                                      Show less
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    {value.substring(0, 200)}...
+                                    <Button
+                                      variant="link"
+                                      size="sm"
+                                      className="text-xs p-0 h-auto ml-2"
+                                      onClick={() => toggleCellExpansion(row.id, column)}
+                                    >
+                                      Show more
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             ) : (
                               value
