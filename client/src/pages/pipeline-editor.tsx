@@ -72,6 +72,20 @@ export default function PipelineEditor() {
     }
   };
 
+  const getLockedModel = (stepIndex: number, stepName: string) => {
+    if (stepName === "Reference Research") {
+      return "gpt-4o"; // Step 1: GPT-4o with search
+    } else if (stepName === "Generic Draft Generation" || stepName === "Tailored RFP Response") {
+      return "o3"; // Steps 2&3: o3
+    }
+    return pipeline?.steps[stepIndex]?.model || "gpt-4o";
+  };
+
+  const shouldShowTemperature = (stepName: string) => {
+    // Temperature not supported on o3 models
+    return stepName === "Reference Research";
+  };
+
   const cancelEdit = () => {
     setEditingStep(null);
     setEditedStep(null);
@@ -80,7 +94,14 @@ export default function PipelineEditor() {
   const saveStep = () => {
     if (pipeline && editedStep && editingStep !== null) {
       const updatedSteps = [...pipeline.steps];
-      updatedSteps[editingStep] = editedStep;
+      // Ensure model is locked to correct value
+      const stepName = pipeline.steps[editingStep].name;
+      const lockedModel = getLockedModel(editingStep, stepName);
+      
+      updatedSteps[editingStep] = {
+        ...editedStep,
+        model: lockedModel
+      };
       
       updatePipelineMutation.mutate({
         ...pipeline,
@@ -188,11 +209,13 @@ export default function PipelineEditor() {
                           <CardTitle className="text-lg">Step {index + 1}: {step.name}</CardTitle>
                           <div className="flex items-center space-x-4 mt-1">
                             <Badge variant="outline" className="text-xs">
-                              Model: {step.model}
+                              Model: {getLockedModel(index, step.name)}
                             </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              Temp: {step.temperature}
-                            </Badge>
+                            {shouldShowTemperature(step.name) && (
+                              <Badge variant="outline" className="text-xs">
+                                Temp: {step.temperature}
+                              </Badge>
+                            )}
                             <Badge variant="outline" className="text-xs">
                               Max Tokens: {step.maxTokens}
                             </Badge>
@@ -219,22 +242,30 @@ export default function PipelineEditor() {
                         <Label htmlFor="model">AI Model</Label>
                         <Input
                           id="model"
-                          value={editedStep.model}
-                          onChange={(e) => setEditedStep({...editedStep, model: e.target.value})}
+                          value={getLockedModel(index, step.name)}
+                          disabled={true}
+                          className="bg-gray-100"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {step.name === "Reference Research" 
+                            ? "Locked to GPT-4o with search capabilities" 
+                            : "Locked to o3 model for advanced reasoning"}
+                        </p>
                       </div>
-                      <div>
-                        <Label htmlFor="temperature">Temperature</Label>
-                        <Input
-                          id="temperature"
-                          type="number"
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          value={editedStep.temperature}
-                          onChange={(e) => setEditedStep({...editedStep, temperature: parseFloat(e.target.value)})}
-                        />
-                      </div>
+                      {shouldShowTemperature(step.name) && (
+                        <div>
+                          <Label htmlFor="temperature">Temperature</Label>
+                          <Input
+                            id="temperature"
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.1"
+                            value={editedStep.temperature}
+                            onChange={(e) => setEditedStep({...editedStep, temperature: parseFloat(e.target.value)})}
+                          />
+                        </div>
+                      )}
                       <div>
                         <Label htmlFor="maxTokens">Max Tokens</Label>
                         <Input
