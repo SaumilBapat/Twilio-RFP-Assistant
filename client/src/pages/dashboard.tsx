@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Bell, Settings, Upload, ChevronDown, User, Cog } from "lucide-react";
+import { Bell, Settings, Upload, ChevronDown, User, Cog, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { StatsCards } from "@/components/stats-cards";
 import { JobTable } from "@/components/job-table";
 import { UploadModal } from "@/components/upload-modal";
@@ -117,18 +124,36 @@ export default function Dashboard() {
               </Button>
               
               {/* User Profile */}
-              <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <User className="h-4 w-4 text-gray-600" />
-                </div>
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-900">{(user as any)?.name || 'Sarah Chen'}</p>
-                  <p className="text-xs text-gray-500">{(user as any)?.email || 'sarah.chen@twilio.com'}</p>
-                </div>
-                <Button variant="ghost" size="sm">
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
-                </Button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="p-1">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                        <User className="h-4 w-4 text-gray-600" />
+                      </div>
+                      <div className="hidden md:block text-left">
+                        <p className="text-sm font-medium text-gray-900">{(user as any)?.name || 'Sarah Chen'}</p>
+                        <p className="text-xs text-gray-500">{(user as any)?.email || 'sarah.chen@twilio.com'}</p>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5 text-sm text-gray-500">
+                    <p className="font-medium text-gray-900">{(user as any)?.name || 'Sarah Chen'}</p>
+                    <p className="text-xs">{(user as any)?.email || 'sarah.chen@twilio.com'}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="cursor-pointer"
+                    onClick={() => window.location.href = '/api/logout'}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
