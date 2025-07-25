@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -460,7 +460,9 @@ export default function Spreadsheet() {
                   {columns.map((column) => (
                     <th 
                       key={column}
-                      className="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase min-w-48"
+                      className={`border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase ${
+                        column === 'Reference Research' ? 'w-80' : 'min-w-48'
+                      }`}
                     >
                       {column}
                     </th>
@@ -481,26 +483,45 @@ export default function Spreadsheet() {
                       const isAiGenerated = row.enrichedData && row.enrichedData[column];
                       
                       // Handle different value types - some might be objects with content/fileName
-                      const getDisplayValue = (val: any): string => {
+                      const getDisplayValue = (val: any, columnName: string): string | JSX.Element => {
                         if (typeof val === 'string') return val;
                         if (typeof val === 'object' && val !== null) {
                           if (val.content) return val.content;
                           if (val.fileName) return val.fileName;
+                          
+                          // Special handling for Reference Research URLs
+                          if (columnName === 'Reference Research' && Array.isArray(val)) {
+                            return (
+                              <div className="space-y-1">
+                                {val.map((url: string, index: number) => (
+                                  <div key={index} className="break-all text-xs text-blue-600">
+                                    <a href={url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                      {url}
+                                    </a>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          }
+                          
                           return JSON.stringify(val);
                         }
                         return String(val || '');
                       };
                       
-                      const value = getDisplayValue(rawValue);
+                      const value = getDisplayValue(rawValue, column);
                       
                       return (
-                        <td key={column} className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
-                          <div className="max-w-md">
-                            {typeof value === 'string' && value.length > 200 ? (
+                        <td key={column} className={`border border-gray-300 px-4 py-2 text-sm text-gray-900 ${column === 'Reference Research' ? 'max-w-xs' : ''}`}>
+                          <div className={`${column === 'Reference Research' ? 'max-w-xs' : 'max-w-md'} break-words`}>
+                            {/* Handle JSX elements (like formatted URLs) */}
+                            {typeof value === 'object' && value !== null && React.isValidElement(value) ? (
+                              value
+                            ) : typeof value === 'string' && value.length > 200 ? (
                               <div>
                                 {isCellExpanded(row.id, column) ? (
                                   <>
-                                    {value}
+                                    <div className="whitespace-pre-wrap break-words">{value}</div>
                                     <Button
                                       variant="link"
                                       size="sm"
@@ -512,7 +533,7 @@ export default function Spreadsheet() {
                                   </>
                                 ) : (
                                   <>
-                                    {value.substring(0, 200)}...
+                                    <div className="whitespace-pre-wrap break-words">{value.substring(0, 200)}...</div>
                                     <Button
                                       variant="link"
                                       size="sm"
@@ -525,7 +546,7 @@ export default function Spreadsheet() {
                                 )}
                               </div>
                             ) : (
-                              value
+                              <div className="whitespace-pre-wrap break-words">{value}</div>
                             )}
                             {isAiGenerated && (
                               <div className="mt-2">
