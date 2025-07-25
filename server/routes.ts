@@ -531,6 +531,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to reset job' });
     }
   });
+  
+  // Job status sync endpoint - forces UI to sync with actual job state
+  app.post('/api/jobs/:id/sync', isAuthenticated, async (req: any, res) => {
+    try {
+      const job = await storage.getJob(req.params.id);
+      if (!job || job.userId !== req.user.id) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      // Check if job is actually running and sync status
+      const isActuallyRunning = (jobProcessor as any).activeJobs.has(job.id);
+      
+      if (isActuallyRunning && job.status !== 'in_progress') {
+        console.log(`🔄 Syncing job ${job.id} status: DB shows '${job.status}' but job is running`);
+        await storage.updateJob(job.id, { status: 'in_progress' });
+        const updatedJob = await storage.getJob(job.id);
+        broadcastToUser(job.userId, 'jobStarted', { jobId: job.id, job: updatedJob });
+        res.json({ message: 'Job status synced - now showing as in_progress', synced: true });
+      } else if (!isActuallyRunning && job.status === 'in_progress') {
+        await storage.updateJob(job.id, { status: 'paused' });
+        broadcastToUser(job.userId, 'jobPaused', { jobId: job.id });
+        res.json({ message: 'Job status synced - now showing as paused', synced: true });
+      } else {
+        res.json({ message: 'Job status already in sync', synced: false });
+      }
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to sync job status' });
+    }
+  });
 
   // Pipeline routes
   app.get('/api/pipelines', async (req, res) => {

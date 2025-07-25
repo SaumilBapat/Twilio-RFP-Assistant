@@ -16,6 +16,7 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
 
   async startJob(jobId: string): Promise<void> {
     if (this.activeJobs.has(jobId)) {
+      console.log(`⚠️  Job ${jobId} is already running, skipping start`);
       throw new Error('Job is already running');
     }
 
@@ -33,10 +34,12 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
       throw new Error('Pipeline not found');
     }
 
+    console.log(`🚀 Starting job ${jobId} with status: ${job.status}`);
     this.activeJobs.set(jobId, true);
     await storage.updateJob(jobId, { status: 'in_progress' });
     
-    this.emit('jobStarted', { jobId, job });
+    const updatedJob = await storage.getJob(jobId);
+    this.emit('jobStarted', { jobId, job: updatedJob });
     
     try {
       await this.processJob(job, pipeline);
@@ -59,6 +62,19 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
   }
 
   async resumeJob(jobId: string): Promise<void> {
+    const job = await storage.getJob(jobId);
+    if (!job) {
+      throw new Error('Job not found');
+    }
+
+    // If job is already running, just emit jobStarted to sync UI
+    if (this.activeJobs.has(jobId)) {
+      console.log(`🔄 Job ${jobId} is already running, syncing UI state`);
+      await storage.updateJob(jobId, { status: 'in_progress' });
+      this.emit('jobStarted', { jobId, job });
+      return;
+    }
+
     // Remove from paused jobs and active jobs to ensure clean state
     this.pausedJobs.delete(jobId);
     this.activeJobs.delete(jobId);

@@ -148,6 +148,30 @@ export default function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
   };
 
+  // Auto-sync job statuses on component mount to fix any mismatches
+  useEffect(() => {
+    if (Array.isArray(jobs) && jobs.length > 0) {
+      jobs.forEach(async (job: any) => {
+        // If job shows as paused but we're receiving processing logs, sync it
+        if (job.status === 'paused' && processingLogs.some(log => log.jobId === job.id)) {
+          try {
+            await fetch(`/api/jobs/${job.id}/sync`, { 
+              method: 'POST',
+              credentials: 'include' 
+            });
+            // Refetch after sync
+            setTimeout(() => {
+              refetchJobs();
+              queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
+            }, 500);
+          } catch (err) {
+            console.error('Failed to sync job status:', err);
+          }
+        }
+      });
+    }
+  }, [jobs, processingLogs, refetchJobs, queryClient]);
+
 
 
   return (
