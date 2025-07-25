@@ -92,41 +92,51 @@ class DocumentProcessor {
             throw new Error('PDF processing requires a valid buffer');
           }
           
-          // Use dynamic import with proper options for pdf-parse
-          const pdfParse = await import('pdf-parse');
+          console.log(`🔍 Processing PDF buffer of ${fileBuffer.length} bytes for document ${documentId}`);
           
-          // Call pdf-parse with the buffer
-          const pdfData = await pdfParse.default(fileBuffer);
+          // Try multiple approaches to PDF parsing
+          let pdfData;
+          try {
+            // Approach 1: Direct import and call
+            const pdfParse = (await import('pdf-parse')).default;
+            pdfData = await pdfParse(fileBuffer);
+          } catch (directError) {
+            console.log(`Direct PDF parse failed, trying alternative approach:`, directError.message);
+            
+            // Approach 2: Create a fresh buffer copy to avoid any reference issues
+            const cleanBuffer = Buffer.from(fileBuffer);
+            const pdfParse = (await import('pdf-parse')).default;
+            pdfData = await pdfParse(cleanBuffer);
+          }
           
-          textContent = pdfData.text;
+          textContent = pdfData.text || '';
           
           if (!textContent || textContent.trim().length === 0) {
             console.warn('PDF processed but no text content extracted for document:', documentId);
-            textContent = 'PDF file processed but no readable text content was found.';
+            // Get document info for fallback content
+            const document = await storage.getReferenceDocument(documentId);
+            if (document) {
+              textContent = `PDF document: ${document.fileName} (${(document.fileSize / 1024).toFixed(1)}KB)\nContent extraction completed but no readable text was found. This may be a scanned PDF or contain only images.`;
+            } else {
+              textContent = 'PDF file processed but no readable text content was found.';
+            }
+          } else {
+            console.log(`📄 PDF processed successfully: ${textContent.length} characters extracted`);
           }
-          
-          console.log(`📄 PDF processed successfully: ${textContent.length} characters extracted`);
           
         } catch (pdfError) {
           console.error('PDF parsing error for document:', documentId, pdfError);
           
-          // For PDF errors, try a fallback approach or mark as failed
-          try {
-            // Get document info for fallback content
-            const document = await storage.getReferenceDocument(documentId);
-            if (document) {
-              // Fallback: try to extract some basic info even if parsing fails
-              textContent = `PDF document: ${document.fileName} (${(document.fileSize / 1024).toFixed(1)}KB)\nContent extraction failed but document is available for reference.`;
-              console.log(`⚠️ Using fallback content for PDF ${documentId}`);
-            } else {
-              throw new Error('Document not found for fallback');
-            }
-          } catch (fallbackError) {
-            // Mark document as failed and don't crash the entire process
+          // Get document info for fallback content
+          const document = await storage.getReferenceDocument(documentId);
+          if (document) {
+            textContent = `PDF document: ${document.fileName} (${(document.fileSize / 1024).toFixed(1)}KB)\nContent extraction failed due to parsing error. Document is available for reference but text content could not be processed.`;
+            console.log(`⚠️ Using fallback content for PDF ${documentId} due to parsing error`);
+          } else {
+            // If we can't even get document details, mark as failed
             await storage.updateReferenceDocument(documentId, { 
               cachingStatus: 'failed' as CachingStatus
             });
-            
             console.log(`❌ PDF document ${documentId} marked as failed - skipping`);
             return;
           }
