@@ -69,6 +69,95 @@ export default function PipelineEditor() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Document upload functionality
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingFile(true);
+    setUploadingCount(0);
+    setTotalUploads(files.length);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/reference-documents', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'x-user-id': user?.id || 'admin-user'
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+
+        setUploadingCount(i + 1);
+      } catch (error) {
+        console.error('Upload error:', error);
+        toast({
+          title: 'Upload Failed',
+          description: `Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: 'destructive'
+        });
+      }
+    }
+
+    setUploadingFile(false);
+    setUploadingCount(0);
+    setTotalUploads(0);
+    
+    // Refresh the documents list
+    queryClient.invalidateQueries({ queryKey: ['/api/reference-documents'] });
+    
+    // Clear the file input
+    if (event.target) {
+      event.target.value = '';
+    }
+
+    toast({
+      title: 'Upload Complete',
+      description: `Successfully uploaded ${files.length} document(s)`
+    });
+  };
+
+  // Document delete functionality
+  const handleDeleteDocument = async (documentId: string) => {
+    try {
+      const response = await fetch(`/api/reference-documents/${documentId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'x-user-id': user?.id || 'admin-user'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete document');
+      }
+
+      // Refresh the documents list
+      queryClient.invalidateQueries({ queryKey: ['/api/reference-documents'] });
+      
+      toast({
+        title: 'Document Deleted',
+        description: 'Document has been removed successfully'
+      });
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: 'Delete Failed',
+        description: error instanceof Error ? error.message : 'Failed to delete document',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const { data: pipeline, isLoading } = useQuery({
     queryKey: ['/api/pipelines/default'],
     queryFn: () => fetch('/api/pipelines/default', {
@@ -78,8 +167,8 @@ export default function PipelineEditor() {
   });
 
   const { data: referenceDocuments = [], isLoading: documentsLoading } = useQuery({
-    queryKey: ['/api/documents'],
-    queryFn: () => fetch('/api/documents', {
+    queryKey: ['/api/reference-documents'],
+    queryFn: () => fetch('/api/reference-documents', {
       credentials: 'include',
       headers: { 'x-user-id': user?.id || 'user-1' }
     }).then(res => res.json()),
@@ -204,6 +293,43 @@ export default function PipelineEditor() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {/* Upload Area */}
+                  <div className="mb-4">
+                    <div 
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">Click to upload reference documents</p>
+                      <p className="text-xs text-gray-400 mt-1">PDF, Word, Excel, CSV, TXT files supported (up to 50MB)</p>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept=".pdf,.doc,.docx,.xlsx,.xlsm,.csv,.txt"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </div>
+
+                  {/* Upload Progress */}
+                  {uploadingFile && (
+                    <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Uploading documents...</span>
+                        <span className="text-sm text-gray-600">{uploadingCount}/{totalUploads}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${totalUploads > 0 ? (uploadingCount / totalUploads) * 100 : 0}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Documents List */}
                   {documentsLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -216,9 +342,22 @@ export default function PipelineEditor() {
                   ) : (
                     <div className="space-y-2">
                       {referenceDocuments.map((doc: ReferenceDocument) => (
-                        <div key={doc.id} className="p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm font-medium">{doc.fileName}</p>
-                          <p className="text-xs text-gray-500">{doc.fileType}</p>
+                        <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <FileText className="h-5 w-5 text-blue-600" />
+                            <div>
+                              <p className="text-sm font-medium">{doc.fileName}</p>
+                              <p className="text-xs text-gray-500">{doc.fileType}</p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>

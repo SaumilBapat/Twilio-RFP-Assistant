@@ -238,12 +238,21 @@ Preferred communication style: Simple, everyday language.
 - Cache efficiency improved by treating URLs like "page.html#section1" and "page.html#section2" as same content
 
 ### ✅ Semantic Similarity Threshold Optimization and UI Fixes (January 25, 2025)
-- Fixed critical semantic search issue: lowered similarity threshold from 0.75 to 0.55 for better content matching
+- Fixed critical semantic search issue: lowered similarity threshold from 0.75 to 0.5 for better content matching
 - Enhanced similarity scoring with detailed logging showing max, average, and threshold statistics
 - Fixed spelling error in job action messages: "pauseed" now correctly displays as "paused"
 - Implemented proper past tense mapping for all job actions in both job table and spreadsheet components
 - Added comprehensive action mapping: pause→paused, resume→resumed, start→started, reset→reset, cancel→cancelled
 - System now finds relevant semantic content chunks instead of constant "0 relevant chunks" results
+
+### ✅ Reference Documents Upload Functionality Restoration (January 25, 2025)
+- Fixed missing upload button in AI Pipeline Editor Reference Documents section
+- Corrected API endpoint from `/api/documents` to `/api/reference-documents` to match backend routes
+- Added complete file upload functionality with drag-and-drop interface and progress tracking
+- Implemented document deletion with confirmation and proper error handling
+- Added support for multiple file formats: PDF, Word, Excel (.xlsx/.xlsm), CSV, TXT files up to 50MB
+- Enhanced UI with file type icons, upload progress indicators, and real-time document list updates
+- Documents now properly persist and display after upload with file size and type information
 
 ### ✅ Dashboard UI Improvements and Real-time Console (January 25, 2025)
 - Removed system health bar from main dashboard to simplify interface
