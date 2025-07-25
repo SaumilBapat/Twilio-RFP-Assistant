@@ -1,0 +1,48 @@
+[vite] connecting...
+[WS Fix] Blocking malformed WebSocket URL: wss://localhost:undefined/?token=CDUTKCpegbVa
+Select is not defined
+Select is not defined
+at UploadModal (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/src/components/upload-modal.tsx:718:34)
+at renderWithHooks (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=f84af05f:11548:26)
+at mountIndeterminateComponent (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=f84af05f:14926:21)
+at beginWork (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=f84af05f:15914:22)
+at HTMLUnknownElement.callCallback2 (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=f84af05f:3674:22)
+at Object.invokeGuardedCallbackDev (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=f84af05f:3699:24)
+at invokeGuardedCallback (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=f84af05f:3733:39)
+at beginWork$1 (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=f84af05f:19765:15)
+at performUnitOfWork (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=f84af05f:19198:20)
+at workLoopSync (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=f84af05f:19137:13)
+The above error occurred in the <UploadModal> component:
+
+    at UploadModal (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/src/components/upload-modal.tsx:34:31)
+    at div
+    at Dashboard (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/src/pages/dashboard.tsx:36:49)
+    at Route (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f84af05f:323:16)
+    at Switch (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f84af05f:379:17)
+    at Router (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/src/App.tsx?v=IAjO4eJjCo3vB3NZysVPD:31:42)
+    at Provider (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TONAP5II.js?v=f84af05f:43:15)
+    at TooltipProvider (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=f84af05f:58:5)
+    at QueryClientProvider (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=f84af05f:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+at UploadModal (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/src/components/upload-modal.tsx:34:31)
+at div
+at Dashboard (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/src/pages/dashboard.tsx:36:49)
+at Route (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f84af05f:323:16)
+at Switch (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f84af05f:379:17)
+at Router (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/src/App.tsx?v=IAjO4eJjCo3vB3NZysVPD:31:42)
+at Provider (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TONAP5II.js?v=f84af05f:43:15)
+at TooltipProvider (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=f84af05f:58:5)
+at QueryClientProvider (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=f84af05f:2805:3)
+at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+at t.value (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://4ade058d-0161-4996-9db7-24eaa031df32-00-3d4t6adme7uoz.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
+Select is not defined
