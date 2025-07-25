@@ -27,12 +27,20 @@ interface Job {
   processedRows: number;
 }
 
+interface ProcessingLog {
+  step: string;
+  log: string;
+  timestamp: Date;
+}
+
 export default function Spreadsheet() {
   const params = useParams();
   const [, setLocation] = useLocation();
   const [inspectionOpen, setInspectionOpen] = useState(false);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const [expandedCells, setExpandedCells] = useState<Set<string>>(new Set());
+  const [processingLogs, setProcessingLogs] = useState<ProcessingLog[]>([]);
+  const [currentProcessingRow, setCurrentProcessingRow] = useState<number | null>(null);
   const user = authService.getCurrentUser();
   const jobId = params.id;
   const queryClient = useQueryClient();
@@ -98,6 +106,21 @@ export default function Spreadsheet() {
             title: "Processing Update",
             description: `Row ${data.rowIndex + 1} processed (${data.progress}% complete)`,
           });
+          
+          // Clear processing logs when row completes
+          setProcessingLogs([]);
+          setCurrentProcessingRow(null);
+          break;
+        case 'processing_log':
+          // Handle detailed processing logs
+          if (data.step && data.log) {
+            const newLog: ProcessingLog = {
+              step: data.step,
+              log: data.log,
+              timestamp: new Date()
+            };
+            setProcessingLogs(prev => [...prev.slice(-9), newLog]); // Keep last 10 logs
+          }
           break;
       }
     }
@@ -366,6 +389,36 @@ export default function Spreadsheet() {
                 className="bg-primary-500 h-2 rounded-full transition-all duration-300" 
                 style={{ width: `${Math.round((job.processedRows / job.totalRows) * 100)}%` }}
               />
+            </div>
+          </div>
+        )}
+
+        {/* Real-time Processing Logs */}
+        {job.status === 'in_progress' && processingLogs.length > 0 && (
+          <div className="bg-slate-900 border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-slate-100">Processing Details</h3>
+              <span className="text-xs text-slate-400">
+                Row {job.processedRows + 1} of {job.totalRows}
+              </span>
+            </div>
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {processingLogs.map((log, index) => (
+                <div key={index} className="flex items-start space-x-3 text-sm">
+                  <div className="flex-shrink-0">
+                    <span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-slate-300 font-medium">{log.step}:</span>
+                      <span className="text-slate-100">{log.log}</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      {log.timestamp.toLocaleTimeString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

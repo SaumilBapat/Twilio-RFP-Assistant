@@ -89,16 +89,38 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
   /**
    * Process URLs: scrape, chunk, embed, and store in cache
    */
-  async processUrls(urls: string[]): Promise<string[]> {
+  async processUrls(urls: string[], jobId?: string): Promise<string[]> {
     const processedUrls: string[] = [];
+    
+    // Use global broadcast function
+    const broadcastJobUpdate = (global as any).broadcastJobUpdate;
     
     for (const url of urls) {
       try {
+        if (jobId) {
+          broadcastJobUpdate(jobId, {
+            event: 'processing_log',
+            data: {
+              step: 'Reference Research',
+              log: `🌐 Processing URL: ${url.length > 80 ? url.substring(0, 77) + '...' : url}`
+            }
+          });
+        }
+        
         console.log(`🌐 Processing URL: ${url}`);
         
         // Check if URL is valid and live
         const isValid = await webScraperService.isValidUrl(url);
         if (!isValid) {
+          if (jobId) {
+            broadcastJobUpdate(jobId, {
+              event: 'processing_log',
+              data: {
+                step: 'Reference Research',
+                log: `❌ URL not accessible: ${url.length > 60 ? url.substring(0, 57) + '...' : url}`
+              }
+            });
+          }
           console.log(`❌ URL not valid or not accessible: ${url}`);
           continue;
         }
@@ -106,14 +128,42 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
         // Check if we already have this content in cache
         const existingChunks = await storage.getReferenceChunksByUrl(url);
         if (existingChunks.length > 0) {
+          if (jobId) {
+            broadcastJobUpdate(jobId, {
+              event: 'processing_log',
+              data: {
+                step: 'Reference Research',
+                log: `♻️ Using cached chunks: ${url.length > 50 ? url.substring(0, 47) + '...' : url} (${existingChunks.length} chunks)`
+              }
+            });
+          }
           console.log(`♻️ URL already processed: ${url} (${existingChunks.length} chunks)`);
           processedUrls.push(url);
           continue;
         }
 
         // Scrape the content
+        if (jobId) {
+          broadcastJobUpdate(jobId, {
+            event: 'processing_log',
+            data: {
+              step: 'Reference Research',
+              log: `📄 Scraping full page content from: ${url.length > 50 ? url.substring(0, 47) + '...' : url}`
+            }
+          });
+        }
+        
         const scrapedContent = await webScraperService.scrapeUrl(url);
         if (!scrapedContent) {
+          if (jobId) {
+            broadcastJobUpdate(jobId, {
+              event: 'processing_log',
+              data: {
+                step: 'Reference Research',
+                log: `❌ Failed to scrape content from: ${url.length > 50 ? url.substring(0, 47) + '...' : url}`
+              }
+            });
+          }
           console.log(`❌ Failed to scrape content from: ${url}`);
           continue;
         }
@@ -128,6 +178,16 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
 
         // Chunk the content
         const chunks = contentChunkerService.chunkContent(scrapedContent.content, url);
+        
+        if (jobId) {
+          broadcastJobUpdate(jobId, {
+            event: 'processing_log',
+            data: {
+              step: 'Reference Research',
+              log: `📝 Created ${chunks.length} semantic chunks, generating embeddings...`
+            }
+          });
+        }
         console.log(`📄 Created ${chunks.length} chunks from ${url}`);
 
         // Generate embeddings for each chunk and store
@@ -159,6 +219,16 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
         }
 
         processedUrls.push(url);
+        
+        if (jobId) {
+          broadcastJobUpdate(jobId, {
+            event: 'processing_log',
+            data: {
+              step: 'Reference Research',
+              log: `✅ Successfully embedded ${chunks.length} chunks from: ${url.length > 50 ? url.substring(0, 47) + '...' : url}`
+            }
+          });
+        }
         console.log(`✅ Successfully processed ${url} with ${chunks.length} chunks`);
         
       } catch (error) {
@@ -166,6 +236,15 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
       }
     }
 
+    if (jobId) {
+      broadcastJobUpdate(jobId, {
+        event: 'processing_log',
+        data: {
+          step: 'Reference Research',
+          log: `🎯 Completed processing: ${processedUrls.length}/${urls.length} URLs successfully embedded`
+        }
+      });
+    }
     console.log(`🏁 Completed processing ${processedUrls.length}/${urls.length} URLs`);
     return processedUrls;
   }

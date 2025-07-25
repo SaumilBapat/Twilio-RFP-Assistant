@@ -14,19 +14,57 @@ export interface EnhancedReferenceResult {
  * Enhanced reference research using semantic search and full content processing
  */
 export async function performEnhancedReferenceResearch(
-  contextualQuestion: string
+  contextualQuestion: string,
+  jobId?: string
 ): Promise<{ urls: string[] }> {
   console.log(`🚀 Starting enhanced reference research for: ${contextualQuestion.substring(0, 100)}...`);
   
+  // Use global broadcast function
+  const broadcastJobUpdate = (global as any).broadcastJobUpdate;
+  
+  if (jobId && broadcastJobUpdate) {
+    broadcastJobUpdate(jobId, {
+      event: 'processing_log',
+      data: {
+        step: 'Reference Research',
+        log: `🚀 Starting enhanced reference research for: "${contextualQuestion.substring(0, 100)}..."`
+      }
+    });
+  }
+  
   try {
-    // Use the enhanced embeddings service to perform the research
-    const result = await enhancedEmbeddingsService.enhancedReferenceResearch(contextualQuestion);
+    // Step 1: Search for relevant URLs
+    const urls = await enhancedEmbeddingsService.searchRelevantUrls(contextualQuestion);
     
-    console.log(`✅ Enhanced reference research completed:
-    - Processed URLs: ${result.processedUrls.length}
-    - Relevant chunks found: ${result.relevantChunks.length}
-    - Average similarity: ${result.relevantChunks.length > 0 ? 
-      (result.relevantChunks.reduce((sum, chunk) => sum + chunk.similarity, 0) / result.relevantChunks.length).toFixed(3) : 'N/A'}`);
+    if (urls.length === 0) {
+      if (jobId && broadcastJobUpdate) {
+        broadcastJobUpdate(jobId, {
+          event: 'processing_log',
+          data: {
+            step: 'Reference Research',
+            log: `⚠️  No URLs found for this question`
+          }
+        });
+      }
+      return { urls: [] };
+    }
+    
+    // Step 2: Process URLs (scrape, chunk, embed, store)
+    const processedUrls = await enhancedEmbeddingsService.processUrls(urls, jobId);
+    
+    const result = { processedUrls, relevantChunks: [] };
+    
+    console.log(`✅ Enhanced reference research completed: ${result.processedUrls.length} URLs processed`);
+    
+    if (jobId && broadcastJobUpdate) {
+      broadcastJobUpdate(jobId, {
+        event: 'processing_log',
+        data: {
+          step: 'Reference Research',
+          log: `✅ Enhanced reference research completed: ${result.processedUrls.length} URLs processed`
+        }
+      });
+    }
     
     // Return just the processed URLs for now - the semantic chunks are stored in the database
     // and will be retrieved during the Generic Draft Generation step
@@ -36,6 +74,16 @@ export async function performEnhancedReferenceResearch(
     
   } catch (error) {
     console.error('❌ Enhanced reference research failed:', error);
+    
+    if (jobId && broadcastJobUpdate) {
+      broadcastJobUpdate(jobId, {
+        event: 'processing_log',
+        data: {
+          step: 'Reference Research',
+          log: `❌ Enhanced reference research failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }
+      });
+    }
     
     // Fallback to empty result
     return {

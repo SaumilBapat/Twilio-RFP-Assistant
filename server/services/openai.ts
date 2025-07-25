@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { performEnhancedReferenceResearch, getRelevantContentChunks } from './enhancedReferenceResearch';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
@@ -121,7 +122,8 @@ export class OpenAIService {
 
       // Special handling for legacy Response Generation step
       if (agent.name === "Response Generation") {
-        return await this.processResponseGeneration(agent, rowData);
+        // Legacy support - use generic draft generation
+        return await this.processGenericDraftGeneration(agent, rowData);
       }
 
       // Special handling for Tailored RFP Response step (no caching, uses o3)
@@ -213,8 +215,11 @@ export class OpenAIService {
 
       console.log(`🔍 Processing contextual question: ${contextualQuestion.substring(0, 150)}...`);
       
+      // Extract jobId from the context if available
+      const jobId = (rowData as any).jobId;
+      
       // Use the enhanced reference research system
-      const result = await performEnhancedReferenceResearch(contextualQuestion);
+      const result = await performEnhancedReferenceResearch(contextualQuestion, jobId);
       
       const latency = Date.now() - startTime;
       
@@ -257,6 +262,20 @@ export class OpenAIService {
       console.log(`📝 Processing Generic Draft Generation with semantic chunks...`);
       
       const contextualQuestion = rowData.FULL_CONTEXTUAL_QUESTION || rowData[Object.keys(rowData)[0]] || '';
+      const jobId = (rowData as any).jobId;
+      
+      // Use global broadcast function
+      const broadcastJobUpdate = (global as any).broadcastJobUpdate;
+      
+      if (jobId && broadcastJobUpdate) {
+        broadcastJobUpdate(jobId, {
+          event: 'processing_log',
+          data: {
+            step: 'Generic Draft Generation',
+            log: `📝 Starting semantic search for relevant content chunks...`
+          }
+        });
+      }
       
       if (!contextualQuestion) {
         throw new Error('No contextual question found in input data');
@@ -264,6 +283,16 @@ export class OpenAIService {
 
       // Get relevant content chunks using semantic search
       const relevantChunks = await getRelevantContentChunks(contextualQuestion, 15);
+      
+      if (jobId && broadcastJobUpdate) {
+        broadcastJobUpdate(jobId, {
+          event: 'processing_log',
+          data: {
+            step: 'Generic Draft Generation',
+            log: `📊 Found ${relevantChunks.length} relevant content chunks (avg similarity: ${relevantChunks.length > 0 ? (relevantChunks.reduce((sum, chunk) => sum + chunk.similarity, 0) / relevantChunks.length * 100).toFixed(1) + '%' : 'N/A'})`
+          }
+        });
+      }
       
       console.log(`📊 Found ${relevantChunks.length} relevant content chunks for draft generation`);
       
@@ -283,6 +312,16 @@ Relevance Score: ${(chunk.similarity * 100).toFixed(1)}%`
         REFERENCE_URLS: relevantChunks.map(chunk => chunk.url).join('\n')
       });
       
+      if (jobId && broadcastJobUpdate) {
+        broadcastJobUpdate(jobId, {
+          event: 'processing_log',
+          data: {
+            step: 'Generic Draft Generation',
+            log: `🤖 Generating draft response using ${agent.model} with ${relevantChunks.length} semantic chunks...`
+          }
+        });
+      }
+      
       const result = await this.callOpenAIDirect({
         model: agent.model,
         systemPrompt: agent.systemPrompt,
@@ -292,6 +331,16 @@ Relevance Score: ${(chunk.similarity * 100).toFixed(1)}%`
       });
       
       const latency = Date.now() - startTime;
+      
+      if (jobId && broadcastJobUpdate) {
+        broadcastJobUpdate(jobId, {
+          event: 'processing_log',
+          data: {
+            step: 'Generic Draft Generation',
+            log: `✅ Generic draft completed in ${latency}ms using ${relevantChunks.length} semantic chunks`
+          }
+        });
+      }
       
       console.log(`✅ Generic draft generation completed in ${latency}ms using ${relevantChunks.length} semantic chunks`);
       
@@ -303,8 +352,8 @@ Relevance Score: ${(chunk.similarity * 100).toFixed(1)}%`
           ...result.metadata,
           semanticChunks: relevantChunks.length,
           avgSimilarity: relevantChunks.length > 0 ? 
-            (relevantChunks.reduce((sum, chunk) => sum + chunk.similarity, 0) / relevantChunks.length).toFixed(3) : 'N/A',
-          uniqueUrls: [...new Set(relevantChunks.map(chunk => chunk.url))].length
+            (relevantChunks.reduce((sum: number, chunk: any) => sum + chunk.similarity, 0) / relevantChunks.length).toFixed(3) : 'N/A',
+          uniqueUrls: Array.from(new Set(relevantChunks.map((chunk: any) => chunk.url))).length
         }
       };
 

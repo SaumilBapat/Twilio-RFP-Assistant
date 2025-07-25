@@ -54,6 +54,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
+  // Export function for broadcasting job processing logs
+  (global as any).broadcastJobUpdate = async (jobId: string, message: { event: string; data: any }) => {
+    const job = await storage.getJob(jobId);
+    if (job) {
+      broadcastToUser(job.userId, message.event, message.data);
+    }
+  };
+
   // Job processor event listeners
   jobProcessor.on('jobStarted', async ({ jobId, job }) => {
     broadcastToUser(job.userId, 'jobStarted', { jobId, job });

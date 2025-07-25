@@ -207,6 +207,9 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     currentData['FULL_CONTEXTUAL_QUESTION'] = fullContextualQuestion;
     console.log(`🧠 Full contextual question: ${fullContextualQuestion.substring(0, 100)}...`);
     
+    // Add jobId for detailed logging
+    currentData['jobId'] = jobId;
+    
     // Add RFP-specific context for Step 3 processing
     if (job?.rfpInstructions) {
       currentData['RFP_INSTRUCTIONS'] = job.rfpInstructions;
