@@ -136,20 +136,28 @@ export default function PipelineEditor() {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       const newCount = uploadingCount + 1;
       setUploadingCount(newCount);
       
+      // Show different messages for duplicates vs new uploads
+      if (data.isDuplicate) {
+        // Don't show individual toast for duplicates, just log it
+        console.log(`Duplicate detected: ${data.fileName}`);
+      }
+      
       if (newCount === totalUploads) {
-        // All files uploaded
+        // All files processed - show summary
         setUploadingFile(false);
         setUploadingCount(0);
         setTotalUploads(0);
+        
+        // Show completion message
         toast({
-          title: "Success", 
+          title: "Upload Complete", 
           description: totalUploads === 1 
-            ? "Document uploaded successfully"
-            : `${totalUploads} documents uploaded successfully`,
+            ? (data.isDuplicate ? "Document already exists" : "Document uploaded successfully")
+            : `${totalUploads} documents processed (duplicates skipped automatically)`,
         });
       }
       
@@ -588,8 +596,8 @@ export default function PipelineEditor() {
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         {totalUploads > 1 
-                          ? `Uploading ${uploadingCount}/${totalUploads}...`
-                          : "Uploading..."
+                          ? `Processing ${uploadingCount}/${totalUploads}...`
+                          : "Processing..."
                         }
                       </>
                     ) : (

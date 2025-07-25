@@ -28,8 +28,11 @@ class DocumentProcessor {
     if (existingDoc && existingDoc.userId === userId) {
       console.log(`📋 Duplicate document detected: "${fileName}" matches existing "${existingDoc.fileName}" (hash: ${fileHash.substring(0, 12)}...)`);
       
-      // Return existing document to avoid duplicate processing
-      return existingDoc;
+      // Return existing document with duplicate flag to avoid duplicate processing
+      return {
+        ...existingDoc,
+        isDuplicate: true
+      };
     }
     
     // Create standardized document name if it's a duplicate filename for this user
@@ -61,7 +64,10 @@ class DocumentProcessor {
     // Start async processing
     this.startProcessing(document.id, fileBuffer, fileType);
 
-    return document;
+    return {
+      ...document,
+      isDuplicate: false
+    };
   }
 
   private async startProcessing(documentId: string, fileBuffer: Buffer, fileType: string) {
