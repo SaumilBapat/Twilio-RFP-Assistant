@@ -37,6 +37,49 @@ export class OpenAIService {
     }
   }
 
+  // Direct OpenAI call to avoid circular dependencies
+  async callOpenAIDirect(config: {
+    model: string;
+    systemPrompt: string;
+    userPrompt: string;
+    temperature?: number;
+    maxTokens?: number;
+  }): Promise<ProcessingResult> {
+    const startTime = Date.now();
+    
+    try {
+      const response = await openai.chat.completions.create({
+        model: config.model,
+        messages: [
+          { role: "system", content: config.systemPrompt },
+          { role: "user", content: config.userPrompt }
+        ],
+        temperature: config.temperature || 0.7,
+        max_tokens: config.maxTokens || 1000
+      });
+
+      const latency = Date.now() - startTime;
+      const output = response.choices[0].message.content || '';
+
+      return {
+        output,
+        latency,
+        inputPrompt: `System: ${config.systemPrompt}\nUser: ${config.userPrompt}`
+      };
+
+    } catch (error) {
+      const latency = Date.now() - startTime;
+      console.error(`OpenAI direct call error:`, error);
+      
+      return {
+        output: '',
+        latency,
+        inputPrompt: `System: ${config.systemPrompt}\nUser: ${config.userPrompt}`,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
   async processWithAgent(
     agent: AgentConfig,
     rowData: Record<string, any>

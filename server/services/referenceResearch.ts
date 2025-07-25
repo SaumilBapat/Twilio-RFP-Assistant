@@ -82,7 +82,7 @@ export class ReferenceResearchService {
   }
 
   private async generateNewReferences(question: string): Promise<CachedReferences> {
-    // Use OpenAI to find references
+    // Call OpenAI directly to avoid circular dependency
     const prompt = `Find authoritative sources and references that would help answer this RFP question: "${question}"
 
 Return your response as a JSON object with this structure:
@@ -105,14 +105,13 @@ Focus on:
 
 Provide 3-5 high-quality references with working URLs.`;
 
-    const result = await openaiService.processWithAgent({
-      name: "Reference Research",
+    const result = await openaiService.callOpenAIDirect({
       model: "gpt-4o",
       systemPrompt: "You are a research expert finding authoritative sources for RFP questions.",
       userPrompt: prompt,
       temperature: 0.3,
       maxTokens: 1000
-    }, { question });
+    });
 
     if (result.error) {
       throw new Error(`Reference generation failed: ${result.error}`);
