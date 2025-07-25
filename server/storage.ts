@@ -321,6 +321,14 @@ export class DatabaseStorage implements IStorage {
   async clearJobSteps(jobId: string): Promise<void> {
     await db.delete(jobSteps).where(eq(jobSteps.jobId, jobId));
   }
+
+  async getActiveJobs(): Promise<Job[]> {
+    return await db.select().from(jobs).where(eq(jobs.status, 'in_progress'));
+  }
+
+  async getJobs(userId: string): Promise<Job[]> {
+    return await db.select().from(jobs).where(eq(jobs.userId, userId)).orderBy(desc(jobs.createdAt));
+  }
 }
 
 export const storage = new DatabaseStorage();

@@ -141,6 +141,21 @@ Preferred communication style: Simple, everyday language.
 - Responses now generate clean, submission-ready content without "Company Overview" or "Response to RFP Question:" headers
 - Enhanced value display handling for complex object types in spreadsheet cells
 
+### ✅ External URL Prevention and Reference Inclusion (January 25, 2025)
+- Fixed critical issue where Generic Draft Generation was adding external URLs (HIMSS, Ponemon Institute, PMI)
+- Updated Generic Draft Generation prompts to strictly use only provided Twilio ecosystem research
+- Enhanced Tailored RFP Response prompts to ensure reference URLs are included at bottom of responses
+- Cleared all cached responses containing external references to ensure clean processing
+- All responses now contain exclusively Twilio, Segment, and SendGrid references as required
+
+### ✅ Dashboard Streamlining and Live System Health (January 25, 2025)
+- Removed Quick Actions and Recent Activity sections from dashboard for cleaner interface
+- Implemented live System Health monitoring with real operational data
+- Added /api/system/health endpoint providing real-time metrics
+- System Health now shows: API status, active jobs count, processing rate, worker utilization, storage usage
+- Health data refreshes every 5 seconds with live indicators and timestamps
+- Enhanced system health display with grid layout and storage usage progress bar
+
 ## External Dependencies
 
 ### Core Technologies

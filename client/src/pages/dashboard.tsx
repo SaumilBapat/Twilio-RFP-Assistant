@@ -6,8 +6,7 @@ import { useLocation } from "wouter";
 import { StatsCards } from "@/components/stats-cards";
 import { JobTable } from "@/components/job-table";
 import { UploadModal } from "@/components/upload-modal";
-import { QuickActions } from "@/components/quick-actions";
-import { RecentActivity } from "@/components/recent-activity";
+
 import { SystemHealth } from "@/components/system-health";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,7 +19,7 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
-  const { lastMessage } = useWebSocket(user?.id || null);
+  const { lastMessage } = useWebSocket((user as any)?.id || null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -123,8 +122,8 @@ export default function Dashboard() {
                   <User className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-900">{user?.name || 'Sarah Chen'}</p>
-                  <p className="text-xs text-gray-500">{user?.email || 'sarah.chen@twilio.com'}</p>
+                  <p className="text-sm font-medium text-gray-900">{(user as any)?.name || 'Sarah Chen'}</p>
+                  <p className="text-xs text-gray-500">{(user as any)?.email || 'sarah.chen@twilio.com'}</p>
                 </div>
                 <Button variant="ghost" size="sm">
                   <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -167,7 +166,7 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <StatsCards stats={stats || { totalJobs: 0, activeJobs: 0, completedToday: 0 }} />
+            <StatsCards stats={stats as any || { totalJobs: 0, activeJobs: 0, completedToday: 0 }} />
           )}
         </div>
 
@@ -184,16 +183,11 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          <JobTable jobs={jobs} onJobUpdate={handleJobUpdate} />
+          <JobTable jobs={jobs as any} onJobUpdate={handleJobUpdate} />
         )}
 
-        {/* Quick Actions Panel */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <QuickActions 
-            onUploadClick={() => setUploadModalOpen(true)}
-            onPipelineBuilderClick={() => setLocation('/pipeline')}
-          />
-          <RecentActivity />
+        {/* System Health Panel */}
+        <div className="mt-8">
           <SystemHealth />
         </div>
       </div>
