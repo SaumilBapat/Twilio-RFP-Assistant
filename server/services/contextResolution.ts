@@ -13,7 +13,9 @@ export interface ContextResolutionResult {
 export class ContextResolutionService {
   async resolveQuestionContext(
     allQuestions: Array<{questionNumber: number, question: string}>,
-    currentQuestionNumber: number
+    currentQuestionNumber: number,
+    rfpInstructions?: string,
+    additionalDocuments?: Array<{fileName: string, content: string}>
   ): Promise<ContextResolutionResult> {
     const currentQuestion = allQuestions.find(q => q.questionNumber === currentQuestionNumber);
     if (!currentQuestion) {
@@ -44,18 +46,32 @@ CRITICAL: You must return valid JSON in exactly this format:
   "reasoning": "string"
 }`;
 
+    // Build additional context sections
+    let additionalContext = '';
+    
+    if (rfpInstructions) {
+      additionalContext += `\n\nRFP RESPONSE INSTRUCTIONS:
+${rfpInstructions}`;
+    }
+    
+    if (additionalDocuments && additionalDocuments.length > 0) {
+      additionalContext += `\n\nADDITIONAL RFP DOCUMENTATION:
+${additionalDocuments.map(doc => `${doc.fileName}:\n${doc.content}`).join('\n\n')}`;
+    }
+
     const userPrompt = `Analyze this RFP question to determine if it references previous questions and create a fully contextual version.
 
 CURRENT QUESTION (#${currentQuestionNumber}):
 "${currentQuestion.question}"
 
 PREVIOUS QUESTIONS:
-${previousQuestions.map(q => `${q.questionNumber}. ${q.question}`).join('\n')}
+${previousQuestions.map(q => `${q.questionNumber}. ${q.question}`).join('\n')}${additionalContext}
 
 TASK:
 1. Determine if the current question references, builds upon, or depends on any previous questions
 2. If YES: Create a "fullContextualQuestion" that incorporates all necessary context from previous questions to make it completely self-contained
 3. If NO: Return the original question as the "fullContextualQuestion"
+4. Consider RFP instructions and additional documentation when creating contextual questions
 
 EXAMPLES OF REFERENCES TO DETECT:
 - Explicit: "Q4", "Question 4", "the CCaaS implementation from Q4"
@@ -66,6 +82,7 @@ EXAMPLES OF REFERENCES TO DETECT:
 GUIDELINES FOR FULL CONTEXTUAL QUESTIONS:
 - Include specific technologies, platforms, or solutions mentioned in referenced questions
 - Incorporate key context that makes the question standalone
+- Consider RFP instructions and additional documentation provided above
 - Maintain the original intent and scope
 - Keep professional RFP language
 - Don't make assumptions about specific implementations unless clearly stated in previous questions

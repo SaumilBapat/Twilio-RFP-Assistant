@@ -321,9 +321,19 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     try {
       console.log(`🧠 Resolving context for question ${currentQuestionNumber} using LLM analysis`);
       
+      // Get RFP instructions and additional documents
+      const job = await storage.getJob(jobId);
+      let additionalDocuments: Array<{fileName: string, content: string}> | undefined;
+      
+      if (job?.additionalDocuments && Array.isArray(job.additionalDocuments)) {
+        additionalDocuments = await this.loadAdditionalDocuments(job.additionalDocuments);
+      }
+
       const result = await contextResolutionService.resolveQuestionContext(
         allQuestions,
-        currentQuestionNumber
+        currentQuestionNumber,
+        job?.rfpInstructions || undefined,
+        additionalDocuments
       );
       
       console.log(`🎯 Context resolution: ${result.hasReferences ? 'References detected' : 'No references'}`);
@@ -331,6 +341,8 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
         console.log(`📋 Referenced questions: ${result.referencedQuestions.join(', ')}`);
         console.log(`💭 Reasoning: ${result.reasoning}`);
       }
+      
+      console.log(`📋 RFP Context: Instructions=${job?.rfpInstructions ? 'Included' : 'None'}, Docs=${additionalDocuments?.length || 0}`);
       
       return result.fullContextualQuestion;
       

@@ -134,6 +134,22 @@ Preferred communication style: Simple, everyday language.
 - Real-time progress indicators show current job processing activity
 - Fixed job table displays with live status changes and row processing updates
 
+### ✅ Enhanced Contextual Question Generation with RFP Instructions (January 25, 2025)
+- Updated context resolution service to include RFP response instructions in question context
+- Modified contextual question generation to incorporate additional RFP documentation
+- Enhanced job processor to pass RFP instructions and uploaded documents to context resolution
+- Improved prompt engineering to consider company-specific requirements when creating contextual questions
+- Added logging to track when RFP instructions and additional documents are included in context
+- Context resolution now creates more accurate, company-specific questions for better AI processing
+
+### ✅ Real-time Processing Logs Display (January 25, 2025)
+- Implemented detailed processing logs broadcast through WebSocket for real-time updates
+- Added comprehensive logging to Enhanced Reference Research with URL processing details
+- Enhanced Generic Draft Generation with semantic search progress indicators
+- Created frontend processing log panel showing current question activity
+- Real-time logs display with step-by-step progress, timing information, and semantic similarity scores
+- Processing logs appear in dark terminal-style panel during active job processing
+
 ### ✅ Spreadsheet UI and Response Quality Improvements (January 25, 2025)
 - Fixed React rendering error when CSV values contained objects with content/fileName properties
 - Implemented proper column ordering: Original columns → Reference Research → Generic Draft → Tailored RFP Response
