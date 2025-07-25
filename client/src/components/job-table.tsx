@@ -15,7 +15,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Trash2
+  Trash2,
+  RotateCcw
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useLocation } from "wouter";
@@ -276,6 +277,17 @@ export function JobTable({ jobs, onJobUpdate }: JobTableProps) {
                           className="text-success-600 hover:text-success-900"
                         >
                           <Play className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {(job.status === 'completed' || job.status === 'error') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleJobAction(job.id, 'reprocess')}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Reprocess - Clear AI results and restart"
+                        >
+                          <RotateCcw className="h-4 w-4" />
                         </Button>
                       )}
                       <Button

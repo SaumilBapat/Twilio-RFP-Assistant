@@ -261,31 +261,16 @@ export default function Spreadsheet() {
                 </Button>
               )}
               
-              {/* Debug: Show current job status */}
-              <div className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded">
-                Status: {job.status}
-              </div>
-              
               {(job.status === 'completed' || job.status === 'error') && (
                 <Button
                   onClick={() => handleJobAction('reprocess')}
                   variant="outline"
-                  className="text-blue-600 border-blue-600 hover:bg-blue-50 font-semibold"
+                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  🔄 Reprocess
+                  Reprocess
                 </Button>
               )}
-              
-              {/* Always show reprocess for testing - will remove this later */}
-              <Button
-                onClick={() => handleJobAction('reprocess')}
-                variant="default"
-                className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                🧪 TEST REPROCESS
-              </Button>
               
               <Button 
                 variant="outline" 
