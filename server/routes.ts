@@ -398,13 +398,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const csvData = await storage.getJobCsvData(job.id);
-      const exportData = csvData.map(row => ({
-        ...(row.originalData || {}),
-        ...(row.enrichedData || {})
-      }));
+      
+      // Filter columns to match grid view (exclude internal processing columns)
+      const excludedColumns = ["RFP_INSTRUCTIONS", "ADDITIONAL_DOCUMENTS", "FULL_CONTEXTUAL_QUESTION"];
+      
+      const exportData = csvData.map(row => {
+        const combinedData = {
+          ...(row.originalData || {}),
+          ...(row.enrichedData || {})
+        };
+        
+        // Filter out excluded columns
+        const filteredData: Record<string, any> = {};
+        Object.keys(combinedData).forEach(key => {
+          if (!excludedColumns.includes(key)) {
+            filteredData[key] = (combinedData as Record<string, any>)[key];
+          }
+        });
+        
+        return filteredData;
+      });
 
-      const exportPath = await fileUploadService.generateCSVExport(exportData, job.fileName);
-      res.download(exportPath);
+      // Ensure proper column ordering: Original columns → Pipeline steps
+      if (exportData.length > 0) {
+        const firstRow = csvData[0];
+        const originalColumns = Object.keys(firstRow.originalData || {}).filter(
+          key => !excludedColumns.includes(key)
+        );
+        const enrichedColumns = Object.keys(firstRow.enrichedData || {}).filter(
+          key => !originalColumns.includes(key) && !excludedColumns.includes(key)
+        );
+        
+        // Pipeline order
+        const pipelineOrder = ["Reference Research", "Generic Draft Generation", "Tailored RFP Response"];
+        const orderedEnrichedColumns = pipelineOrder.filter(col => enrichedColumns.includes(col));
+        const otherEnrichedColumns = enrichedColumns.filter(col => !pipelineOrder.includes(col));
+        
+        const allColumns = [...originalColumns, ...orderedEnrichedColumns, ...otherEnrichedColumns];
+        
+        // Reorder export data to match column order
+        const reorderedExportData = exportData.map(row => {
+          const orderedRow: Record<string, any> = {};
+          allColumns.forEach(col => {
+            if (row.hasOwnProperty(col)) {
+              orderedRow[col] = row[col];
+            }
+          });
+          return orderedRow;
+        });
+        
+        const exportPath = await fileUploadService.generateCSVExport(reorderedExportData, job.fileName);
+        res.download(exportPath);
+      } else {
+        const exportPath = await fileUploadService.generateCSVExport(exportData, job.fileName);
+        res.download(exportPath);
+      }
     } catch (error) {
       res.status(500).json({ message: 'Failed to export CSV' });
     }

@@ -193,6 +193,14 @@ Preferred communication style: Simple, everyday language.
 - Removed non-operational "Avg Processing" metric from top panel and "Processing Rate" from system health
 - Simplified dashboard to focus on meaningful real-time metrics (3-card stats grid)
 
+### ✅ Export CSV Format and Encoding Fixes (January 25, 2025)
+- Fixed export CSV to match spreadsheet grid view exactly - same columns and order
+- Removed internal processing columns (RFP_INSTRUCTIONS, ADDITIONAL_DOCUMENTS, FULL_CONTEXTUAL_QUESTION) from export
+- Added UTF-8 encoding cleanup to fix mojibake issues in AI responses
+- Special characters like "‚Ä¢" now properly export as bullet points "•"
+- CSV export maintains correct column ordering: Original columns → Reference Research → Generic Draft → Tailored RFP Response
+- Export data now matches grid view display precisely for consistent user experience
+
 ### ✅ Enhanced Semantic Reference Research Architecture (January 25, 2025)
 - Completely redesigned reference research system from URL validation to semantic content analysis
 - Updated database schema with chunk-based reference cache storing embeddings, content, URLs, and metadata

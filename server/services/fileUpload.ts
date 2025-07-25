@@ -207,10 +207,16 @@ export class FileUploadService {
     
     for (const row of data) {
       const values = headers.map(header => {
-        const value = row[header] || '';
-        // Escape CSV values that contain commas or quotes
-        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-          return `"${value.replace(/"/g, '""')}"`;
+        let value = row[header] || '';
+        
+        // Fix UTF-8 encoding issues (mojibake)
+        if (typeof value === 'string') {
+          value = this.fixEncodingIssues(value);
+          
+          // Escape CSV values that contain commas, quotes, or newlines
+          if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
         }
         return value;
       });
@@ -218,6 +224,32 @@ export class FileUploadService {
     }
     
     return csvRows.join('\n');
+  }
+
+  private fixEncodingIssues(text: string): string {
+    // Fix common UTF-8 mojibake issues
+    const fixes: { [key: string]: string } = {
+      '‚Ä¢': '•',      // Bullet point
+      'â€¢': '•',      // Bullet point variant
+      'â€™': "'",      // Right single quotation mark
+      'â€œ': '"',      // Left double quotation mark
+      'â€': '"',       // Right double quotation mark
+      'â€"': '—',      // Em dash
+      'Ã¡': 'á',       // a with acute
+      'Ã©': 'é',       // e with acute
+      'Ã­': 'í',       // i with acute
+      'Ã³': 'ó',       // o with acute
+      'Ãº': 'ú',       // u with acute
+      'Ã±': 'ñ',       // n with tilde
+      'â‚¬': '€',       // Euro symbol
+    };
+    
+    let fixedText = text;
+    for (const [corrupted, correct] of Object.entries(fixes)) {
+      fixedText = fixedText.replace(new RegExp(corrupted.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), correct);
+    }
+    
+    return fixedText;
   }
 }
 
