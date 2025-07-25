@@ -31,10 +31,10 @@ export default function Home() {
             
             <div className="flex items-center space-x-4">
               <span className="text-gray-700 dark:text-gray-300">
-                Welcome, {(user as any)?.firstName || (user as any)?.email || 'User'}
+                Welcome, {(user as any)?.name || (user as any)?.email || 'User'}
               </span>
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-                {(user as any)?.firstName?.[0] || (user as any)?.email?.[0] || 'U'}
+                {(user as any)?.name?.[0] || (user as any)?.email?.[0] || 'U'}
               </div>
               <Button 
                 variant="outline"

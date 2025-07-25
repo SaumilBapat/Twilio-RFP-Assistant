@@ -98,9 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      res.json(req.user);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -110,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   app.get('/api/user/stats', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const stats = await storage.getUserJobStats(userId);
       res.json(stats);
     } catch (error) {
@@ -121,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Job routes
   app.get('/api/jobs', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const jobs = await storage.getUserJobs(userId);
       res.json(jobs);
     } catch (error) {
@@ -131,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/jobs/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const job = await storage.getJob(req.params.id);
       if (!job || job.userId !== userId) {
         return res.status(404).json({ message: 'Job not found' });
@@ -148,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'No file uploaded' });
       }
 
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const validation = await fileUploadService.validateCSV(req.file.path);
       if (!validation.isValid) {
         await fileUploadService.deleteFile(req.file.path);
@@ -190,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/jobs/:id/start', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.user.claims.sub) {
+      if (!job || job.userId !== req.user.id) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -204,7 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/jobs/:id/pause', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.user.claims.sub) {
+      if (!job || job.userId !== req.user.id) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -218,7 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/jobs/:id/resume', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.user.claims.sub) {
+      if (!job || job.userId !== req.user.id) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -232,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/jobs/:id/cancel', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.user.claims.sub) {
+      if (!job || job.userId !== req.user.id) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -246,7 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/jobs/:id/csv-data', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.user.claims.sub) {
+      if (!job || job.userId !== req.user.id) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -260,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/jobs/:id/steps/:rowIndex', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.user.claims.sub) {
+      if (!job || job.userId !== req.user.id) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -274,7 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/jobs/:id/export', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.user.claims.sub) {
+      if (!job || job.userId !== req.user.id) {
         return res.status(404).json({ message: 'Job not found' });
       }
 

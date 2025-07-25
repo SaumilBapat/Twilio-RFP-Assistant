@@ -18,15 +18,13 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth
+// User storage table for Google OAuth
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  googleId: text("google_id").unique().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const jobs = pgTable("jobs", {
@@ -120,8 +118,8 @@ export const csvDataRelations = relations(csvData, ({ one }) => ({
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
   createdAt: true,
-  updatedAt: true,
 });
 
 export const insertJobSchema = createInsertSchema(jobs).omit({
@@ -149,7 +147,6 @@ export const insertCsvDataSchema = createInsertSchema(csvData).omit({
 
 // Types
 export type User = typeof users.$inferSelect;
-export type UpsertUser = typeof users.$inferInsert;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Job = typeof jobs.$inferSelect;
 export type InsertJob = z.infer<typeof insertJobSchema>;

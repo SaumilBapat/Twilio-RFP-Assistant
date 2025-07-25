@@ -26,10 +26,10 @@ Preferred communication style: Simple, everyday language.
 - **File Processing**: Multer for file uploads with CSV parsing capabilities
 
 ### Authentication System
-- **Method**: Replit Auth (OpenID Connect) integration for secure authentication
+- **Method**: Google OAuth 2.0 integration for Twilio workspace users
 - **Session Management**: Cookie-based sessions with PostgreSQL session store using connect-pg-simple
 - **Authorization**: User-based access control with automatic user provisioning
-- **Security Features**: Session expiration, refresh token rotation, secure cookie configuration
+- **Security Features**: Session expiration, secure cookie configuration, automatic user creation
 
 ## Key Components
 
@@ -60,7 +60,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Data Flow
 
-1. **Authentication**: User signs in with Replit Auth (OpenID Connect)
+1. **Authentication**: User signs in with Google OAuth for their Twilio workspace
 2. **File Upload**: User uploads CSV file with validation and preview
 3. **Pipeline Assignment**: User selects or creates AI processing pipeline
 4. **Job Creation**: System creates job record and stores file securely
@@ -72,19 +72,20 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (January 2025)
 
 ### ✅ Google OAuth Authentication Implementation
-- Implemented Replit Auth system with OpenID Connect integration
+- Implemented Google OAuth 2.0 authentication system with passport-google-oauth20
 - Added secure session management with PostgreSQL-backed session store
 - Created authentication middleware and protected routes
 - Updated frontend with landing page for unauthenticated users
 - Added authentication hooks and error handling
-- Database schema updated for new user model with sessions table
+- Database schema updated for Google OAuth user model with sessions table
+- Users are automatically created on first Google sign-in and can return to view their RFPs
 
 ## External Dependencies
 
 ### Core Technologies
 - **Database**: Neon PostgreSQL serverless database
 - **AI Processing**: OpenAI API with enterprise key integration
-- **Authentication**: Replit Auth with OpenID Connect protocol
+- **Authentication**: Google OAuth 2.0 with passport-google-oauth20
 - **Session Storage**: PostgreSQL-backed sessions with connect-pg-simple
 - **File Storage**: Local filesystem (configurable for cloud storage)
 
