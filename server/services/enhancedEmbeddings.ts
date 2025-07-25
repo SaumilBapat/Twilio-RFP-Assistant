@@ -17,7 +17,7 @@ export interface SemanticSearchResult {
 
 export class EnhancedEmbeddingsService {
   private readonly embeddingModel = 'text-embedding-3-small';
-  private readonly similarityThreshold = 0.55; // Lowered from 0.75 to find more relevant content
+  private readonly similarityThreshold = 0.5; // Lowered to 0.5 for broader semantic matching
 
   /**
    * Generate embeddings for text content
