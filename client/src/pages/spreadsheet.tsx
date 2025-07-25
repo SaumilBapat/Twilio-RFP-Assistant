@@ -215,8 +215,8 @@ export default function Spreadsheet() {
     const firstRow = csvData[0];
     if (!firstRow || !firstRow.originalData) return [];
     
-    // Columns to exclude from the display
-    const excludedColumns = ["RFP_INSTRUCTIONS", "ADDITIONAL_DOCUMENTS", "FULL_CONTEXTUAL_QUESTION"];
+    // Columns to exclude from the display (keep FULL_CONTEXTUAL_QUESTION visible)
+    const excludedColumns = ["RFP_INSTRUCTIONS", "ADDITIONAL_DOCUMENTS"];
     
     const originalColumns = Object.keys(firstRow.originalData || {}).filter(
       key => !excludedColumns.includes(key)
@@ -225,12 +225,23 @@ export default function Spreadsheet() {
       key => !originalColumns.includes(key) && !excludedColumns.includes(key)
     );
     
+    // Extract the original question column and FULL_CONTEXTUAL_QUESTION
+    const questionColumn = originalColumns.find(col => col !== 'FULL_CONTEXTUAL_QUESTION');
+    const contextualQuestionColumn = originalColumns.includes('FULL_CONTEXTUAL_QUESTION') ? 'FULL_CONTEXTUAL_QUESTION' : null;
+    const otherOriginalColumns = originalColumns.filter(col => col !== questionColumn && col !== 'FULL_CONTEXTUAL_QUESTION');
+    
     // Ensure pipeline steps appear in correct order
     const pipelineOrder = ["Reference Research", "Generic Draft Generation", "Tailored RFP Response"];
     const orderedEnrichedColumns = pipelineOrder.filter(col => enrichedColumns.includes(col));
     const otherEnrichedColumns = enrichedColumns.filter(col => !pipelineOrder.includes(col));
     
-    return [...originalColumns, ...orderedEnrichedColumns, ...otherEnrichedColumns];
+    // Build final column order: Question → Full Contextual Question → Other Original → Pipeline Steps → Other Enriched
+    const result = [];
+    if (questionColumn) result.push(questionColumn);
+    if (contextualQuestionColumn) result.push(contextualQuestionColumn);
+    result.push(...otherOriginalColumns, ...orderedEnrichedColumns, ...otherEnrichedColumns);
+    
+    return result;
   };
 
   const columns = getAllColumns();

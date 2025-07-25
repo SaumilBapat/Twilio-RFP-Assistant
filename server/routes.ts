@@ -399,8 +399,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const csvData = await storage.getJobCsvData(job.id);
       
-      // Filter columns to match grid view (exclude internal processing columns)
-      const excludedColumns = ["RFP_INSTRUCTIONS", "ADDITIONAL_DOCUMENTS", "FULL_CONTEXTUAL_QUESTION"];
+      // Filter columns to match grid view (keep FULL_CONTEXTUAL_QUESTION visible)
+      const excludedColumns = ["RFP_INSTRUCTIONS", "ADDITIONAL_DOCUMENTS"];
       
       const exportData = csvData.map(row => {
         const combinedData = {
@@ -419,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return filteredData;
       });
 
-      // Ensure proper column ordering: Original columns → Pipeline steps
+      // Ensure proper column ordering: Question → Full Contextual Question → Other Original → Pipeline steps
       if (exportData.length > 0) {
         const firstRow = csvData[0];
         const originalColumns = Object.keys(firstRow.originalData || {}).filter(
@@ -429,12 +429,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           key => !originalColumns.includes(key) && !excludedColumns.includes(key)
         );
         
+        // Extract the original question column and FULL_CONTEXTUAL_QUESTION
+        const questionColumn = originalColumns.find(col => col !== 'FULL_CONTEXTUAL_QUESTION');
+        const contextualQuestionColumn = originalColumns.includes('FULL_CONTEXTUAL_QUESTION') ? 'FULL_CONTEXTUAL_QUESTION' : null;
+        const otherOriginalColumns = originalColumns.filter(col => col !== questionColumn && col !== 'FULL_CONTEXTUAL_QUESTION');
+        
         // Pipeline order
         const pipelineOrder = ["Reference Research", "Generic Draft Generation", "Tailored RFP Response"];
         const orderedEnrichedColumns = pipelineOrder.filter(col => enrichedColumns.includes(col));
         const otherEnrichedColumns = enrichedColumns.filter(col => !pipelineOrder.includes(col));
         
-        const allColumns = [...originalColumns, ...orderedEnrichedColumns, ...otherEnrichedColumns];
+        // Build final column order: Question → Full Contextual Question → Other Original → Pipeline Steps → Other Enriched
+        const allColumns = [];
+        if (questionColumn) allColumns.push(questionColumn);
+        if (contextualQuestionColumn) allColumns.push(contextualQuestionColumn);
+        allColumns.push(...otherOriginalColumns, ...orderedEnrichedColumns, ...otherEnrichedColumns);
         
         // Reorder export data to match column order
         const reorderedExportData = exportData.map(row => {

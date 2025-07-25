@@ -195,11 +195,18 @@ Preferred communication style: Simple, everyday language.
 
 ### ✅ Export CSV Format and Encoding Fixes (January 25, 2025)
 - Fixed export CSV to match spreadsheet grid view exactly - same columns and order
-- Removed internal processing columns (RFP_INSTRUCTIONS, ADDITIONAL_DOCUMENTS, FULL_CONTEXTUAL_QUESTION) from export
-- Added UTF-8 encoding cleanup to fix mojibake issues in AI responses
+- Removed internal processing columns (RFP_INSTRUCTIONS, ADDITIONAL_DOCUMENTS) from export
+- Added UTF-8 encoding cleanup to fix mojibyte issues in AI responses
 - Special characters like "‚Ä¢" now properly export as bullet points "•"
-- CSV export maintains correct column ordering: Original columns → Reference Research → Generic Draft → Tailored RFP Response
+- CSV export maintains correct column ordering: Original Question → Full Contextual Question → Reference Research → Generic Draft → Tailored RFP Response
 - Export data now matches grid view display precisely for consistent user experience
+
+### ✅ Full Contextual Question Column Display (January 25, 2025)
+- Added Full Contextual Question column as second column in both grid view and CSV export
+- Column now shows how AI enhances original questions with RFP context and additional documents
+- Updated column ordering: Original Question → Full Contextual Question → Reference Research → Pipeline steps
+- Enhanced Reference Research column to display URLs on separate lines with proper text wrapping
+- Fixed URL overflow issues with proper column width management and clickable links
 
 ### ✅ Enhanced Semantic Reference Research Architecture (January 25, 2025)
 - Completely redesigned reference research system from URL validation to semantic content analysis
