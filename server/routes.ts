@@ -654,7 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload reference document
   app.post('/api/reference-documents', isAuthenticated, documentUpload.single('file'), async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub || 'user-1';
+      const userId = req.user?.claims?.sub || 'admin-user';
       
       if (!req.file) {
         return res.status(400).json({ message: 'No file provided' });
@@ -681,7 +681,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all reference documents for user
   app.get('/api/reference-documents', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub || 'user-1';
+      const userId = req.user?.claims?.sub || 'admin-user';
       const documents = await storage.getUserReferenceDocuments(userId);
       res.json(documents);
     } catch (error) {
@@ -693,7 +693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete reference document
   app.delete('/api/reference-documents/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub || 'user-1';
+      const userId = req.user?.claims?.sub || 'admin-user';
       const { id } = req.params;
       
       // Verify document belongs to user
