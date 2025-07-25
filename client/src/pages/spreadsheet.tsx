@@ -413,8 +413,21 @@ export default function Spreadsheet() {
                       {row.rowIndex + 1}
                     </td>
                     {columns.map((column) => {
-                      const value = row.enrichedData?.[column] || row.originalData?.[column] || '';
+                      const rawValue = row.enrichedData?.[column] || row.originalData?.[column] || '';
                       const isAiGenerated = row.enrichedData && row.enrichedData[column];
+                      
+                      // Handle different value types - some might be objects with content/fileName
+                      const getDisplayValue = (val: any): string => {
+                        if (typeof val === 'string') return val;
+                        if (typeof val === 'object' && val !== null) {
+                          if (val.content) return val.content;
+                          if (val.fileName) return val.fileName;
+                          return JSON.stringify(val);
+                        }
+                        return String(val || '');
+                      };
+                      
+                      const value = getDisplayValue(rawValue);
                       
                       return (
                         <td key={column} className="border border-gray-300 px-4 py-2 text-sm text-gray-900">
