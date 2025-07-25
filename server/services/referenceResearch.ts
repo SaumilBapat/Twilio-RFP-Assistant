@@ -119,8 +119,18 @@ Provide 3-5 high-quality references with working URLs.`;
 
     let referencesData;
     try {
-      referencesData = JSON.parse(result.output);
+      // Clean the response to remove markdown code fences if present
+      let cleanOutput = result.output.trim();
+      if (cleanOutput.startsWith('```json')) {
+        cleanOutput = cleanOutput.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanOutput.startsWith('```')) {
+        cleanOutput = cleanOutput.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      referencesData = JSON.parse(cleanOutput);
     } catch (error) {
+      console.error(`❌ JSON Parse Error:`, error);
+      console.error(`❌ Original Output:`, result.output);
       throw new Error(`Failed to parse reference response: ${result.output}`);
     }
 
