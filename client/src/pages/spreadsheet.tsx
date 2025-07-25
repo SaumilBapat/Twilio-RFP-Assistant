@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Filter, Search, Download, Edit, ExternalLink, Play, Pause } from "lucide-react";
+import { ArrowLeft, Filter, Search, Download, Edit, ExternalLink, Play, Pause, RotateCcw } from "lucide-react";
 import { StepInspectionPanel } from "@/components/step-inspection-panel";
 import { authService } from "@/lib/auth";
 import { useWebSocket } from "@/hooks/use-websocket";
@@ -258,6 +258,16 @@ export default function Spreadsheet() {
                 >
                   <Play className="h-4 w-4 mr-2" />
                   Resume
+                </Button>
+              )}
+              {(job.status === 'completed' || job.status === 'error') && (
+                <Button
+                  onClick={() => handleJobAction('reprocess')}
+                  variant="outline"
+                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Reprocess
                 </Button>
               )}
               

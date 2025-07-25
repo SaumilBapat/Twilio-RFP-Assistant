@@ -28,9 +28,11 @@ export interface IStorage {
   getJobStepsByRow(jobId: string, rowIndex: number): Promise<JobStep[]>;
   createJobStep(step: InsertJobStep): Promise<JobStep>;
   updateJobStep(id: string, updates: Partial<JobStep>): Promise<JobStep>;
+  clearJobSteps(jobId: string): Promise<void>;
 
   // CSV Data
   getJobCsvData(jobId: string): Promise<CsvData[]>;
+  getCsvData(jobId: string): Promise<CsvData[]>;
   getCsvDataByRow(jobId: string, rowIndex: number): Promise<CsvData | undefined>;
   createCsvData(data: InsertCsvData): Promise<CsvData>;
   updateCsvData(id: string, updates: Partial<CsvData>): Promise<CsvData>;
@@ -204,6 +206,14 @@ export class DatabaseStorage implements IStorage {
       activeJobs: activeJobs[0]?.count || 0,
       completedToday: completedToday[0]?.count || 0,
     };
+  }
+
+  async getCsvData(jobId: string): Promise<CsvData[]> {
+    return await db.select().from(csvData).where(eq(csvData.jobId, jobId));
+  }
+
+  async clearJobSteps(jobId: string): Promise<void> {
+    await db.delete(jobSteps).where(eq(jobSteps.jobId, jobId));
   }
 }
 

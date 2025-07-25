@@ -241,6 +241,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/jobs/:id/reprocess', isAuthenticated, async (req: any, res) => {
+    try {
+      const job = await storage.getJob(req.params.id);
+      if (!job || job.userId !== req.user.id) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      await jobProcessor.reprocessJob(job.id);
+      res.json({ message: 'Job reset for reprocessing' });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to reprocess job' });
+    }
+  });
+
   app.post('/api/jobs/:id/cancel', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
