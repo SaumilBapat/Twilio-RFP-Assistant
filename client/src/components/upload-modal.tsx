@@ -8,13 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -23,11 +17,7 @@ import { CloudUpload, FolderOpen, FileText, Plus, X, FileIcon, BookOpen } from "
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
-interface Pipeline {
-  id: string;
-  name: string;
-  description?: string;
-}
+
 
 interface UploadModalProps {
   open: boolean;
@@ -437,22 +427,7 @@ Please customize these instructions based on the specific RFP requirements and y
             </ScrollArea>
           </div>
 
-          {/* Pipeline Selection */}
-          <div>
-            <Label htmlFor="pipeline">Select AI Pipeline</Label>
-            <Select value={selectedPipeline} onValueChange={setSelectedPipeline}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a pipeline" />
-              </SelectTrigger>
-              <SelectContent>
-                {pipelines.map((pipeline) => (
-                  <SelectItem key={pipeline.id} value={pipeline.id}>
-                    {pipeline.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+
 
           {/* Job Settings */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -492,7 +467,7 @@ Please customize these instructions based on the specific RFP requirements and y
             </Button>
             <Button 
               onClick={handleUpload}
-              disabled={!selectedFile || !selectedPipeline || isUploading}
+              disabled={!selectedFile || isUploading}
             >
               {isUploading ? "Uploading..." : "Upload & Start 3-Step Process"}
             </Button>
