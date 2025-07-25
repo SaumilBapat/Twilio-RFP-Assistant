@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 
 interface HealthData {
   apiStatus: 'healthy' | 'degraded' | 'down';
-  queueProcessing: number;
   workerUtilization: number;
   storageUsed: number;
   storageTotal: number;
@@ -119,7 +118,7 @@ export function SystemHealth() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="flex flex-col space-y-1">
             <span className="text-sm text-gray-600">API Status</span>
             <span className={`text-sm font-medium flex items-center ${getStatusColor(healthData.apiStatus)}`}>
@@ -133,13 +132,6 @@ export function SystemHealth() {
             <span className="text-sm text-gray-600">Active Jobs</span>
             <span className="text-sm font-medium text-gray-900">
               {healthData.activeJobs} running
-            </span>
-          </div>
-          
-          <div className="flex flex-col space-y-1">
-            <span className="text-sm text-gray-600">Processing Rate</span>
-            <span className="text-sm font-medium text-success-600">
-              {healthData.queueProcessing} rows/sec
             </span>
           </div>
           

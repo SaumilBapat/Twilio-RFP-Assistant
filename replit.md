@@ -152,9 +152,11 @@ Preferred communication style: Simple, everyday language.
 - Removed Quick Actions and Recent Activity sections from dashboard for cleaner interface
 - Implemented live System Health monitoring with real operational data
 - Added /api/system/health endpoint providing real-time metrics
-- System Health now shows: API status, active jobs count, processing rate, worker utilization, storage usage
+- System Health now shows: API status, active jobs count, worker utilization, storage usage
 - Health data refreshes every 5 seconds with live indicators and timestamps
 - Enhanced system health display with grid layout and storage usage progress bar
+- Removed non-operational "Avg Processing" metric from top panel and "Processing Rate" from system health
+- Simplified dashboard to focus on meaningful real-time metrics (3-card stats grid)
 
 ## External Dependencies
 

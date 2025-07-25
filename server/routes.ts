@@ -511,36 +511,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/system/health', async (req, res) => {
     try {
       const activeJobs = await storage.getActiveJobs();
-      const allJobs = await storage.getJobs('admin-user'); // Get all jobs to calculate metrics
       
-      // Calculate processing rate (rows per second)
-      const completedJobs = allJobs.filter((job: any) => job.status === 'completed');
-      let totalProcessingTime = 0;
-      let totalRowsProcessed = 0;
-      
-      // Calculate average processing time for last 10 jobs
-      const recentJobs = completedJobs.slice(-10);
-      recentJobs.forEach((job: any) => {
-        if (job.updatedAt && job.createdAt) {
-          const processingTime = new Date(job.updatedAt).getTime() - new Date(job.createdAt).getTime();
-          totalProcessingTime += processingTime;
-          totalRowsProcessed += job.processedRows || 0;
-        }
-      });
-      
-      const avgProcessingRate = totalRowsProcessed > 0 && totalProcessingTime > 0 
-        ? Number((totalRowsProcessed / (totalProcessingTime / 1000)).toFixed(1))
-        : 0;
-      
-      // Calculate worker utilization based on active jobs
-      const workerUtilization = Math.min(activeJobs.length * 25, 100); // Assume 4 max workers
+      // Calculate worker utilization based on active jobs (assume 4 max workers)
+      const workerUtilization = Math.min(activeJobs.length * 25, 100);
       
       // Simulate storage metrics (in a real system, this would check actual disk usage)
       const storageData = { used: 2.1, total: 100 };
       
       const healthData = {
         apiStatus: 'healthy' as const,
-        queueProcessing: avgProcessingRate,
         workerUtilization,
         storageUsed: storageData.used,
         storageTotal: storageData.total,
@@ -553,7 +532,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Failed to get system health:', error);
       res.status(500).json({ 
         apiStatus: 'down',
-        queueProcessing: 0,
         workerUtilization: 0,
         storageUsed: 0,
         storageTotal: 100,
