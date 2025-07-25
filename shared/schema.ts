@@ -92,6 +92,20 @@ export const referenceCache = pgTable("reference_cache", {
   index("idx_reference_cache_question").on(table.question)
 ]);
 
+// Cache table for final response generation with question + reference embeddings
+export const responseCache = pgTable("response_cache", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  question: text("question").notNull(),
+  referenceSummary: text("reference_summary").notNull(), // Summary of references used
+  combinedEmbedding: text("combined_embedding").notNull(), // Embedding of question + reference summary
+  response: text("response").notNull(), // The generated response
+  metadata: jsonb("metadata"), // Model, tokens, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_response_cache_question").on(table.question),
+  index("idx_response_cache_created").on(table.createdAt)
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   jobs: many(jobs),
@@ -162,6 +176,11 @@ export const insertReferenceCacheSchema = createInsertSchema(referenceCache).omi
   createdAt: true,
 });
 
+export const insertResponseCacheSchema = createInsertSchema(responseCache).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -175,5 +194,7 @@ export type CsvData = typeof csvData.$inferSelect;
 export type InsertCsvData = z.infer<typeof insertCsvDataSchema>;
 export type ReferenceCache = typeof referenceCache.$inferSelect;
 export type InsertReferenceCache = z.infer<typeof insertReferenceCacheSchema>;
+export type ResponseCache = typeof responseCache.$inferSelect;
+export type InsertResponseCache = z.infer<typeof insertResponseCacheSchema>;
 export type JobStatus = "not_started" | "in_progress" | "paused" | "completed" | "error" | "cancelled";
 export type StepStatus = "pending" | "running" | "completed" | "error";

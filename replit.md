@@ -117,6 +117,15 @@ Preferred communication style: Simple, everyday language.
 - Enhanced progress tracking with updated timestamps for last activity monitoring
 - Fixed job hanging issues by implementing timeout mechanisms and activity heartbeats
 
+### ✅ Intelligent Caching System (January 25, 2025)
+- Implemented two-tier caching using OpenAI embeddings and cosine similarity
+- Reference Research caching: Reuses validated references for similar questions (85% threshold)
+- Response Generation caching: Reuses final responses for similar question+reference combinations (88% threshold)
+- Automatic link validation ensures all cached references return 200 status codes
+- Semantic similarity matching using text-embedding-3-small model for efficient cache lookups
+- Performance optimization: Avoids duplicate AI processing and reference validation
+- Database schema includes reference_cache and response_cache tables with embedding storage
+
 ## External Dependencies
 
 ### Core Technologies

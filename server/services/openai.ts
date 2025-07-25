@@ -49,6 +49,11 @@ export class OpenAIService {
         return await this.processReferenceResearch(agent, rowData);
       }
 
+      // Special handling for Response Generation step
+      if (agent.name === "Response Generation") {
+        return await this.processResponseGeneration(agent, rowData);
+      }
+
       // Replace placeholders in prompts with actual data
       const processedSystemPrompt = this.replacePlaceholders(agent.systemPrompt, rowData);
       const processedUserPrompt = this.replacePlaceholders(agent.userPrompt, rowData);
@@ -168,6 +173,70 @@ export class OpenAIService {
         output: '',
         latency,
         inputPrompt: `Reference Research failed`,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  private async processResponseGeneration(
+    agent: AgentConfig,
+    rowData: Record<string, any>
+  ): Promise<ProcessingResult> {
+    const startTime = Date.now();
+    
+    try {
+      // Import the response generation service dynamically
+      const { responseGenerationService } = await import('./responseGeneration');
+      
+      // Extract the question from the first column
+      const firstColumnKey = Object.keys(rowData)[0];
+      const question = firstColumnKey ? String(rowData[firstColumnKey] || '') : '';
+      
+      // Extract references from the "Reference Research" step
+      const references = String(rowData["Reference Research"] || '');
+      
+      if (!question) {
+        throw new Error('No question found in input data');
+      }
+
+      if (!references) {
+        throw new Error('No references found from previous step');
+      }
+
+      console.log(`📝 Using intelligent response generation for: ${question.substring(0, 100)}...`);
+      
+      // Use the enhanced response generation service
+      const result = await responseGenerationService.generateResponse(question, references, agent, rowData);
+      
+      const latency = Date.now() - startTime;
+      
+      if (result.fromCache) {
+        console.log(`💰 Used cached response (similarity: ${result.similarity?.toFixed(3)})`);
+      } else {
+        console.log(`🆕 Generated new response with caching`);
+      }
+
+      return {
+        output: result.response,
+        latency,
+        inputPrompt: `Response Generation for: ${question}`,
+        metadata: {
+          ...result.metadata,
+          fromCache: result.fromCache,
+          similarity: result.similarity,
+          questionLength: question.length,
+          referencesLength: references.length
+        }
+      };
+
+    } catch (error) {
+      const latency = Date.now() - startTime;
+      console.error(`❌ Response generation failed after ${latency}ms:`, error);
+      
+      return {
+        output: '',
+        latency,
+        inputPrompt: `Response Generation failed`,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }

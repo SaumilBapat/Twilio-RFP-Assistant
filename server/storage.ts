@@ -1,4 +1,4 @@
-import { users, jobs, pipelines, jobSteps, csvData, referenceCache, type User, type InsertUser, type Job, type InsertJob, type Pipeline, type InsertPipeline, type JobStep, type InsertJobStep, type CsvData, type InsertCsvData, type ReferenceCache, type InsertReferenceCache, type JobStatus } from "@shared/schema";
+import { users, jobs, pipelines, jobSteps, csvData, referenceCache, responseCache, type User, type InsertUser, type Job, type InsertJob, type Pipeline, type InsertPipeline, type JobStep, type InsertJobStep, type CsvData, type InsertCsvData, type ReferenceCache, type InsertReferenceCache, type ResponseCache, type InsertResponseCache, type JobStatus } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
 
@@ -42,6 +42,11 @@ export interface IStorage {
   findSimilarReferences(questionEmbedding: number[], threshold?: number): Promise<ReferenceCache[]>;
   createReferenceCache(cache: InsertReferenceCache): Promise<ReferenceCache>;
   updateReferenceCacheValidation(id: string, validatedAt: Date): Promise<ReferenceCache>;
+
+  // Response Cache
+  getResponseCache(): Promise<ResponseCache[]>;
+  findSimilarResponses(combinedEmbedding: number[], threshold?: number): Promise<ResponseCache[]>;
+  createResponseCache(cache: InsertResponseCache): Promise<ResponseCache>;
 
   // Statistics
   getUserJobStats(userId: string): Promise<{
@@ -215,6 +220,35 @@ export class DatabaseStorage implements IStorage {
       .where(eq(referenceCache.id, id))
       .returning();
     return updated;
+  }
+
+  // Response Cache
+  async getResponseCache(): Promise<ResponseCache[]> {
+    return await db.select().from(responseCache).orderBy(desc(responseCache.createdAt));
+  }
+
+  async findSimilarResponses(combinedEmbedding: number[], threshold: number = 0.88): Promise<ResponseCache[]> {
+    // Fetch all cached responses and filter by similarity in memory
+    const allCache = await this.getResponseCache();
+    
+    const embeddingsService = await import('./services/embeddings').then(m => m.embeddingsService);
+    const similar: ResponseCache[] = [];
+    
+    for (const cache of allCache) {
+      const cachedEmbedding = JSON.parse(cache.combinedEmbedding);
+      const similarity = embeddingsService.cosineSimilarity(combinedEmbedding, cachedEmbedding);
+      
+      if (similarity >= threshold) {
+        similar.push(cache);
+      }
+    }
+    
+    return similar;
+  }
+
+  async createResponseCache(cache: InsertResponseCache): Promise<ResponseCache> {
+    const [created] = await db.insert(responseCache).values(cache).returning();
+    return created;
   }
 
   // Statistics
