@@ -216,7 +216,7 @@ export default function Spreadsheet() {
     if (!firstRow || !firstRow.originalData) return [];
     
     // Columns to exclude from the display (keep FULL_CONTEXTUAL_QUESTION visible)
-    const excludedColumns = ["RFP_INSTRUCTIONS", "ADDITIONAL_DOCUMENTS"];
+    const excludedColumns = ["RFP_INSTRUCTIONS", "ADDITIONAL_DOCUMENTS", "jobId"];
     
     const originalColumns = Object.keys(firstRow.originalData || {}).filter(
       key => !excludedColumns.includes(key)

@@ -417,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Filter columns to match grid view (keep FULL_CONTEXTUAL_QUESTION visible)
-      const excludedColumns = ["RFP_INSTRUCTIONS", "ADDITIONAL_DOCUMENTS"];
+      const excludedColumns = ["RFP_INSTRUCTIONS", "ADDITIONAL_DOCUMENTS", "jobId"];
       
       const exportData = csvData.map(row => {
         const combinedData = {
