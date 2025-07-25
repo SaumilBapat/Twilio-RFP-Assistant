@@ -126,7 +126,7 @@ export function UploadModal({ open, onOpenChange, pipelines, onUploadComplete }:
 
       toast({
         title: "Upload successful",
-        description: `Job "${jobName}" created successfully`,
+        description: `Job "${jobName}" uploaded successfully. Click into the spreadsheet to start processing when ready.`,
       });
 
       // Reset form
@@ -272,7 +272,7 @@ export function UploadModal({ open, onOpenChange, pipelines, onUploadComplete }:
               onClick={handleUpload}
               disabled={!selectedFile || !selectedPipeline || isUploading}
             >
-              {isUploading ? "Uploading..." : "Upload & Start Processing"}
+              {isUploading ? "Uploading..." : "Upload"}
             </Button>
           </div>
         </div>
