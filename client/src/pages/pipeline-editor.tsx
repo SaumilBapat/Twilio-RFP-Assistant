@@ -158,6 +158,39 @@ export default function PipelineEditor() {
     }
   };
 
+  // URL delete functionality
+  const handleDeleteUrl = async (url: string) => {
+    try {
+      const encodedUrl = encodeURIComponent(url);
+      const response = await fetch(`/api/reference-urls/${encodedUrl}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'x-user-id': user?.id || 'admin-user'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete URL');
+      }
+
+      // Refresh the URLs list
+      queryClient.invalidateQueries({ queryKey: ['/api/reference-urls'] });
+      
+      toast({
+        title: 'URL Deleted',
+        description: 'Reference URL has been removed successfully'
+      });
+    } catch (error) {
+      console.error('Delete URL error:', error);
+      toast({
+        title: 'Delete Failed',
+        description: error instanceof Error ? error.message : 'Failed to delete URL',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const { data: pipeline, isLoading } = useQuery({
     queryKey: ['/api/pipelines/default'],
     queryFn: () => fetch('/api/pipelines/default', {
@@ -386,9 +419,30 @@ export default function PipelineEditor() {
                   ) : (
                     <div className="space-y-2">
                       {referenceUrls.map((urlData: ReferenceUrl) => (
-                        <div key={urlData.url} className="p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm font-medium truncate">{urlData.url}</p>
-                          <p className="text-xs text-gray-500">{urlData.chunkCount} chunks</p>
+                        <div key={urlData.url} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-3 flex-1 min-w-0">
+                            <Link className="h-5 w-5 text-green-600 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{urlData.url}</p>
+                              <p className="text-xs text-gray-500">{urlData.chunkCount} chunks • Last cached: {new Date(urlData.lastCached).toLocaleDateString()}</p>
+                            </div>
+                            <a 
+                              href={urlData.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteUrl(urlData.url)}
+                            className="text-red-600 hover:text-red-700 flex-shrink-0 ml-2"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>

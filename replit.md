@@ -254,6 +254,15 @@ Preferred communication style: Simple, everyday language.
 - Enhanced UI with file type icons, upload progress indicators, and real-time document list updates
 - Documents now properly persist and display after upload with file size and type information
 
+### ✅ Reference URL Delete Buttons Implementation (January 25, 2025)
+- Added missing delete buttons to Reference Links section in AI Pipeline Editor
+- Implemented URL deletion functionality with proper error handling and user feedback
+- Enhanced URL display with external link icons, chunk count, and last cached date information
+- Added responsive layout with proper text truncation for long URLs
+- Integrated with existing backend DELETE endpoint for reference URLs with URL encoding support
+- Both Reference Documents and Reference URLs now have consistent delete functionality
+- Improved UI consistency across reference management sections with matching visual design
+
 ### ✅ Dashboard UI Improvements and Real-time Console (January 25, 2025)
 - Removed system health bar from main dashboard to simplify interface
 - Added real-time Processing Console component showing live job execution details
