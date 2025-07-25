@@ -70,8 +70,32 @@ class DocumentProcessor {
       if (fileType === 'application/pdf') {
         // Dynamic import to avoid initialization issues
         const pdf = await import('pdf-parse');
-        const pdfData = await pdf.default(fileBuffer);
-        textContent = pdfData.text;
+        try {
+          // Ensure we're passing a buffer, not a file path
+          if (!Buffer.isBuffer(fileBuffer)) {
+            throw new Error('PDF processing requires a valid buffer');
+          }
+          
+          const pdfData = await pdf.default(fileBuffer);
+          textContent = pdfData.text;
+          
+          if (!textContent || textContent.trim().length === 0) {
+            console.warn('PDF processed but no text content extracted for document:', documentId);
+            textContent = 'PDF file processed but no readable text content was found.';
+          }
+        } catch (pdfError) {
+          console.error('PDF parsing error for document:', documentId, pdfError);
+          
+          // Mark document as failed and don't crash the entire process
+          await storage.updateReferenceDocument(documentId, { 
+            cachingStatus: 'failed' as CachingStatus,
+            errorMessage: `PDF parsing failed: ${pdfError instanceof Error ? pdfError.message : 'Unknown PDF error'}`
+          });
+          
+          // Don't throw - just return early so other documents can still process
+          console.log(`⚠️ Skipping PDF document ${documentId} due to parsing error`);
+          return;
+        }
       } else if (fileType === 'text/plain' || fileType === 'text/csv') {
         textContent = fileBuffer.toString('utf-8');
       } else if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
@@ -89,8 +113,8 @@ class DocumentProcessor {
           allSheetsContent += `\n\n=== Sheet: ${sheetName} ===\n`;
           
           // Convert sheet data to text
-          sheetData.forEach((row: any[]) => {
-            if (row && row.length > 0) {
+          (sheetData as any[]).forEach((row: any[]) => {
+            if (row && Array.isArray(row) && row.length > 0) {
               const rowText = row.map(cell => cell ? String(cell).trim() : '').join(' | ');
               if (rowText.trim()) {
                 allSheetsContent += rowText + '\n';
