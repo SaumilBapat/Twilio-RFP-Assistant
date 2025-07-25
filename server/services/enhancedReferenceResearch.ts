@@ -58,7 +58,7 @@ export async function performEnhancedReferenceResearch(
     }
     
     // Normalize URLs to remove fragments and deduplicate
-    const normalizedUrls = [...new Set(urls.map(url => normalizeUrl(url)))];
+    const normalizedUrls = Array.from(new Set(urls.map(url => normalizeUrl(url))));
     
     if (jobId && broadcastJobUpdate) {
       broadcastJobUpdate(jobId, {
