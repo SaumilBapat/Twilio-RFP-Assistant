@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { storage } from '../storage';
 import { webScraperService } from './webScraper';
 import { contentChunkerService } from './contentChunker';
+import { urlNormalizer } from './urlNormalizer';
 import type { InsertReferenceCache } from '@shared/schema';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -87,11 +88,10 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
   }
 
   /**
-   * Normalize URL by removing fragment identifier (everything after #)
+   * Normalize URL using consistent formatting
    */
   private normalizeUrl(url: string): string {
-    const hashIndex = url.indexOf('#');
-    return hashIndex !== -1 ? url.substring(0, hashIndex) : url;
+    return urlNormalizer.normalize(url);
   }
 
   /**
@@ -104,7 +104,7 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
     const broadcastJobUpdate = (global as any).broadcastJobUpdate;
     
     // Normalize URLs to remove fragments and remove duplicates
-    const normalizedUrls = [...new Set(urls.map(url => this.normalizeUrl(url)))];
+    const normalizedUrls = Array.from(new Set(urls.map(url => this.normalizeUrl(url))));
     
     for (const url of normalizedUrls) {
       try {
@@ -285,7 +285,7 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
           if (similarity >= this.similarityThreshold) {
             results.push({
               chunkText: chunk.chunkText,
-              url: chunk.url,
+              url: chunk.url || '',
               similarity,
               metadata: chunk.metadata
             });
@@ -359,8 +359,7 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
         chunkIndex,
         chunkText,
         chunkEmbedding: JSON.stringify(embedding),
-        metadata: metadata || {},
-        createdAt: new Date()
+        metadata: metadata || {}
       });
       
       console.log(`💾 Stored chunk ${chunkIndex} for ${documentId ? `document ${documentId}` : url}`);
@@ -384,7 +383,7 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
     const urls = await this.searchRelevantUrls(contextualQuestion);
     
     // Normalize URLs to remove fragments and deduplicate
-    const normalizedUrls = [...new Set(urls.map(url => this.normalizeUrl(url)))];
+    const normalizedUrls = Array.from(new Set(urls.map(url => this.normalizeUrl(url))));
     console.log(`📋 Found ${urls.length} URLs, normalized to ${normalizedUrls.length} unique URLs for processing`);
     
     // Step 2: Process URLs (scrape, chunk, embed, store)

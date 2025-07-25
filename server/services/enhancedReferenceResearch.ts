@@ -1,12 +1,5 @@
 import { enhancedEmbeddingsService } from './enhancedEmbeddings';
-
-/**
- * Normalize URL by removing fragment identifier (everything after #)
- */
-function normalizeUrl(url: string): string {
-  const hashIndex = url.indexOf('#');
-  return hashIndex !== -1 ? url.substring(0, hashIndex) : url;
-}
+import { urlNormalizer } from './urlNormalizer';
 
 export interface EnhancedReferenceResult {
   processedUrls: string[];
@@ -57,8 +50,8 @@ export async function performEnhancedReferenceResearch(
       return { urls: [] };
     }
     
-    // Normalize URLs to remove fragments and deduplicate
-    const normalizedUrls = Array.from(new Set(urls.map(url => normalizeUrl(url))));
+    // Normalize URLs using consistent formatting and deduplicate
+    const normalizedUrls = Array.from(new Set(urls.map(url => urlNormalizer.normalize(url))));
     
     if (jobId && broadcastJobUpdate) {
       broadcastJobUpdate(jobId, {

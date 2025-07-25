@@ -297,10 +297,12 @@ export default function PipelineEditor() {
     }
   };
 
-  const formatDomain = (url: string) => {
+  const formatUrlDisplay = (url: string) => {
     try {
-      const domain = new URL(url).hostname;
-      return domain.replace('www.', '');
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname.replace('www.', '');
+      const path = urlObj.pathname !== '/' ? urlObj.pathname : '';
+      return domain + path;
     } catch {
       return url;
     }
@@ -628,8 +630,9 @@ export default function PipelineEditor() {
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline truncate"
+                              title={urlData.url}
                             >
-                              {formatDomain(urlData.url)}
+                              {formatUrlDisplay(urlData.url)}
                             </a>
                             <ExternalLink className="h-3 w-3 text-gray-400" />
                           </div>
