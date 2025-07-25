@@ -280,11 +280,11 @@ export default function Spreadsheet() {
               {/* Always show reprocess for testing - will remove this later */}
               <Button
                 onClick={() => handleJobAction('reprocess')}
-                variant="outline"
-                className="text-purple-600 border-purple-600 hover:bg-purple-50"
+                variant="default"
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Test Reprocess
+                🧪 TEST REPROCESS
               </Button>
               
               <Button 
