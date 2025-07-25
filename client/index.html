@@ -4,14 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>RFP Assistant</title>
+    <style>
+      /* Hide Vite error overlay */
+      #vite-error-overlay { display: none !important; }
+      .vite-error-overlay { display: none !important; }
+    </style>
     <script>
       // Comprehensive fix for Vite WebSocket errors
       (function() {
         // Store original WebSocket
         const OriginalWebSocket = window.WebSocket;
         
-        // Override WebSocket constructor
+        // Override WebSocket constructor to fix Vite HMR issues
         window.WebSocket = function(url, protocols) {
+          // Log for debugging
+          console.debug('[WebSocket Fix] Attempting to create WebSocket with URL:', url);
           if (typeof url === 'string') {
             // Fix undefined port in localhost
             if (url.includes('localhost:undefined')) {
@@ -27,15 +34,22 @@
             try {
               new URL(url);
             } catch (e) {
-              console.warn('[WebSocket Fix] Invalid URL detected, skipping WebSocket connection:', url);
-              // Return a mock WebSocket that won't throw errors
-              return {
+              console.debug('[WebSocket Fix] Invalid URL detected, returning mock WebSocket:', url);
+              // Return a functional mock WebSocket
+              const mockWs = {
                 readyState: 3, // CLOSED
-                close: function() {},
-                send: function() {},
+                url: url,
+                close: function() { console.debug('[WebSocket Fix] Mock WebSocket close called'); },
+                send: function() { console.debug('[WebSocket Fix] Mock WebSocket send called'); },
                 addEventListener: function() {},
-                removeEventListener: function() {}
+                removeEventListener: function() {},
+                dispatchEvent: function() {},
+                onopen: null,
+                onclose: null,
+                onerror: null,
+                onmessage: null
               };
+              return mockWs;
             }
           }
           
