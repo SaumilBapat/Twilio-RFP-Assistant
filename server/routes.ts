@@ -6,9 +6,13 @@ import { fileUploadService } from "./services/fileUpload";
 import { jobProcessor } from "./services/jobProcessor";
 import { openaiService } from "./services/openai";
 import { insertJobSchema, insertPipelineSchema } from "@shared/schema";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth middleware
+  await setupAuth(app);
+
   const httpServer = createServer(app);
   
   // WebSocket server for real-time updates
@@ -91,32 +95,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Authentication middleware (simplified for demo)
-  const requireAuth = (req: any, res: any, next: any) => {
-    const userId = req.headers['x-user-id'];
-    if (!userId) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-    req.userId = userId;
-    next();
-  };
-
-  // User routes
-  app.get('/api/user/me', requireAuth, async (req: any, res) => {
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.userId);
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
-      res.status(500).json({ message: 'Failed to get user' });
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
-  app.get('/api/user/stats', requireAuth, async (req: any, res) => {
+  // User routes
+  app.get('/api/user/stats', isAuthenticated, async (req: any, res) => {
     try {
-      const stats = await storage.getUserJobStats(req.userId);
+      const userId = req.user.claims.sub;
+      const stats = await storage.getUserJobStats(userId);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: 'Failed to get user stats' });
@@ -124,19 +119,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Job routes
-  app.get('/api/jobs', requireAuth, async (req: any, res) => {
+  app.get('/api/jobs', isAuthenticated, async (req: any, res) => {
     try {
-      const jobs = await storage.getUserJobs(req.userId);
+      const userId = req.user.claims.sub;
+      const jobs = await storage.getUserJobs(userId);
       res.json(jobs);
     } catch (error) {
       res.status(500).json({ message: 'Failed to get jobs' });
     }
   });
 
-  app.get('/api/jobs/:id', requireAuth, async (req: any, res) => {
+  app.get('/api/jobs/:id', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.userId) {
+      if (!job || job.userId !== userId) {
         return res.status(404).json({ message: 'Job not found' });
       }
       res.json(job);
@@ -145,12 +142,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/jobs', requireAuth, fileUploadService.getMulterConfig().single('csvFile'), async (req: any, res) => {
+  app.post('/api/jobs', isAuthenticated, fileUploadService.getMulterConfig().single('csvFile'), async (req: any, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded' });
       }
 
+      const userId = req.user.claims.sub;
       const validation = await fileUploadService.validateCSV(req.file.path);
       if (!validation.isValid) {
         await fileUploadService.deleteFile(req.file.path);
@@ -158,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const jobData = insertJobSchema.parse({
-        userId: req.userId,
+        userId: userId,
         name: req.body.name || req.file.originalname,
         fileName: req.file.originalname,
         fileSize: req.file.size,
@@ -189,10 +187,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/jobs/:id/start', requireAuth, async (req: any, res) => {
+  app.post('/api/jobs/:id/start', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.userId) {
+      if (!job || job.userId !== req.user.claims.sub) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -203,10 +201,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/jobs/:id/pause', requireAuth, async (req: any, res) => {
+  app.post('/api/jobs/:id/pause', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.userId) {
+      if (!job || job.userId !== req.user.claims.sub) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -217,10 +215,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/jobs/:id/resume', requireAuth, async (req: any, res) => {
+  app.post('/api/jobs/:id/resume', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.userId) {
+      if (!job || job.userId !== req.user.claims.sub) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -231,10 +229,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/jobs/:id/cancel', requireAuth, async (req: any, res) => {
+  app.post('/api/jobs/:id/cancel', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.userId) {
+      if (!job || job.userId !== req.user.claims.sub) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -245,10 +243,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/jobs/:id/csv-data', requireAuth, async (req: any, res) => {
+  app.get('/api/jobs/:id/csv-data', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.userId) {
+      if (!job || job.userId !== req.user.claims.sub) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -259,10 +257,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/jobs/:id/steps/:rowIndex', requireAuth, async (req: any, res) => {
+  app.get('/api/jobs/:id/steps/:rowIndex', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.userId) {
+      if (!job || job.userId !== req.user.claims.sub) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -273,10 +271,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/jobs/:id/export', requireAuth, async (req: any, res) => {
+  app.get('/api/jobs/:id/export', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
-      if (!job || job.userId !== req.userId) {
+      if (!job || job.userId !== req.user.claims.sub) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
@@ -303,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/pipelines', requireAuth, async (req: any, res) => {
+  app.post('/api/pipelines', isAuthenticated, async (req: any, res) => {
     try {
       const pipelineData = insertPipelineSchema.parse(req.body);
       const pipeline = await storage.createPipeline(pipelineData);

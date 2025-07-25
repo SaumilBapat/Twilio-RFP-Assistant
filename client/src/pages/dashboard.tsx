@@ -9,35 +9,56 @@ import { QuickActions } from "@/components/quick-actions";
 import { RecentActivity } from "@/components/recent-activity";
 import { SystemHealth } from "@/components/system-health";
 import { useWebSocket } from "@/hooks/use-websocket";
-import { authService } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 
 export default function Dashboard() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const user = authService.getCurrentUser();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { toast } = useToast();
   const { lastMessage } = useWebSocket(user?.id || null);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+      return;
+    }
+  }, [isAuthenticated, isLoading, toast]);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/user/stats'],
-    queryFn: () => fetch('/api/user/stats', {
-      credentials: 'include',
-      headers: { 'x-user-id': user?.id || 'user-1' }
-    }).then(res => res.json()),
+    enabled: isAuthenticated,
+    retry: (failureCount, error) => {
+      if (isUnauthorizedError(error as Error)) {
+        return false;
+      }
+      return failureCount < 3;
+    }
   });
 
   const { data: jobs = [], isLoading: jobsLoading, refetch: refetchJobs } = useQuery({
     queryKey: ['/api/jobs'],
-    queryFn: () => fetch('/api/jobs', {
-      credentials: 'include',
-      headers: { 'x-user-id': user?.id || 'user-1' }
-    }).then(res => res.json()),
+    enabled: isAuthenticated,
+    retry: (failureCount, error) => {
+      if (isUnauthorizedError(error as Error)) {
+        return false;
+      }
+      return failureCount < 3;
+    }
   });
 
   const { data: pipelines = [] } = useQuery({
     queryKey: ['/api/pipelines'],
-    queryFn: () => fetch('/api/pipelines', {
-      credentials: 'include'
-    }).then(res => res.json()),
   });
 
   // Handle WebSocket messages
