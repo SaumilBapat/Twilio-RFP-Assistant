@@ -1,10 +1,25 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CloudUpload, FolderOpen, FileText } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { CloudUpload, FolderOpen, FileText, Plus, X, FileIcon, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -28,7 +43,49 @@ export function UploadModal({ open, onOpenChange, pipelines, onUploadComplete }:
   const [priority, setPriority] = useState("normal");
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  
+  // New RFP-specific fields
+  const [additionalDocuments, setAdditionalDocuments] = useState<File[]>([]);
+  const [rfpInstructions, setRfpInstructions] = useState(getDefaultRfpInstructions());
+  const [additionalDocsDragActive, setAdditionalDocsDragActive] = useState(false);
+  
   const { toast } = useToast();
+
+  function getDefaultRfpInstructions(): string {
+    return `# Default RFP Response Instructions
+
+## Company Voice & Tone
+- Write in first person as Twilio ("We provide...", "Our platform...")
+- Use confident, professional tone that demonstrates expertise
+- Emphasize innovation, reliability, and customer success
+
+## Key Messaging Points
+- Highlight Twilio's global scale and reliability (99.95% uptime)
+- Emphasize developer-friendly APIs and extensive documentation
+- Mention enterprise-grade security and compliance certifications
+- Include specific metrics and customer success stories when relevant
+
+## Response Structure
+1. **Direct Answer**: Address the question clearly and concisely
+2. **Twilio's Approach**: Explain how Twilio specifically handles this requirement
+3. **Key Benefits**: List 3-4 main advantages of Twilio's solution
+4. **Supporting Evidence**: Include metrics, certifications, or case studies
+5. **Call to Action**: Invite further discussion or demonstration
+
+## Compliance & Security Focus
+- Always mention relevant security certifications (SOC 2, ISO 27001, GDPR compliance)
+- Reference Twilio's Trust Center for detailed security information
+- Highlight data residency options and privacy controls
+- Mention audit capabilities and transparency reports
+
+## Technical Details
+- Include specific API capabilities when relevant
+- Mention SDKs and supported programming languages
+- Reference Twilio's extensive partner ecosystem
+- Highlight scalability and global infrastructure
+
+Please customize these instructions based on the specific RFP requirements and your company's unique value propositions.`;
+  }
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -80,6 +137,38 @@ export function UploadModal({ open, onOpenChange, pipelines, onUploadComplete }:
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
+  const handleAdditionalDocsDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setAdditionalDocsDragActive(true);
+    } else if (e.type === "dragleave") {
+      setAdditionalDocsDragActive(false);
+    }
+  };
+
+  const handleAdditionalDocsDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAdditionalDocsDragActive(false);
+    
+    if (e.dataTransfer.files) {
+      const files = Array.from(e.dataTransfer.files);
+      setAdditionalDocuments(prev => [...prev, ...files]);
+    }
+  };
+
+  const handleAdditionalDocsSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setAdditionalDocuments(prev => [...prev, ...files]);
+    }
+  };
+
+  const removeAdditionalDocument = (index: number) => {
+    setAdditionalDocuments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleUpload = async () => {
     if (!selectedFile || !selectedPipeline) {
       toast({
@@ -107,6 +196,12 @@ export function UploadModal({ open, onOpenChange, pipelines, onUploadComplete }:
       formData.append('name', jobName || selectedFile.name);
       formData.append('pipelineId', selectedPipeline);
       formData.append('priority', priority);
+      formData.append('rfpInstructions', rfpInstructions);
+      
+      // Add additional documents
+      additionalDocuments.forEach((file, index) => {
+        formData.append(`additionalDoc_${index}`, file);
+      });
 
       const response = await fetch('/api/jobs', {
         method: 'POST',
@@ -134,6 +229,8 @@ export function UploadModal({ open, onOpenChange, pipelines, onUploadComplete }:
       setJobName("");
       setSelectedPipeline("");
       setPriority("normal");
+      setAdditionalDocuments([]);
+      setRfpInstructions(getDefaultRfpInstructions());
       
       onUploadComplete();
       onOpenChange(false);
@@ -151,9 +248,12 @@ export function UploadModal({ open, onOpenChange, pipelines, onUploadComplete }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Upload CSV File</DialogTitle>
+          <DialogTitle>Upload RFP CSV - 3-Step Process</DialogTitle>
+          <p className="text-sm text-gray-500">
+            Step 1: Reference Research (cached) → Step 2: Generic Draft (cached) → Step 3: Tailored Response (o3 model)
+          </p>
         </DialogHeader>
         
         <div className="space-y-6">
@@ -215,6 +315,133 @@ export function UploadModal({ open, onOpenChange, pipelines, onUploadComplete }:
             )}
           </div>
 
+          {/* Job Configuration */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="job-name">Job Name</Label>
+              <Input
+                id="job-name"
+                value={jobName}
+                onChange={(e) => setJobName(e.target.value)}
+                placeholder="Enter job name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="pipeline">Pipeline</Label>
+              <Select value={selectedPipeline} onValueChange={setSelectedPipeline}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select pipeline" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pipelines.map((pipeline) => (
+                    <SelectItem key={pipeline.id} value={pipeline.id}>
+                      {pipeline.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Additional Documents Section */}
+          <div className="space-y-4">
+            <div>
+              <Label className="text-base font-semibold flex items-center gap-2">
+                <FileIcon className="w-4 h-4" />
+                Additional RFP Documents (Optional)
+              </Label>
+              <p className="text-sm text-gray-500 mt-1">
+                Upload supporting documents that will be used in Step 3 for tailored responses
+              </p>
+            </div>
+
+            <div
+              className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                additionalDocsDragActive 
+                  ? 'border-blue-400 bg-blue-50' 
+                  : 'border-gray-300 hover:border-blue-400'
+              }`}
+              onDragEnter={handleAdditionalDocsDrag}
+              onDragLeave={handleAdditionalDocsDrag}
+              onDragOver={handleAdditionalDocsDrag}
+              onDrop={handleAdditionalDocsDrop}
+            >
+              <div className="space-y-2">
+                <Plus className="w-6 h-6 text-gray-400 mx-auto" />
+                <div>
+                  <p className="text-sm text-gray-600">Drop additional documents here</p>
+                  <label htmlFor="additional-docs">
+                    <Button variant="outline" size="sm" className="cursor-pointer mt-2">
+                      Browse Files
+                    </Button>
+                  </label>
+                  <input
+                    id="additional-docs"
+                    type="file"
+                    multiple
+                    onChange={handleAdditionalDocsSelect}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.txt,.md"
+                  />
+                </div>
+                <p className="text-xs text-gray-400">PDF, DOC, TXT, MD files supported</p>
+              </div>
+            </div>
+
+            {/* Display selected additional documents */}
+            {additionalDocuments.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Selected Documents:</p>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {additionalDocuments.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                      <div className="flex items-center gap-2">
+                        <FileIcon className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm truncate">{file.name}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {formatFileSize(file.size)}
+                        </Badge>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeAdditionalDocument(index)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* RFP Instructions Section */}
+          <div className="space-y-4">
+            <div>
+              <Label className="text-base font-semibold flex items-center gap-2">
+                <BookOpen className="w-4 h-4" />
+                RFP Response Instructions
+              </Label>
+              <p className="text-sm text-gray-500 mt-1">
+                Customize instructions for Step 3 tailored responses. Default instructions are pre-populated.
+              </p>
+            </div>
+
+            <ScrollArea className="h-48 w-full rounded border">
+              <Textarea
+                value={rfpInstructions}
+                onChange={(e) => setRfpInstructions(e.target.value)}
+                placeholder="Enter RFP-specific instructions..."
+                className="min-h-[180px] border-0 resize-none focus-visible:ring-0"
+              />
+            </ScrollArea>
+          </div>
+
           {/* Pipeline Selection */}
           <div>
             <Label htmlFor="pipeline">Select AI Pipeline</Label>
@@ -259,6 +486,30 @@ export function UploadModal({ open, onOpenChange, pipelines, onUploadComplete }:
             </div>
           </div>
 
+          <Separator />
+
+          {/* RFP Instructions Section */}
+          <div className="space-y-4">
+            <div>
+              <Label className="text-base font-semibold flex items-center gap-2">
+                <BookOpen className="w-4 h-4" />
+                RFP Response Instructions
+              </Label>
+              <p className="text-sm text-gray-500 mt-1">
+                Customize instructions for Step 3 tailored responses. Default instructions are pre-populated.
+              </p>
+            </div>
+
+            <ScrollArea className="h-48 w-full rounded border">
+              <Textarea
+                value={rfpInstructions}
+                onChange={(e) => setRfpInstructions(e.target.value)}
+                placeholder="Enter RFP-specific instructions..."
+                className="min-h-[180px] border-0 resize-none focus-visible:ring-0"
+              />
+            </ScrollArea>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex justify-end space-x-3">
             <Button 
@@ -272,7 +523,7 @@ export function UploadModal({ open, onOpenChange, pipelines, onUploadComplete }:
               onClick={handleUpload}
               disabled={!selectedFile || !selectedPipeline || isUploading}
             >
-              {isUploading ? "Uploading..." : "Upload"}
+              {isUploading ? "Uploading..." : "Upload & Start 3-Step Process"}
             </Button>
           </div>
         </div>

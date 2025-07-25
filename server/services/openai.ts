@@ -49,9 +49,14 @@ export class OpenAIService {
         return await this.processReferenceResearch(agent, rowData);
       }
 
-      // Special handling for Response Generation step
-      if (agent.name === "Response Generation") {
+      // Special handling for Response Generation step (now Generic Draft Generation)
+      if (agent.name === "Response Generation" || agent.name === "Generic Draft Generation") {
         return await this.processResponseGeneration(agent, rowData);
+      }
+
+      // Special handling for Tailored RFP Response step (no caching, uses o3)
+      if (agent.name === "Tailored RFP Response") {
+        return await this.processTailoredResponse(agent, rowData);
       }
 
       // Replace placeholders in prompts with actual data
@@ -237,6 +242,73 @@ export class OpenAIService {
         output: '',
         latency,
         inputPrompt: `Response Generation failed`,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  private async processTailoredResponse(
+    agent: AgentConfig,
+    rowData: Record<string, any>
+  ): Promise<ProcessingResult> {
+    const startTime = Date.now();
+    
+    try {
+      // Import the tailored response service dynamically
+      const { tailoredResponseService } = await import('./tailoredResponse');
+      
+      // Extract required data
+      const firstColumnKey = Object.keys(rowData)[0];
+      const question = firstColumnKey ? String(rowData[firstColumnKey] || '') : '';
+      const genericDraft = String(rowData["Generic Draft Generation"] || '');
+      
+      // Get RFP-specific data from job context (this would be passed from the job processor)
+      const rfpInstructions = String(rowData["RFP_INSTRUCTIONS"] || '');
+      const additionalDocuments = rowData["ADDITIONAL_DOCUMENTS"] || [];
+      
+      if (!question) {
+        throw new Error('No question found in input data');
+      }
+
+      if (!genericDraft) {
+        throw new Error('No generic draft found from previous step');
+      }
+
+      console.log(`🎯 Using tailored response generation with ${agent.model} for: ${question.substring(0, 100)}...`);
+      
+      // Use the tailored response service (no caching)
+      const result = await tailoredResponseService.generateTailoredResponse({
+        question,
+        genericDraft,
+        rfpInstructions,
+        additionalDocuments,
+        agent
+      });
+      
+      const latency = Date.now() - startTime;
+      
+      console.log(`🆕 Generated tailored response in ${latency}ms with ${result.metadata.documentsUsed} documents`);
+
+      return {
+        output: result.response,
+        latency,
+        inputPrompt: `Tailored RFP Response for: ${question}`,
+        metadata: {
+          ...result.metadata,
+          questionLength: question.length,
+          genericDraftLength: genericDraft.length,
+          rfpInstructionsLength: rfpInstructions.length
+        }
+      };
+
+    } catch (error) {
+      const latency = Date.now() - startTime;
+      console.error(`❌ Tailored response generation failed after ${latency}ms:`, error);
+      
+      return {
+        output: '',
+        latency,
+        inputPrompt: `Tailored RFP Response failed`,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }

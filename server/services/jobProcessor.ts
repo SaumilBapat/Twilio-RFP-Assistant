@@ -156,7 +156,19 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     steps: AgentConfig[]
   ): Promise<void> {
     console.log(`🚀 Starting row ${rowIndex} processing with ${steps.length} steps`);
+    
+    // Get job info for RFP-specific data
+    const job = await storage.getJob(jobId);
     let currentData = { ...rowData.originalData };
+    
+    // Add RFP-specific context for Step 3 processing
+    if (job?.rfpInstructions) {
+      currentData['RFP_INSTRUCTIONS'] = job.rfpInstructions;
+    }
+    
+    if (job?.additionalDocuments) {
+      currentData['ADDITIONAL_DOCUMENTS'] = await this.loadAdditionalDocuments(job.additionalDocuments);
+    }
     
     for (let stepIndex = 0; stepIndex < steps.length; stepIndex++) {
       const step = steps[stepIndex];
@@ -180,7 +192,7 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
       });
 
       try {
-        console.log(`🔄 Processing step "${step.name}" for row ${rowIndex}/${csvData.length - 1} - Starting...`);
+        console.log(`🔄 Processing step "${step.name}" for row ${rowIndex} - Starting...`);
         const startTime = Date.now();
         
         const result = await openaiService.processWithAgent(step, currentData);
@@ -240,6 +252,38 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
 
   isJobPaused(jobId: string): boolean {
     return this.pausedJobs.has(jobId);
+  }
+
+  private async loadAdditionalDocuments(additionalDocuments: any[]): Promise<Array<{fileName: string, content: string}>> {
+    const fs = await import('fs/promises');
+    const loadedDocs = [];
+    
+    for (const doc of additionalDocuments) {
+      try {
+        // For now, we'll read text files only. In a production system,
+        // you'd want to add proper document parsing (PDF, DOC, etc.)
+        let content = '';
+        
+        if (doc.fileName.endsWith('.txt') || doc.fileName.endsWith('.md')) {
+          content = await fs.readFile(doc.filePath, 'utf-8');
+        } else {
+          content = `[Document: ${doc.fileName} - Content parsing not implemented for this file type]`;
+        }
+        
+        loadedDocs.push({
+          fileName: doc.fileName,
+          content: content.substring(0, 5000) // Limit content size
+        });
+      } catch (error) {
+        console.error(`Failed to load document ${doc.fileName}:`, error);
+        loadedDocs.push({
+          fileName: doc.fileName,
+          content: `[Error loading document: ${doc.fileName}]`
+        });
+      }
+    }
+    
+    return loadedDocs;
   }
 }
 

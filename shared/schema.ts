@@ -40,6 +40,9 @@ export const jobs = pgTable("jobs", {
   pipelineId: varchar("pipeline_id").references(() => pipelines.id),
   progress: integer("progress").notNull().default(0),
   errorMessage: text("error_message"),
+  // New RFP-specific fields
+  rfpInstructions: text("rfp_instructions"), // Rich text instructions for this RFP
+  additionalDocuments: jsonb("additional_documents"), // Array of {fileName, filePath, uploadedAt}
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

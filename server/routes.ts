@@ -149,34 +149,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/jobs', isAuthenticated, fileUploadService.getMulterConfig().single('csvFile'), async (req: any, res) => {
+  app.post('/api/jobs', isAuthenticated, fileUploadService.getMulterConfig().fields([
+    { name: 'csvFile', maxCount: 1 },
+    { name: 'additionalDoc_0', maxCount: 1 },
+    { name: 'additionalDoc_1', maxCount: 1 },
+    { name: 'additionalDoc_2', maxCount: 1 },
+    { name: 'additionalDoc_3', maxCount: 1 },
+    { name: 'additionalDoc_4', maxCount: 1 }
+  ]), async (req: any, res) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ message: 'No file uploaded' });
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      
+      if (!files.csvFile || !files.csvFile[0]) {
+        return res.status(400).json({ message: 'No CSV file uploaded' });
       }
 
+      const csvFile = files.csvFile[0];
       const userId = req.user.id;
-      const validation = await fileUploadService.validateCSV(req.file.path);
+      
+      const validation = await fileUploadService.validateCSV(csvFile.path);
       if (!validation.isValid) {
-        await fileUploadService.deleteFile(req.file.path);
+        await fileUploadService.deleteFile(csvFile.path);
         return res.status(400).json({ message: 'Invalid CSV', errors: validation.errors });
+      }
+
+      // Process additional documents
+      const additionalDocuments = [];
+      for (let i = 0; i < 5; i++) {
+        const fieldName = `additionalDoc_${i}`;
+        if (files[fieldName] && files[fieldName][0]) {
+          const file = files[fieldName][0];
+          additionalDocuments.push({
+            fileName: file.originalname,
+            filePath: file.path,
+            fileSize: file.size,
+            uploadedAt: new Date().toISOString()
+          });
+        }
       }
 
       const jobData = insertJobSchema.parse({
         userId: userId,
-        name: req.body.name || req.file.originalname,
-        fileName: req.file.originalname,
-        fileSize: req.file.size,
-        filePath: req.file.path,
+        name: req.body.name || csvFile.originalname,
+        fileName: csvFile.originalname,
+        fileSize: csvFile.size,
+        filePath: csvFile.path,
         totalRows: validation.rowCount,
         pipelineId: req.body.pipelineId,
-        status: 'not_started'
+        status: 'not_started',
+        // New RFP-specific fields
+        rfpInstructions: req.body.rfpInstructions || null,
+        additionalDocuments: additionalDocuments.length > 0 ? additionalDocuments : null
       });
 
       const job = await storage.createJob(jobData);
 
       // Parse and store CSV data
-      const csvRows = await fileUploadService.parseCSVToArray(req.file.path);
+      const csvRows = await fileUploadService.parseCSVToArray(csvFile.path);
       for (let i = 0; i < csvRows.length; i++) {
         await storage.createCsvData({
           jobId: job.id,
@@ -185,13 +214,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      res.json({ job, validation });
+      console.log(`📄 Job created with ${additionalDocuments.length} additional documents and ${req.body.rfpInstructions ? 'custom' : 'no'} RFP instructions`);
+
+      res.json({ job, validation, additionalDocuments: additionalDocuments.length });
     } catch (error) {
       console.error('Job creation failed:', error);
       
-      if (req.file) {
-        await fileUploadService.deleteFile(req.file.path);
+      // Clean up any uploaded files
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      if (files) {
+        for (const fileArray of Object.values(files)) {
+          for (const file of fileArray) {
+            await fileUploadService.deleteFile(file.path);
+          }
+        }
       }
+      
       res.status(500).json({ 
         message: 'Failed to create job',
         error: error instanceof Error ? error.message : 'Unknown error'

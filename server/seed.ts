@@ -5,10 +5,10 @@ import { eq } from "drizzle-orm";
 async function seedDatabase() {
   console.log('Seeding database...');
   
-  // Create default pipeline with reference gathering and response generation
+  // Create default pipeline with 3-step RFP process: Research, Generic Draft, Tailored Response
   const defaultPipeline = {
-    name: "RFP Research & Response Pipeline", 
-    description: "A two-step pipeline for gathering references and crafting RFP responses with citations",
+    name: "Advanced RFP Research & Response Pipeline", 
+    description: "A three-step pipeline: Reference research with caching, generic draft with caching, and tailored company-specific responses",
     steps: [
       {
         name: "Reference Research",
@@ -20,13 +20,22 @@ async function seedDatabase() {
         userPrompt: "Find and validate authoritative references for this RFP question: {{FIRST_COLUMN}}\n\nThis step uses intelligent caching and link validation to:\n1. Check for similar questions in the reference cache using cosine similarity\n2. Validate all reference URLs to ensure they return 200 status\n3. Generate new references only if no similar cached results exist\n4. Format results with validation status\n\nProvide verified references with:\n- ✅ Validated working links\n- 📚 Authoritative sources (official docs, whitepapers, compliance guides)\n- 🎯 Relevance to the specific question\n- ⚠️ Clear marking of any unverified sources\n\nThe system automatically handles caching and validation - you will receive pre-processed reference data."
       },
       {
-        name: "Response Generation",
+        name: "Generic Draft Generation",
         model: "gpt-4o",
         temperature: 0.3,
         maxTokens: 2000,
-        tools: [],
-        systemPrompt: "You are a professional RFP response writer. Create compelling, well-structured responses using the research and references provided. Include specific data points, metrics, and citations. Write in a professional, third-person tone suitable for business proposals.",
-        userPrompt: "Based on the research and references: {{Reference Research}}\n\nWrite a comprehensive response to this RFP question: {{FIRST_COLUMN}}\n\nRequirements:\n- Include specific data points and metrics from the research\n- Reference credible sources to support claims\n- Address all aspects of the question\n- Use professional, clear language\n- End with a 'References:' section listing the key URLs cited\n\nEnsure the response demonstrates expertise and builds confidence in the capabilities being described."
+        tools: ["response_cache"],
+        systemPrompt: "You are a professional RFP response writer creating generic, comprehensive draft responses. Use research and references to create well-structured responses with data points, metrics, and citations. This draft will be refined in the next step for company-specific needs.",
+        userPrompt: "Based on the research and references: {{Reference Research}}\n\nWrite a comprehensive generic draft response to this RFP question: {{FIRST_COLUMN}}\n\nRequirements:\n- Include specific data points and metrics from the research\n- Reference credible sources to support claims\n- Address all aspects of the question comprehensively\n- Use professional, clear language\n- Structure for easy customization in next step\n- End with a 'References:' section listing key URLs\n\nThis is a generic draft that will be tailored with company-specific information in the final step."
+      },
+      {
+        name: "Tailored RFP Response",
+        model: "o3-mini",
+        temperature: 0.4,
+        maxTokens: 3000,
+        tools: ["no_cache", "additional_documents", "rfp_instructions"],
+        systemPrompt: "You are an expert RFP response specialist creating company-specific, tailored responses. Use the generic draft as foundation, incorporate specific company information from additional documents, and follow custom RFP instructions to create compelling, personalized responses that directly address the client's needs.",
+        userPrompt: "Create a tailored RFP response using:\n\n**Question:** {{FIRST_COLUMN}}\n\n**Generic Draft:** {{Generic Draft Generation}}\n\n**RFP Instructions:** {{RFP_INSTRUCTIONS}}\n\n**Additional Documents:** {{ADDITIONAL_DOCUMENTS}}\n\nRequirements:\n- Customize the generic draft with company-specific details\n- Incorporate relevant information from additional documents\n- Follow the specific RFP instructions provided\n- Maintain professional tone while being company-specific\n- Address client's unique requirements and context\n- Keep all citations and references from the draft\n- Ensure response directly matches RFP evaluation criteria\n\nThis is the final, tailored response ready for submission."
       }
     ],
     isDefault: true
