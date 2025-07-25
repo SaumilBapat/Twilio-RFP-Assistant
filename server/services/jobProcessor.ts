@@ -125,8 +125,11 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
       const progress = Math.round(((rowIndex + 1) / csvData.length) * 100);
       await storage.updateJob(job.id, { 
         processedRows: rowIndex + 1,
-        progress
+        progress,
+        updatedAt: new Date()
       });
+
+      console.log(`📊 Job ${job.id} progress: ${progress}% (${rowIndex + 1}/${csvData.length} rows)`);
 
       this.emit('rowProcessed', { 
         jobId: job.id, 
@@ -152,10 +155,17 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     rowData: any, 
     steps: AgentConfig[]
   ): Promise<void> {
+    console.log(`🚀 Starting row ${rowIndex} processing with ${steps.length} steps`);
     let currentData = { ...rowData.originalData };
     
     for (let stepIndex = 0; stepIndex < steps.length; stepIndex++) {
       const step = steps[stepIndex];
+      
+      // Check if job was cancelled during processing
+      if (!this.activeJobs.has(jobId)) {
+        console.log(`🛑 Job ${jobId} was cancelled during row ${rowIndex} processing`);
+        return;
+      }
       
       // Create job step record
       const jobStep = await storage.createJobStep({
@@ -170,9 +180,16 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
       });
 
       try {
+        console.log(`🔄 Processing step "${step.name}" for row ${rowIndex}/${csvData.length - 1} - Starting...`);
+        const startTime = Date.now();
+        
         const result = await openaiService.processWithAgent(step, currentData);
         
+        const duration = Date.now() - startTime;
+        console.log(`✅ Completed step "${step.name}" for row ${rowIndex} in ${duration}ms - Result: ${result.output?.length || 0} chars`);
+        
         if (result.error) {
+          console.error(`❌ Step "${step.name}" failed for row ${rowIndex}:`, result.error);
           await storage.updateJobStep(jobStep.id, {
             status: 'error',
             errorMessage: result.error,
@@ -213,6 +230,8 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     await storage.updateCsvData(rowData.id, {
       enrichedData: currentData
     });
+    
+    console.log(`🎯 Completed row ${rowIndex} processing - All ${steps.length} steps finished`);
   }
 
   isJobActive(jobId: string): boolean {

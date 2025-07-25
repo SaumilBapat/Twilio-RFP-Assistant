@@ -245,7 +245,14 @@ export function JobTable({ jobs, onJobUpdate }: JobTableProps) {
                     {job.totalRows.toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDistanceToNow(new Date(job.updatedAt), { addSuffix: true })}
+                    <div>
+                      {formatDistanceToNow(new Date(job.updatedAt), { addSuffix: true })}
+                      {job.status === 'in_progress' && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          Processing row {job.processedRows + 1}...
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">

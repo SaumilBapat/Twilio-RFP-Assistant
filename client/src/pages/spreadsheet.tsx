@@ -227,6 +227,11 @@ export default function Spreadsheet() {
                   <span className="text-sm text-gray-500">
                     {job.processedRows} of {job.totalRows} rows processed
                   </span>
+                  {job.status === 'in_progress' && (
+                    <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                      Processing row {job.processedRows + 1}...
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

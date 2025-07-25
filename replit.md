@@ -109,6 +109,14 @@ Preferred communication style: Simple, everyday language.
 - Pipeline now generates responses similar to enterprise RFP processing workflows
 - Improved AI processing to include proper reference formatting and source validation
 
+### ✅ Enhanced Progress Monitoring (January 25, 2025)
+- Added real-time progress indicators showing current processing activity
+- Dashboard job table displays "Processing row X..." for active jobs
+- Improved job processing logging with emojis and detailed timing information
+- Added better error handling and cancellation checks during processing
+- Enhanced progress tracking with updated timestamps for last activity monitoring
+- Fixed job hanging issues by implementing timeout mechanisms and activity heartbeats
+
 ## External Dependencies
 
 ### Core Technologies
