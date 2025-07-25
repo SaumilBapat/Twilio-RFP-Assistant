@@ -17,7 +17,7 @@ export interface SemanticSearchResult {
 
 export class EnhancedEmbeddingsService {
   private readonly embeddingModel = 'text-embedding-3-small';
-  private readonly similarityThreshold = 0.75; // Lower threshold for more results
+  private readonly similarityThreshold = 0.55; // Lowered from 0.75 to find more relevant content
 
   /**
    * Generate embeddings for text content
@@ -303,13 +303,15 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
       const allChunks = await storage.getAllReferenceChunks();
       console.log(`📊 Searching through ${allChunks.length} cached chunks`);
       
-      // Calculate similarities
+      // Calculate similarities and track score distribution
       const results: SemanticSearchResult[] = [];
+      const allSimilarities: number[] = [];
       
       for (const chunk of allChunks) {
         try {
           const chunkEmbedding = JSON.parse(chunk.chunkEmbedding);
           const similarity = this.cosineSimilarity(queryEmbedding, chunkEmbedding);
+          allSimilarities.push(similarity);
           
           if (similarity >= this.similarityThreshold) {
             results.push({
@@ -324,11 +326,24 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
         }
       }
       
+      // Log similarity score distribution for debugging
+      if (allSimilarities.length > 0) {
+        const maxSim = Math.max(...allSimilarities);
+        const avgSim = allSimilarities.reduce((a, b) => a + b) / allSimilarities.length;
+        const aboveThreshold = allSimilarities.filter(s => s >= this.similarityThreshold).length;
+        console.log(`📊 Similarity scores: max=${maxSim.toFixed(3)}, avg=${avgSim.toFixed(3)}, above threshold=${aboveThreshold}/${allSimilarities.length}`);
+      }
+      
       // Sort by similarity (highest first) and limit results
       results.sort((a, b) => b.similarity - a.similarity);
       const topResults = results.slice(0, maxResults);
       
-      console.log(`🎯 Found ${topResults.length} semantically similar chunks (threshold: ${this.similarityThreshold})`);
+      if (topResults.length > 0) {
+        const avgSimilarity = topResults.reduce((sum, r) => sum + r.similarity, 0) / topResults.length;
+        console.log(`🎯 Found ${topResults.length} semantically similar chunks (threshold: ${this.similarityThreshold}, avg similarity: ${avgSimilarity.toFixed(3)})`);
+      } else {
+        console.log(`🎯 Found 0 semantically similar chunks (threshold: ${this.similarityThreshold})`);
+      }
       
       return topResults;
       
