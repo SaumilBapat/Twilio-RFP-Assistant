@@ -193,7 +193,9 @@ export class FileUploadService {
 
   async generateCSVExport(data: Record<string, any>[], filename: string): Promise<string> {
     const csvContent = this.arrayToCSV(data);
-    const exportPath = path.join(this.uploadDir, `export-${filename}`);
+    // Remove .csv extension if it already exists to avoid double .csv
+    const baseFilename = filename.endsWith('.csv') ? filename.slice(0, -4) : filename;
+    const exportPath = path.join(this.uploadDir, `export-${baseFilename}.csv`);
     
     await fs.writeFile(exportPath, csvContent, 'utf8');
     return exportPath;
@@ -201,6 +203,12 @@ export class FileUploadService {
 
   private arrayToCSV(data: Record<string, any>[]): string {
     if (data.length === 0) return '';
+    
+    console.log('arrayToCSV called with:', {
+      dataLength: data.length,
+      firstRowKeys: Object.keys(data[0]),
+      firstRowData: data[0]
+    });
     
     const headers = Object.keys(data[0]);
     const csvRows = [headers.join(',')];
@@ -212,22 +220,20 @@ export class FileUploadService {
         // Convert objects and arrays to string representation
         if (typeof value === 'object' && value !== null) {
           if (Array.isArray(value)) {
-            // For arrays, join elements with newlines
-            value = value.join('\n');
+            // For arrays, fix encoding on each element and join with newlines
+            value = value.map(item => this.fixEncodingIssues(String(item))).join('\n');
           } else {
-            // For objects, stringify them
-            value = JSON.stringify(value);
+            // For objects, stringify them and fix encoding
+            value = this.fixEncodingIssues(JSON.stringify(value));
           }
+        } else {
+          // Convert any value to string and fix encoding
+          value = this.fixEncodingIssues(String(value));
         }
         
-        // Fix UTF-8 encoding issues (mojibake) for all string values
-        if (typeof value === 'string') {
-          value = this.fixEncodingIssues(value);
-          
-          // Escape CSV values that contain commas, quotes, or newlines
-          if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
-            return `"${value.replace(/"/g, '""')}"`;
-          }
+        // Escape CSV values that contain commas, quotes, or newlines
+        if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
+          return `"${value.replace(/"/g, '""')}"`;
         }
         
         return value;
@@ -238,7 +244,18 @@ export class FileUploadService {
     return csvRows.join('\n');
   }
 
-  private fixEncodingIssues(text: string): string {
+  private fixEncodingIssues(text: any): string {
+    // Handle non-string inputs
+    if (typeof text !== 'string') {
+      if (text === null || text === undefined) return '';
+      if (typeof text === 'object') {
+        // For objects or arrays, convert to string first
+        text = JSON.stringify(text);
+      } else {
+        text = String(text);
+      }
+    }
+    
     // Comprehensive UTF-8 mojibake fix using replace method
     // These patterns occur when UTF-8 bytes are incorrectly decoded as Windows-1252/ISO-8859-1
     

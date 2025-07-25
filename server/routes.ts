@@ -375,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const processedCsvData = csvData.map(row => ({
         ...row,
         originalData: {
-          ...row.originalData,
+          ...(row.originalData || {}),
           ...(row.fullContextualQuestion ? { FULL_CONTEXTUAL_QUESTION: row.fullContextualQuestion } : {})
         }
       }));
