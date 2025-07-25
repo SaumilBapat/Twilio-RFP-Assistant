@@ -84,16 +84,20 @@ export const csvData = pgTable("csv_data", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Cache table for reference research with embeddings for cosine similarity
+// Cache table for chunk-based reference storage with embeddings for semantic search
 export const referenceCache = pgTable("reference_cache", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  question: text("question").notNull(),
-  questionEmbedding: text("question_embedding").notNull(), // Store as JSON string for now
-  references: jsonb("references").notNull(), // Array of {url, title, description, status}
-  validatedAt: timestamp("validated_at").notNull(), // Last link validation time
+  url: text("url").notNull(),
+  contentHash: text("content_hash").notNull(), // Hash of the full page content
+  chunkIndex: integer("chunk_index").notNull(), // Index of this chunk in the page
+  chunkText: text("chunk_text").notNull(), // The actual chunk content
+  chunkEmbedding: text("chunk_embedding").notNull(), // JSON stringified embedding vector
+  metadata: jsonb("metadata"), // Additional metadata like title, section, timestamp, etc.
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
-  index("idx_reference_cache_question").on(table.question)
+  index("idx_reference_cache_url").on(table.url),
+  index("idx_reference_cache_hash").on(table.contentHash),
+  index("idx_reference_cache_created").on(table.createdAt)
 ]);
 
 // Cache table for final response generation with question + reference embeddings

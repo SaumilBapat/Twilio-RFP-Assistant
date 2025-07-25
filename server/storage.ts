@@ -37,11 +37,12 @@ export interface IStorage {
   createCsvData(data: InsertCsvData): Promise<CsvData>;
   updateCsvData(id: string, updates: Partial<CsvData>): Promise<CsvData>;
 
-  // Reference Cache
-  getReferenceCache(): Promise<ReferenceCache[]>;
-  findSimilarReferences(questionEmbedding: number[], threshold?: number): Promise<ReferenceCache[]>;
+  // Reference Cache - Chunk-based storage
+  getAllReferenceChunks(): Promise<ReferenceCache[]>;
+  getReferenceChunksByUrl(url: string): Promise<ReferenceCache[]>;
+  getReferenceChunksByHash(contentHash: string): Promise<ReferenceCache[]>;
   createReferenceCache(cache: InsertReferenceCache): Promise<ReferenceCache>;
-  updateReferenceCacheValidation(id: string, validatedAt: Date): Promise<ReferenceCache>;
+  clearReferenceCache(): Promise<void>;
 
   // Response Cache
   getResponseCache(): Promise<ResponseCache[]>;
@@ -194,29 +195,21 @@ export class DatabaseStorage implements IStorage {
     return data;
   }
 
-  // Reference Cache
-  async getReferenceCache(): Promise<ReferenceCache[]> {
+  // Reference Cache - Chunk-based storage
+  async getAllReferenceChunks(): Promise<ReferenceCache[]> {
     return await db.select().from(referenceCache).orderBy(desc(referenceCache.createdAt));
   }
 
-  async findSimilarReferences(questionEmbedding: number[], threshold: number = 0.85): Promise<ReferenceCache[]> {
-    // Since we don't have vector search in this setup, we'll fetch all and filter in memory
-    // In production, you'd want to use pgvector extension for proper vector similarity search
-    const allCache = await this.getReferenceCache();
-    
-    const embeddingsService = await import('./services/embeddings').then(m => m.embeddingsService);
-    const similar: ReferenceCache[] = [];
-    
-    for (const cache of allCache) {
-      const cachedEmbedding = JSON.parse(cache.questionEmbedding);
-      const similarity = embeddingsService.cosineSimilarity(questionEmbedding, cachedEmbedding);
-      
-      if (similarity >= threshold) {
-        similar.push(cache);
-      }
-    }
-    
-    return similar;
+  async getReferenceChunksByUrl(url: string): Promise<ReferenceCache[]> {
+    return await db.select().from(referenceCache)
+      .where(eq(referenceCache.url, url))
+      .orderBy(referenceCache.chunkIndex);
+  }
+
+  async getReferenceChunksByHash(contentHash: string): Promise<ReferenceCache[]> {
+    return await db.select().from(referenceCache)
+      .where(eq(referenceCache.contentHash, contentHash))
+      .orderBy(referenceCache.chunkIndex);
   }
 
   async createReferenceCache(cache: InsertReferenceCache): Promise<ReferenceCache> {
@@ -224,14 +217,11 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateReferenceCacheValidation(id: string, validatedAt: Date): Promise<ReferenceCache> {
-    const [updated] = await db
-      .update(referenceCache)
-      .set({ validatedAt })
-      .where(eq(referenceCache.id, id))
-      .returning();
-    return updated;
+  async clearReferenceCache(): Promise<void> {
+    await db.delete(referenceCache);
   }
+
+
 
   // Response Cache
   async getResponseCache(): Promise<ResponseCache[]> {

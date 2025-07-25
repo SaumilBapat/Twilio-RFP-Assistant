@@ -177,6 +177,20 @@ Preferred communication style: Simple, everyday language.
 - Removed non-operational "Avg Processing" metric from top panel and "Processing Rate" from system health
 - Simplified dashboard to focus on meaningful real-time metrics (3-card stats grid)
 
+### ✅ Enhanced Semantic Reference Research Architecture (January 25, 2025)
+- Completely redesigned reference research system from URL validation to semantic content analysis
+- Updated database schema with chunk-based reference cache storing embeddings, content, URLs, and metadata
+- Created webScraper.ts service to fetch full page content from live URLs
+- Implemented contentChunker.ts for semantic text chunking (500-1000 tokens per chunk)
+- Built enhancedEmbeddings.ts service for vector storage and similarity search using OpenAI embeddings
+- Updated storage interface with chunk-based methods: getAllReferenceChunks, getReferenceChunksByUrl, getReferenceChunksByHash
+- Enhanced Reference Research step now: searches for URLs → scrapes full content → creates semantic chunks → stores embeddings → performs vector similarity search
+- Generic Draft Generation step updated to use semantically relevant content chunks instead of URL lists
+- System now processes all relevant live URLs found (not limited to 5) and skips embedding for already cached content
+- Context resolution creates fully self-contained questions incorporating previous context for better semantic matching
+- Equal domain coverage maintained: All three domains (twilio.com, sendgrid.com, segment.com) are searched and processed
+- Architecture shift enables much more precise and contextually relevant responses through semantic similarity matching
+
 ## External Dependencies
 
 ### Core Technologies

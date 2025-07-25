@@ -114,8 +114,13 @@ export class OpenAIService {
         return await this.processReferenceResearch(agent, rowData);
       }
 
-      // Special handling for Response Generation step (now Generic Draft Generation)
-      if (agent.name === "Response Generation" || agent.name === "Generic Draft Generation") {
+      // Special handling for Generic Draft Generation step with semantic chunks
+      if (agent.name === "Generic Draft Generation") {
+        return await this.processGenericDraftGeneration(agent, rowData);
+      }
+
+      // Special handling for legacy Response Generation step
+      if (agent.name === "Response Generation") {
         return await this.processResponseGeneration(agent, rowData);
       }
 
@@ -196,124 +201,121 @@ export class OpenAIService {
     const startTime = Date.now();
     
     try {
-      // Import the reference research service dynamically to avoid circular dependencies
-      const { referenceResearchService } = await import('./referenceResearch');
+      console.log(`🚀 Starting Enhanced Reference Research with full content processing...`);
       
-      // Extract the question from the first column
-      const firstColumnKey = Object.keys(rowData)[0];
-      const question = firstColumnKey ? String(rowData[firstColumnKey] || '') : '';
+      // Get contextual question (created by Context Resolution step)
+      const contextualQuestion = rowData.FULL_CONTEXTUAL_QUESTION || 
+                                rowData[Object.keys(rowData)[0]] || '';
       
-      if (!question) {
+      if (!contextualQuestion) {
         throw new Error('No question found in input data');
       }
 
-      console.log(`🔍 Using intelligent reference research for: ${question.substring(0, 100)}...`);
+      console.log(`🔍 Processing contextual question: ${contextualQuestion.substring(0, 150)}...`);
       
-      console.log(`🔧 [DEBUG] Passing agent config to reference research:`, {
-        name: agent.name,
-        systemPrompt: agent.systemPrompt.substring(0, 100) + '...',
-        userPrompt: agent.userPrompt.substring(0, 100) + '...'
-      });
-      
-      // Use the enhanced reference research service with context data
-      const result = await referenceResearchService.findReferences(question, agent, rowData);
-      
-      // Format the output using the service
-      const output = referenceResearchService.formatReferencesForOutput(result.references);
+      // Use the enhanced reference research system
+      const result = await performEnhancedReferenceResearch(contextualQuestion);
       
       const latency = Date.now() - startTime;
       
-      if (result.fromCache) {
-        console.log(`💰 Used cached references (similarity: ${result.similarity?.toFixed(3)})`);
-      } else {
-        console.log(`🆕 Generated new references with validation`);
-      }
-
+      console.log(`✅ Enhanced reference research completed in ${latency}ms:
+      - Processed URLs: ${result.urls.length}
+      - URLs with content: ${result.urls.filter(url => url).length}`);
+      
       return {
-        output,
+        output: JSON.stringify(result.urls),
         latency,
-        inputPrompt: `Reference Research for: ${question}`,
+        inputPrompt: `Enhanced Reference Research for: ${contextualQuestion.substring(0, 100)}...`,
         metadata: {
-          model: agent.model,
-          fromCache: result.fromCache,
-          similarity: result.similarity,
-          referenceCount: result.references.length,
-          validReferences: result.references.filter(r => r.status === 'valid').length
+          model: 'enhanced-semantic-search',
+          enhanced: true,
+          urlsProcessed: result.urls.length,
+          contextualQuestion: contextualQuestion.substring(0, 100) + '...'
         }
       };
 
     } catch (error) {
       const latency = Date.now() - startTime;
-      console.error(`❌ Reference research failed after ${latency}ms:`, error);
+      console.error(`❌ Enhanced reference research failed after ${latency}ms:`, error);
       
       return {
-        output: '',
+        output: JSON.stringify([]),
         latency,
-        inputPrompt: `Reference Research failed`,
+        inputPrompt: `Enhanced Reference Research failed`,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
 
-  private async processResponseGeneration(
+  private async processGenericDraftGeneration(
     agent: AgentConfig,
     rowData: Record<string, any>
   ): Promise<ProcessingResult> {
     const startTime = Date.now();
     
     try {
-      // Import the response generation service dynamically
-      const { responseGenerationService } = await import('./responseGeneration');
+      console.log(`📝 Processing Generic Draft Generation with semantic chunks...`);
       
-      // Extract the question from the first column
-      const firstColumnKey = Object.keys(rowData)[0];
-      const question = firstColumnKey ? String(rowData[firstColumnKey] || '') : '';
+      const contextualQuestion = rowData.FULL_CONTEXTUAL_QUESTION || rowData[Object.keys(rowData)[0]] || '';
       
-      // Extract references from the "Reference Research" step
-      const references = String(rowData["Reference Research"] || '');
-      
-      if (!question) {
-        throw new Error('No question found in input data');
+      if (!contextualQuestion) {
+        throw new Error('No contextual question found in input data');
       }
 
-      if (!references) {
-        throw new Error('No references found from previous step');
-      }
-
-      console.log(`📝 Using intelligent response generation for: ${question.substring(0, 100)}...`);
+      // Get relevant content chunks using semantic search
+      const relevantChunks = await getRelevantContentChunks(contextualQuestion, 15);
       
-      // Use the enhanced response generation service
-      const result = await responseGenerationService.generateResponse(question, references, agent, rowData);
+      console.log(`📊 Found ${relevantChunks.length} relevant content chunks for draft generation`);
+      
+      // Create enhanced context with semantic chunks
+      const enhancedContext = relevantChunks.map((chunk, index) => 
+        `[Reference ${index + 1}] ${chunk.source}
+URL: ${chunk.url}
+Content: ${chunk.text}
+Relevance Score: ${(chunk.similarity * 100).toFixed(1)}%`
+      ).join('\n\n---\n\n');
+      
+      // Process the template with enhanced data
+      const processedPrompt = this.processTemplate(agent.userPrompt, {
+        ...rowData,
+        SEMANTIC_CONTEXT: enhancedContext,
+        RELEVANT_CHUNKS_COUNT: relevantChunks.length.toString(),
+        REFERENCE_URLS: relevantChunks.map(chunk => chunk.url).join('\n')
+      });
+      
+      const result = await this.callOpenAIDirect({
+        model: agent.model,
+        systemPrompt: agent.systemPrompt,
+        userPrompt: processedPrompt,
+        temperature: agent.temperature,
+        maxTokens: agent.maxTokens
+      });
       
       const latency = Date.now() - startTime;
       
-      if (result.fromCache) {
-        console.log(`💰 Used cached response (similarity: ${result.similarity?.toFixed(3)})`);
-      } else {
-        console.log(`🆕 Generated new response with caching`);
-      }
-
+      console.log(`✅ Generic draft generation completed in ${latency}ms using ${relevantChunks.length} semantic chunks`);
+      
       return {
-        output: result.response,
+        output: result.output,
         latency,
-        inputPrompt: `Response Generation for: ${question}`,
-        metadata: {
+        inputPrompt: processedPrompt,
+        metadata: { 
           ...result.metadata,
-          fromCache: result.fromCache,
-          similarity: result.similarity,
-          questionLength: question.length,
-          referencesLength: references.length
+          semanticChunks: relevantChunks.length,
+          avgSimilarity: relevantChunks.length > 0 ? 
+            (relevantChunks.reduce((sum, chunk) => sum + chunk.similarity, 0) / relevantChunks.length).toFixed(3) : 'N/A',
+          uniqueUrls: [...new Set(relevantChunks.map(chunk => chunk.url))].length
         }
       };
 
     } catch (error) {
       const latency = Date.now() - startTime;
-      console.error(`❌ Response generation failed after ${latency}ms:`, error);
+      console.error(`❌ Generic draft generation failed after ${latency}ms:`, error);
       
       return {
         output: '',
         latency,
-        inputPrompt: `Response Generation failed`,
+        inputPrompt: `Generic Draft Generation failed`,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
