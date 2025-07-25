@@ -197,7 +197,9 @@ export class FileUploadService {
     const baseFilename = filename.endsWith('.csv') ? filename.slice(0, -4) : filename;
     const exportPath = path.join(this.uploadDir, `export-${baseFilename}.csv`);
     
-    await fs.writeFile(exportPath, csvContent, 'utf8');
+    // Add UTF-8 BOM (Byte Order Mark) to help Excel interpret the encoding correctly
+    const utf8BOM = '\uFEFF';
+    await fs.writeFile(exportPath, utf8BOM + csvContent, 'utf8');
     return exportPath;
   }
 
@@ -262,24 +264,38 @@ export class FileUploadService {
     let fixedText = text;
     
     // Apply replacements in order, handling the most specific patterns first
+    // Complex multi-character mojibake patterns
+    fixedText = fixedText.split('Ã¢\u0082\u00AC\u0099').join("'");       // â€™ → ' (apostrophe)
+    fixedText = fixedText.split('Ã¢\u0082\u00AC\u009C').join('"');       // â€œ → " (left quote)
+    fixedText = fixedText.split('Ã¢\u0082\u00AC\u009D').join('"');       // â€ → " (right quote)
+    fixedText = fixedText.split('Ã¢\u0082\u00AC¢').join('•');            // â€¢ → • (bullet)
+    fixedText = fixedText.split('Ã¢\u0082\u00AC\u0093').join('–');       // â€" → – (en dash)
+    fixedText = fixedText.split('Ã¢\u0082\u00AC\u0094').join('—');       // â€" → — (em dash)
+    
     // Bullet points and list markers
     fixedText = fixedText.replace(/‚Ä¢/g, '•');        // U+2022 BULLET
     fixedText = fixedText.replace(/â€¢/g, '•');        // Alternative bullet encoding
+    fixedText = fixedText.replace(/Â·/g, '·');         // Middle dot
+    fixedText = fixedText.replace(/âˆ™/g, '∙');        // Bullet operator
+    fixedText = fixedText.replace(/â—¦/g, '◦');        // White bullet
     
     // Em dashes and en dashes  
     fixedText = fixedText.replace(/‚Äî/g, '—');        // U+2014 EM DASH
     fixedText = fixedText.replace(/â€"/g, '—');        // Alternative em dash
     fixedText = fixedText.replace(/‚Äì/g, '–');        // U+2013 EN DASH
     
-    // Quotation marks
+    // Quotation marks and apostrophes (including the ‚Äô pattern)
     fixedText = fixedText.replace(/‚Äú/g, '"');        // U+201C LEFT DOUBLE QUOTATION MARK
     fixedText = fixedText.replace(/â€œ/g, '"');        // Alternative left double quote
     fixedText = fixedText.replace(/‚Äù/g, '"');        // U+201D RIGHT DOUBLE QUOTATION MARK  
     fixedText = fixedText.replace(/â€/g, '"');         // Alternative right double quote
-    fixedText = fixedText.replace(/‚Äô/g, "'");        // U+2018 LEFT SINGLE QUOTATION MARK
+    fixedText = fixedText.replace(/‚Äô/g, "'");        // U+2019 RIGHT SINGLE QUOTATION MARK (apostrophe)
+    fixedText = fixedText.replace(/‚Äò/g, "'");        // U+2018 LEFT SINGLE QUOTATION MARK
     fixedText = fixedText.replace(/â€˜/g, "'");        // Alternative left single quote
-    fixedText = fixedText.replace(/‚Äõ/g, "'");        // U+2019 RIGHT SINGLE QUOTATION MARK
-    fixedText = fixedText.replace(/â€™/g, "'");        // Alternative right single quote
+    fixedText = fixedText.replace(/‚Äõ/g, "'");        // Alternative apostrophe encoding
+    fixedText = fixedText.replace(/â€™/g, "'");        // Alternative right single quote (common apostrophe)
+    fixedText = fixedText.replace(/'/g, "'");          // U+2019 to ASCII apostrophe
+    fixedText = fixedText.replace(/'/g, "'");          // U+2018 to ASCII apostrophe
     fixedText = fixedText.replace(/‚Äò/g, '„');        // U+201E DOUBLE LOW-9 QUOTATION MARK
     fixedText = fixedText.replace(/â€ž/g, '„');        // Alternative double low-9 quote
     fixedText = fixedText.replace(/‚Äó/g, '‚');        // U+201A SINGLE LOW-9 QUOTATION MARK
@@ -377,6 +393,21 @@ export class FileUploadService {
     fixedText = fixedText.replace(/Â¿/g, '¿');         // U+00BF INVERTED QUESTION MARK
     fixedText = fixedText.replace(/Ã—/g, '×');         // U+00D7 MULTIPLICATION SIGN
     fixedText = fixedText.replace(/Ã·/g, '÷');         // U+00F7 DIVISION SIGN
+    
+    // Additional mojibake patterns
+    fixedText = fixedText.replace(/Â /g, ' ');         // Non-breaking space
+    fixedText = fixedText.replace(/â€™/g, "'");        // Smart apostrophe to simple
+    fixedText = fixedText.replace(/â€"/g, "—");        // Em dash
+    fixedText = fixedText.replace(/â€œ/g, '"');        // Left smart quote
+    fixedText = fixedText.replace(/â€/g, '"');         // Right smart quote  
+    fixedText = fixedText.replace(/â€¢/g, '•');        // Bullet
+    fixedText = fixedText.replace(/â€¦/g, '…');        // Ellipsis
+    fixedText = fixedText.replace(/â„¢/g, '™');        // Trademark
+    
+    // Clean up any remaining common mojibake patterns
+    fixedText = fixedText.replace(/Ã¢â‚¬/g, '');       // Common prefix
+    fixedText = fixedText.replace(/ÃƒÂ/g, '');         // Another common prefix
+    fixedText = fixedText.replace(/Ã‚Â/g, '');         // Yet another prefix
     
     return fixedText;
   }
