@@ -1,0 +1,6 @@
+Question,Category,Priority
+"What is Twilio's security compliance framework?",Security,High
+"How does Twilio handle data encryption?",Security,High  
+"What are Twilio's service level agreements?",Performance,Medium
+"Describe Twilio's API rate limiting policies",Technical,Medium
+"What disaster recovery procedures does Twilio have?",Operations,High
