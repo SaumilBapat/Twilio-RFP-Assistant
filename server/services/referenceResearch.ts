@@ -9,9 +9,9 @@ import { linkValidator } from './linkValidator';
 import { openaiService } from './openai';
 
 interface ReferenceResult {
-  url: string;
-  title: string;
-  description: string;
+  Reference_URL: string;
+  Reference_URL_Summary: string;
+  Reference_URL_Quotes: string[];
   status: 'valid' | 'invalid' | 'timeout';
   statusCode?: number;
   error?: string;
@@ -153,16 +153,16 @@ export class ReferenceResearchService {
     console.log(`📚 Generated ${references.length} potential references`);
 
     // Validate all links
-    const urls = references.map((ref: any) => ref.url);
+    const urls = references.map((ref: any) => ref.Reference_URL);
     const validationResults = await linkValidator.validateUrls(urls);
 
     // Merge validation results with reference data
     const validatedReferences: ReferenceResult[] = references.map((ref: any, index: number) => {
       const validation = validationResults[index];
       return {
-        url: ref.url,
-        title: ref.title,
-        description: ref.description,
+        Reference_URL: ref.Reference_URL,
+        Reference_URL_Summary: ref.Reference_URL_Summary,
+        Reference_URL_Quotes: ref.Reference_URL_Quotes || [],
         status: validation.status,
         statusCode: validation.statusCode,
         error: validation.error
@@ -220,7 +220,7 @@ export class ReferenceResearchService {
   private async revalidateCachedReferences(cachedResult: CachedReferences): Promise<void> {
     if (!cachedResult.cacheId) return;
 
-    const urls = cachedResult.references.map(ref => ref.url);
+    const urls = cachedResult.references.map(ref => ref.Reference_URL);
     const validationResults = await linkValidator.validateUrls(urls);
 
     // Update reference statuses
@@ -244,7 +244,7 @@ export class ReferenceResearchService {
   }
 
   private async generateAdditionalReferences(question: string, agent: any, existingRefs: ReferenceResult[]): Promise<ReferenceResult[]> {
-    const existingUrls = new Set(existingRefs.map(r => r.url));
+    const existingUrls = new Set(existingRefs.map(r => r.Reference_URL));
     
     const fallbackPrompt = `Find MORE specific Twilio ecosystem references for: ${question}
 
@@ -257,7 +257,21 @@ export class ReferenceResearchService {
 - https://segment.com/solutions/ (data solutions)
 - https://www.twilio.com/ahoy/ (developer resources)
 
-Return JSON with at least 3 NEW references that haven't been used yet.`;
+Return JSON with the new structure:
+{
+  "references": [
+    {
+      "Reference_URL": "https://www.twilio.com/[specific-page]",
+      "Reference_URL_Summary": "How this resource addresses the question",
+      "Reference_URL_Quotes": [
+        "Relevant quote from the resource",
+        "Another key point or statistic"
+      ]
+    }
+  ]
+}
+
+Return at least 3 NEW references that haven't been used yet.`;
 
     const result = await openaiService.callOpenAIDirect({
       model: "gpt-4o",
@@ -281,22 +295,22 @@ Return JSON with at least 3 NEW references that haven't been used yet.`;
       const newReferences = additionalData.references || [];
       
       // Filter out URLs we already have
-      const uniqueRefs = newReferences.filter((ref: any) => !existingUrls.has(ref.url));
+      const uniqueRefs = newReferences.filter((ref: any) => !existingUrls.has(ref.Reference_URL));
       
       if (uniqueRefs.length === 0) {
         return [];
       }
 
       // Validate the new URLs
-      const urls = uniqueRefs.map((ref: any) => ref.url);
+      const urls = uniqueRefs.map((ref: any) => ref.Reference_URL);
       const validationResults = await linkValidator.validateUrls(urls);
 
       return uniqueRefs.map((ref: any, index: number) => {
         const validation = validationResults[index];
         return {
-          url: ref.url,
-          title: ref.title,
-          description: ref.description,
+          Reference_URL: ref.Reference_URL,
+          Reference_URL_Summary: ref.Reference_URL_Summary,
+          Reference_URL_Quotes: ref.Reference_URL_Quotes || [],
           status: validation.status,
           statusCode: validation.statusCode,
           error: validation.error
@@ -319,19 +333,25 @@ Return JSON with at least 3 NEW references that haven't been used yet.`;
     if (validRefs.length > 0) {
       output += "### ✅ Verified Sources:\n";
       validRefs.forEach((ref, index) => {
-        output += `${index + 1}. **[${ref.title}](${ref.url})**\n`;
-        output += `   ${ref.description}\n\n`;
+        output += `${index + 1}. **[${ref.Reference_URL}](${ref.Reference_URL})**\n`;
+        output += `   **Summary:** ${ref.Reference_URL_Summary}\n`;
+        if (ref.Reference_URL_Quotes && ref.Reference_URL_Quotes.length > 0) {
+          output += `   **Key Points:**\n`;
+          ref.Reference_URL_Quotes.forEach(quote => {
+            output += `   • "${quote}"\n`;
+          });
+        }
+        output += "\n";
       });
     }
 
     if (invalidRefs.length > 0) {
       output += "### ⚠️ Unverified Sources:\n";
       invalidRefs.forEach((ref, index) => {
-        output += `${index + 1}. **${ref.title}** (${ref.status})\n`;
-        output += `   ${ref.description}\n`;
-        output += `   URL: ${ref.url}\n`;
+        output += `${index + 1}. **${ref.Reference_URL}** (${ref.status})\n`;
+        output += `   **Summary:** ${ref.Reference_URL_Summary}\n`;
         if (ref.error) {
-          output += `   Error: ${ref.error}\n`;
+          output += `   **Error:** ${ref.error}\n`;
         }
         output += "\n";
       });
