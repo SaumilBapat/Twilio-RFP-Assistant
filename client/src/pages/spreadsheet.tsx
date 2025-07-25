@@ -169,9 +169,20 @@ export default function Spreadsheet() {
     
     try {
       await apiRequest('POST', `/api/jobs/${jobId}/${action}`);
+      
+      // Handle different action past tense forms correctly
+      const actionPastTense = {
+        'pause': 'paused',
+        'resume': 'resumed', 
+        'start': 'started',
+        'reset': 'reset',
+        'cancel': 'cancelled',
+        'reprocess': 'reprocessed'
+      }[action] || `${action}ed`;
+      
       toast({
         title: "Success",
-        description: `Job ${action}${action.endsWith('e') ? 'd' : 'ed'} successfully`,
+        description: `Job ${actionPastTense} successfully`,
       });
       // Refetch job data to update status
       queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });

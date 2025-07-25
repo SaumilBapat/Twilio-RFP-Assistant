@@ -81,9 +81,20 @@ export function JobTable({ jobs, onJobUpdate }: JobTableProps) {
   const handleJobAction = async (jobId: string, action: string) => {
     try {
       await apiRequest('POST', `/api/jobs/${jobId}/${action}`);
+      
+      // Handle different action past tense forms correctly
+      const actionPastTense = {
+        'pause': 'paused',
+        'resume': 'resumed', 
+        'start': 'started',
+        'reset': 'reset',
+        'cancel': 'cancelled',
+        'reprocess': 'reprocessed'
+      }[action] || `${action}ed`;
+      
       toast({
         title: "Success",
-        description: `Job ${action}ed successfully`,
+        description: `Job ${actionPastTense} successfully`,
       });
       onJobUpdate();
     } catch (error) {

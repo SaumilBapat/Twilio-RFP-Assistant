@@ -237,6 +237,14 @@ Preferred communication style: Simple, everyday language.
 - Processing logs now show number of duplicates removed during URL normalization
 - Cache efficiency improved by treating URLs like "page.html#section1" and "page.html#section2" as same content
 
+### ✅ Semantic Similarity Threshold Optimization and UI Fixes (January 25, 2025)
+- Fixed critical semantic search issue: lowered similarity threshold from 0.75 to 0.55 for better content matching
+- Enhanced similarity scoring with detailed logging showing max, average, and threshold statistics
+- Fixed spelling error in job action messages: "pauseed" now correctly displays as "paused"
+- Implemented proper past tense mapping for all job actions in both job table and spreadsheet components
+- Added comprehensive action mapping: pause→paused, resume→resumed, start→started, reset→reset, cancel→cancelled
+- System now finds relevant semantic content chunks instead of constant "0 relevant chunks" results
+
 ### ✅ Dashboard UI Improvements and Real-time Console (January 25, 2025)
 - Removed system health bar from main dashboard to simplify interface
 - Added real-time Processing Console component showing live job execution details
