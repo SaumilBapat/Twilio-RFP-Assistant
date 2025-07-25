@@ -329,6 +329,7 @@ export class OpenAIService {
       const firstColumnKey = Object.keys(rowData)[0];
       const question = firstColumnKey ? String(rowData[firstColumnKey] || '') : '';
       const genericDraft = String(rowData["Generic Draft Generation"] || '');
+      const references = String(rowData["Reference Research"] || '');
       
       // Get RFP-specific data from job context (this would be passed from the job processor)
       const rfpInstructions = String(rowData["RFP_INSTRUCTIONS"] || '');
@@ -348,6 +349,7 @@ export class OpenAIService {
       const result = await tailoredResponseService.generateTailoredResponse({
         question,
         genericDraft,
+        references,
         rfpInstructions,
         additionalDocuments,
         agent

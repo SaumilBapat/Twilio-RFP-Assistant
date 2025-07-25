@@ -11,6 +11,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 interface TailoredResponseConfig {
   question: string;
   genericDraft: string;
+  references: string;
   rfpInstructions?: string;
   additionalDocuments?: Array<{fileName: string, content: string}>;
   agent: any;
@@ -43,14 +44,16 @@ export class TailoredResponseService {
         RFP_INSTRUCTIONS: config.rfpInstructions || '',
         ADDITIONAL_DOCUMENTS: this.formatAdditionalDocuments(config.additionalDocuments),
         FIRST_COLUMN: config.question,
-        'Generic Draft Generation': config.genericDraft
+        'Generic Draft Generation': config.genericDraft,
+        'Reference Research': config.references
       });
 
       const userPrompt = this.replacePlaceholders(config.agent.userPrompt, {
         RFP_INSTRUCTIONS: config.rfpInstructions || '',
         ADDITIONAL_DOCUMENTS: this.formatAdditionalDocuments(config.additionalDocuments),
         FIRST_COLUMN: config.question,
-        'Generic Draft Generation': config.genericDraft
+        'Generic Draft Generation': config.genericDraft,
+        'Reference Research': config.references
       });
 
       console.log(`🚀 Using ${config.agent.model} with ${config.additionalDocuments?.length || 0} additional documents`);
@@ -108,6 +111,7 @@ export class TailoredResponseService {
 
   private prepareContext(config: TailoredResponseConfig): string {
     let context = `Question: ${config.question}\n\n`;
+    context += `Reference Research:\n${config.references}\n\n`;
     context += `Generic Draft:\n${config.genericDraft}\n\n`;
     
     if (config.rfpInstructions) {
