@@ -44,23 +44,18 @@ export class EnhancedEmbeddingsService {
     
     const systemPrompt = `You are a Twilio ecosystem URL discovery specialist. Find specific, working URLs from the Twilio ecosystem (twilio.com, sendgrid.com, segment.com) that would contain relevant information to answer this question.
 
-CRITICAL: Return ONLY the URLs, one per line. Do not include any other text, explanations, or formatting.`;
+CRITICAL: Return ONLY the URLs, one per line. No summaries, quotes, descriptions, or explanations - just URLs.`;
 
     const userPrompt = `Find relevant URLs from the Twilio ecosystem for this question:
 
 "${contextualQuestion}"
 
-Return as many specific, relevant URLs as you can find from:
-- https://www.twilio.com/docs/
-- https://www.twilio.com/products/
-- https://www.twilio.com/solutions/
-- https://sendgrid.com/docs/
-- https://sendgrid.com/solutions/
-- https://segment.com/docs/
-- https://segment.com/product/
+Search across all three domains for specific, relevant URLs:
+- twilio.com (docs, products, solutions, guides)
+- sendgrid.com (docs, solutions, features)
+- segment.com (docs, product, guides)
 
-Include deep URLs with specific paths, not just homepage URLs.
-Return ONLY the URLs, one per line.`;
+Return ONLY the URLs, one per line. No additional text or formatting.`;
 
     try {
       const response = await openai.chat.completions.create({
