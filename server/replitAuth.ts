@@ -41,6 +41,33 @@ export function setupAuth(app: Express) {
     return process.env.REPLIT_DOMAINS && process.env.REPLIT_DOMAINS.includes('replit.dev');
   };
 
+  // Setup passport serialization for both OAuth and username/password users
+  passport.serializeUser((user: any, done) => {
+    done(null, user.id);
+  });
+
+  passport.deserializeUser(async (id: string, done) => {
+    try {
+      // Handle different user types
+      if (id === 'admin-user') {
+        // Return admin user for preview mode
+        const adminUser = {
+          id: 'admin-user',
+          email: 'admin@twilio.com',
+          name: 'Admin User (Preview)',
+          googleId: null
+        };
+        return done(null, adminUser);
+      } else {
+        // Try to get from database (OAuth users)
+        const user = await storage.getUser(id);
+        done(null, user);
+      }
+    } catch (error) {
+      done(error, false);
+    }
+  });
+
   // Only setup username/password authentication in preview mode
   if (isPreviewMode()) {
     console.log('🔒 Preview mode detected - enabling username/password authentication');
@@ -114,18 +141,7 @@ export function setupAuth(app: Express) {
       }
     }));
 
-    passport.serializeUser((user: any, done) => {
-      done(null, user.id);
-    });
-
-    passport.deserializeUser(async (id: string, done) => {
-      try {
-        const user = await storage.getUser(id);
-        done(null, user);
-      } catch (error) {
-        done(error, false);
-      }
-    });
+    // OAuth-specific setup is handled above in the main serialization
   } else if (useDevBypass) {
     console.log('🔓 Development mode: Using bypass authentication');
     
