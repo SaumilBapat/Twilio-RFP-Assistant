@@ -95,6 +95,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Health check route for deployment monitoring
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({ 
+      status: 'healthy', 
+      message: 'RFP Assistant API is running',
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
