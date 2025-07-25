@@ -24,9 +24,19 @@ export class EnhancedEmbeddingsService {
    */
   async generateEmbedding(text: string): Promise<number[]> {
     try {
+      // Truncate text if it's too long for OpenAI's token limit
+      const estimatedTokens = Math.ceil(text.length / 4);
+      let processedText = text;
+      
+      if (estimatedTokens > 8000) {
+        // Truncate to approximately 8000 tokens (32000 characters)
+        processedText = text.substring(0, 32000);
+        console.log(`⚠️ Truncated text from ${estimatedTokens} to ~8000 tokens for embedding`);
+      }
+      
       const response = await openai.embeddings.create({
         model: this.embeddingModel,
-        input: text,
+        input: processedText,
         encoding_format: 'float'
       });
 

@@ -7,9 +7,10 @@ export interface ContentChunk {
 }
 
 export class ContentChunkerService {
-  private readonly maxTokensPerChunk = 800; // Target 500-1000 tokens per chunk
+  private readonly maxTokensPerChunk = 600; // Keep well under 8192 OpenAI limit 
   private readonly overlapTokens = 100; // Overlap between chunks for context
   private readonly minChunkTokens = 50; // Minimum tokens for a valid chunk
+  private readonly openAiTokenLimit = 8000; // Safe limit for OpenAI embeddings
 
   /**
    * Split content into semantic chunks suitable for embedding
@@ -26,7 +27,7 @@ export class ContentChunkerService {
     for (const semanticChunk of semanticChunks) {
       const estimatedTokens = this.estimateTokenCount(semanticChunk);
       
-      if (estimatedTokens <= this.maxTokensPerChunk) {
+      if (estimatedTokens <= this.maxTokensPerChunk && estimatedTokens < this.openAiTokenLimit) {
         // Chunk is small enough, use as-is
         if (estimatedTokens >= this.minChunkTokens) {
           chunks.push({
