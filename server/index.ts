@@ -38,6 +38,15 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Add health check route before other routes
+  app.get('/', (req, res) => {
+    res.status(200).json({ 
+      status: 'healthy', 
+      message: 'RFP Assistant API is running',
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Initialize database with default data
   await seedDatabase();
   

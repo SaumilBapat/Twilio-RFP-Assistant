@@ -51,9 +51,10 @@ async function seedDatabase() {
 if (import.meta.url === `file://${process.argv[1]}`) {
   seedDatabase().then(() => {
     console.log('Seeding complete');
-    process.exit(0);
+    // Removed process.exit(0) to prevent application termination
   }).catch((error) => {
     console.error('Seeding failed:', error);
+    // Only exit on failure when called directly
     process.exit(1);
   });
 }

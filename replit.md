@@ -80,6 +80,12 @@ Preferred communication style: Simple, everyday language.
 - Database schema updated for Google OAuth user model with sessions table
 - Users are automatically created on first Google sign-in and can return to view their RFPs
 
+### ✅ Deployment Fixes (January 25, 2025)
+- Fixed application exit issue by removing process.exit(0) from database seeding
+- Added health check route at '/' endpoint for deployment health monitoring
+- Ensured server stays alive after seeding for production deployment
+- Application now properly handles deployment health checks
+
 ## External Dependencies
 
 ### Core Technologies
