@@ -34,10 +34,20 @@ export function setupAuth(app: Express) {
   const hasCredentials = process.env.RFP_GOOGLE_CLIENT_ID && process.env.RFP_GOOGLE_CLIENT_SECRET;
 
   if (hasCredentials) {
+    // Get the base URL for OAuth callback
+    const getCallbackURL = () => {
+      // For development, use the Replit domain if available
+      if (process.env.NODE_ENV === 'development' && process.env.REPLIT_DOMAINS) {
+        return `https://${process.env.REPLIT_DOMAINS}/api/auth/google/callback`;
+      }
+      // For production or when REPLIT_DOMAINS not available, use relative URL
+      return "/api/auth/google/callback";
+    };
+
     passport.use(new GoogleStrategy({
       clientID: process.env.RFP_GOOGLE_CLIENT_ID!,
       clientSecret: process.env.RFP_GOOGLE_CLIENT_SECRET!,
-      callbackURL: "/api/auth/google/callback", // Use relative URL
+      callbackURL: getCallbackURL(),
       proxy: true // This tells Passport to trust the proxy headers
     },
     async (accessToken, refreshToken, profile, done) => {

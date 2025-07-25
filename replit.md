@@ -82,9 +82,10 @@ Preferred communication style: Simple, everyday language.
 
 ### ✅ Deployment Fixes (January 25, 2025)
 - Fixed application exit issue by removing process.exit(0) from database seeding
-- Added health check route at '/' endpoint for deployment health monitoring
+- Added health check route at '/api/health' endpoint for deployment health monitoring
 - Ensured server stays alive after seeding for production deployment
 - Application now properly handles deployment health checks
+- Updated OAuth configuration to support both preview and deployed environments
 
 ## External Dependencies
 
