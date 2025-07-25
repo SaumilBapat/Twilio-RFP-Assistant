@@ -101,6 +101,14 @@ Preferred communication style: Simple, everyday language.
 - Frontend dynamically shows appropriate login options based on environment
 - Prevents unauthorized access using hardcoded credentials in deployed applications
 
+### ✅ Reference-Based AI Pipeline (January 25, 2025)
+- Updated default pipeline to focus on reference gathering and citation-based responses
+- First step "Reference Research" now searches for authoritative sources and extracts quotes
+- Second step "Response Generation" creates professional responses with citations
+- Enhanced prompts to emphasize specific data points, metrics, and source credibility
+- Pipeline now generates responses similar to enterprise RFP processing workflows
+- Improved AI processing to include proper reference formatting and source validation
+
 ## External Dependencies
 
 ### Core Technologies

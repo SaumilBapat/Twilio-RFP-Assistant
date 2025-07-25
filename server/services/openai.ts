@@ -73,6 +73,13 @@ export class OpenAIService {
         completionOptions.response_format = { type: "json_object" };
       }
 
+      // Add web search tool if requested (Note: OpenAI doesn't have built-in web search yet, but we prepare for it)
+      if (agent.tools?.includes('web_search')) {
+        // For now, we'll add a note in the system prompt to encourage research-style responses
+        // In the future, this could integrate with actual web search APIs
+        messages[0].content += "\n\nNote: Focus on providing specific, verifiable information with source references. When possible, mention authoritative sources and recent data.";
+      }
+
       const response = await openai.chat.completions.create(completionOptions);
       
       const latency = Date.now() - startTime;

@@ -5,19 +5,19 @@ import { eq } from "drizzle-orm";
 async function seedDatabase() {
   console.log('Seeding database...');
   
-  // Create default pipeline with research and response steps
+  // Create default pipeline with reference gathering and response generation
   const defaultPipeline = {
     name: "RFP Research & Response Pipeline", 
-    description: "A two-step pipeline for researching and crafting RFP responses",
+    description: "A two-step pipeline for gathering references and crafting RFP responses with citations",
     steps: [
       {
-        name: "Research & Analysis",
+        name: "Reference Research",
         model: "gpt-4o",
         temperature: 0.1,
-        maxTokens: 1500,
-        tools: [],
-        systemPrompt: "You are a research assistant specialized in RFP analysis. Research the question thoroughly and provide relevant background information, industry standards, and key points to address.",
-        userPrompt: "Research and analyze this RFP question: {{FIRST_COLUMN}}\n\nProvide relevant background information, industry standards, and key points that should be addressed in a comprehensive response."
+        maxTokens: 2000,
+        tools: ["web_search"],
+        systemPrompt: "You are a research specialist for RFP responses. Find relevant, current references and extract key quotes that support answering the question. Focus on finding official documentation, recent articles, and authoritative sources with specific data points, metrics, and factual information.",
+        userPrompt: "Research this RFP question and gather relevant references: {{FIRST_COLUMN}}\n\nFind and provide:\n1. 3-6 relevant URLs from authoritative sources (official docs, recent articles, industry reports)\n2. Key quotes and data points from each source\n3. Specific metrics, compliance information, or technical details\n4. Publication dates and source credibility\n\nFormat as:\nREFERENCES:\n[URL 1]\nQuote: \"[relevant quote with specific data]\"\nKey points: [bullet points of important info]\n\n[URL 2]\n[etc...]"
       },
       {
         name: "Response Generation",
@@ -25,8 +25,8 @@ async function seedDatabase() {
         temperature: 0.3,
         maxTokens: 2000,
         tools: [],
-        systemPrompt: "You are a professional RFP response writer. Create clear, compelling, and comprehensive responses based on research provided.",
-        userPrompt: "Based on this research: {{Research & Analysis}}\n\nWrite a professional, comprehensive response to this RFP question: {{FIRST_COLUMN}}\n\nEnsure the response is well-structured, addresses all key points, and demonstrates expertise."
+        systemPrompt: "You are a professional RFP response writer. Create compelling, well-structured responses using the research and references provided. Include specific data points, metrics, and citations. Write in a professional, third-person tone suitable for business proposals.",
+        userPrompt: "Based on the research and references: {{Reference Research}}\n\nWrite a comprehensive response to this RFP question: {{FIRST_COLUMN}}\n\nRequirements:\n- Include specific data points and metrics from the research\n- Reference credible sources to support claims\n- Address all aspects of the question\n- Use professional, clear language\n- End with a 'References:' section listing the key URLs cited\n\nEnsure the response demonstrates expertise and builds confidence in the capabilities being described."
       }
     ],
     isDefault: true

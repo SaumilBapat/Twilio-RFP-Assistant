@@ -1,0 +1,288 @@
+/* eslint-disable no-console */
+
+/**
+ *  Twilio → Notable RFP answer generator  (streaming, refs)
+ *  --------------------------------------------------------
+ *  • Pass-1 streams short bullet answers  → Answer column
+ *  • Pass-2 streams paragraph answers + refs → Final Answer column
+ *  • CSV file is updated on every single generated answer
+ *  • o3-pro + web_search_preview with o3 fallback
+ *  • Adds a UTF-8 BOM so Excel opens the CSV without mojibake
+ */
+
+const fs = require('fs');
+const path = require('path');
+const csv = require('csv-parser');
+const pdfParse = require('pdf-parse');
+const xlsx = require('xlsx');
+const mammoth = require('mammoth');
+const OpenAI = require('openai');
+const { createObjectCsvWriter } = require('csv-writer');
+require('dotenv').config();
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+/* ---------------- CONFIG ---------------- */
+
+const RESOURCES_DIR   = 'twilio_resources';
+const EXTRA_RFP_PDF   = 'Notable_RFP.pdf';
+const EMBED_CACHE     = 'embeddings.json';
+
+const EMBED_MODEL     = 'text-embedding-3-small';
+const PRIMARY_MODEL   = 'o3';
+const FALLBACK_MODEL  = 'o3';
+
+const CHUNK_LEN       = 1500;
+const CHUNK_OVERLAP   = 200;
+
+const QUESTION_INTERVAL_MS = 5_000;    // 5-second pacing
+const MAX_TOKENS_PM        = 150_000;  // token bucket
+const BUCKET_REFRESH_MS    = 60_000;
+
+/* ---------- token-bucket limiter ---------- */
+
+let bucket = MAX_TOKENS_PM;
+setInterval(() => (bucket = MAX_TOKENS_PM), BUCKET_REFRESH_MS);
+
+async function limited(tokens, fn) {
+  while (bucket < tokens) await new Promise(r => setTimeout(r, 400));
+  bucket -= tokens;
+  return fn();
+}
+
+/* ---------- helpers ---------- */
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const chunkText = txt => {
+  const out = [];
+  for (let i = 0; i < txt.length; i += (CHUNK_LEN - CHUNK_OVERLAP))
+    out.push(txt.slice(i, i + CHUNK_LEN));
+  return out;
+};
+
+/* ---------- UTF-8 BOM helper ---------- */
+
+/**
+ * Ensures the given file starts with a UTF-8 BOM so Excel
+ * recognises the encoding correctly.
+ */
+function ensureUtf8Bom(fp) {
+  if (!fs.existsSync(fp)) {
+    // \uFEFF = ZERO WIDTH NO-BREAK SPACE (UTF-8 BOM)
+    fs.writeFileSync(fp, '\uFEFF', 'utf8');
+  }
+}
+
+/* ---------- embedding ---------- */
+
+async function extractText(fp) {
+  const ext = path.extname(fp).toLowerCase();
+  if (ext === '.pdf')    return (await pdfParse(fs.readFileSync(fp))).text;
+  if (ext === '.docx')   return (await mammoth.extractRawText({ path: fp })).value;
+  if (ext === '.csv' || ext === '.xlsx') {
+    const wb = xlsx.readFile(fp);
+    return Object.values(wb.Sheets).map(sh => xlsx.utils.sheet_to_csv(sh)).join('\n');
+  }
+  if (ext === '.txt' || ext === '.doc') return fs.readFileSync(fp, 'utf8');
+  return '';
+}
+
+async function buildEmbeddings(force = false) {
+  if (!force && fs.existsSync(EMBED_CACHE)) {
+    console.log('📦  Using cached embeddings.');
+    return JSON.parse(fs.readFileSync(EMBED_CACHE, 'utf8'));
+  }
+
+  const files = fs.readdirSync(RESOURCES_DIR);
+  if (fs.existsSync(path.join(RESOURCES_DIR, EXTRA_RFP_PDF))) files.push(EXTRA_RFP_PDF);
+
+  const embeds = [];
+  for (const file of files) {
+    console.log(`🔍  Embedding ${file} …`);
+    const txt = await extractText(path.join(RESOURCES_DIR, file));
+    for (const chunk of chunkText(txt)) {
+      const est = Math.ceil(chunk.length / 4);
+      const res = await limited(est, () =>
+        openai.embeddings.create({ model: EMBED_MODEL, input: chunk })
+      );
+      embeds.push({ text: chunk, embedding: res.data[0].embedding, source: file });
+    }
+  }
+  fs.writeFileSync(EMBED_CACHE, JSON.stringify(embeds, null, 2));
+  return embeds;
+}
+
+/* ---------- similarity ---------- */
+
+const cosine = (a, b) =>
+  a.reduce((s, v, i) => s + v * b[i], 0) / (Math.hypot(...a) * Math.hypot(...b));
+
+async function relevantContext(q, corpus) {
+  const est = Math.ceil(q.length / 4);
+  const qVec = (
+    await limited(est, () =>
+      openai.embeddings.create({ model: EMBED_MODEL, input: q })
+    )
+  ).data[0].embedding;
+
+  return corpus
+    .map(d => ({ ...d, sim: cosine(qVec, d.embedding) }))
+    .sort((a, b) => b.sim - a.sim)
+    .slice(0, 2)
+    .map(d => d.text)
+    .join('\n\n')
+    .slice(0, 5_000);
+}
+
+/* ---------- PROMPTS ---------- */
+
+/**
+ *  PASS 1 — “Short” answer (thesis + bullets + refs)
+ *  • Keeps the response tiny so it fits in the sheet but still useful later.
+ */
+const SHORT_PROMPT = `
+You are drafting **short** RFP answers for Notable Health from Twilio’s perspective.
+
+GUIDELINES
+1. Open with a single thesis sentence (≤ 25 words).
+2. Follow with 4-8 concise hyphen-bullets; use the “- ” prefix exactly.
+3. Each bullet must include at least ONE objective, verifiable data point (e.g., 99.95 % SLA, 4 000 + provider sites, < 300 ms latency).
+4. Highlight relevant AI capabilities where applicable (Twilio Voice Intelligence, Conversation Relay, Media Streams, Voice-Recording Encryption, HIPAA-eligible services).
+5. **Do NOT mention** EOL/EOS or Beta products (e.g., Autopilot, Notify, Proxy) nor unreleased roadmap items.
+6. Use plain business language—avoid fluffy adjectives (“cutting-edge”, “world-class”) and future-tense promises.
+7. Keep the entire answer ≤ 120 words.
+8. After the bullets add a line exactly “References:” then list 2-6 public URLs (one per line, no markdown).  
+   • Links MUST be from docs/blog posts dated within the last 24 months.
+`.trim();
+
+/**
+ *  PASS 2 — Final narrative paragraph (≤ 250 words + refs)
+ *  • Builds on the short answer to deliver a polished, self-contained response.
+ */
+const FINAL_PROMPT = `
+You are drafting the **FINAL** paragraph answer for Notable Health’s RFP from Twilio’s perspective.
+
+GUIDELINES
+1. Write ONE polished paragraph (≤ 250 words) that directly answers the question and aligns with the thesis/bullets already provided.
+2. Integrate concrete, up-to-date proof points (metrics, dates, compliance attestations) drawn from public Twilio sources only.
+3. Emphasise HIPAA, security, scalability, and AI capabilities where they matter, but without marketing hype.
+4. Exclude any mention of EOL/EOS products, private roadmap items, or unreleased/Beta features.
+5. Maintain third-person, professional tone; avoid first-person pronouns and filler phrases.
+6. After the paragraph add a line exactly “References:” and list only the URLs actually cited in the paragraph (one per line, no markdown).  
+   • Do NOT add commentary after the links and do NOT mention you are an AI.
+`.trim();
+
+
+/* ---------- LLM call ---------- */
+
+async function callModel(prompt, input) {
+  const est = Math.ceil((prompt.length + input.length) / 4) + 2_000;
+  try {
+    const res = await limited(est, () =>
+      openai.responses.create({
+        model: PRIMARY_MODEL,
+        instructions: prompt,
+        input,
+        tools: [{ type: 'web_search_preview' }],
+        tool_choice: 'auto'
+      })
+    );
+    return res.output_text;
+  } catch (err) {
+    if (err.code === 'insufficient_quota') {
+      console.warn('⚠️  o3 quota exhausted – falling back to o3');
+      const res2 = await limited(est, () =>
+        openai.responses.create({
+          model: FALLBACK_MODEL,
+          instructions: prompt,
+          input,
+          tools: [{ type: 'web_search_preview' }],
+          tool_choice: 'auto'
+        })
+      );
+      return res2.output_text;
+    }
+    throw err;
+  }
+}
+
+const getShortAnswer = async (q, corpus) => {
+  const ctx = await relevantContext(q, corpus);
+  const inp = `---BEGIN CONTEXT---\n${ctx}\n---END CONTEXT---\n\nQUESTION: ${q}`;
+  return callModel(SHORT_PROMPT, inp)
+    .then(t => t.replace(/\n{2,}/g, '\n').replace(/•/g, '-').slice(0, 5_000));
+};
+
+const getFinalAnswer = async (q, first, corpus) => {
+  const ctx = await relevantContext(q, corpus);
+  const inp = `---BEGIN CONTEXT---\n${ctx}\n---END CONTEXT---\n\nQUESTION: ${q}\n\nInitial Answer:\n${first}`;
+  return callModel(FINAL_PROMPT, inp)
+    .then(t => t.replace(/\n{2,}/g, '\n').slice(0, 5_000));
+};
+
+/* ---------- CSV helpers ---------- */
+
+const readCsv = p =>
+  new Promise(res => {
+    const rows = [];
+    if (!fs.existsSync(p)) return res(rows);
+    fs.createReadStream(p)
+      .pipe(csv())
+      .on('data', r => rows.push(r))
+      .on('end', () => res(rows));
+  });
+
+function makeWriter(pathname) {
+  ensureUtf8Bom(pathname);    // ← write BOM on first run
+  return createObjectCsvWriter({
+    path: pathname,
+    encoding: 'utf8',         // ensure streams stay in UTF-8
+    header: [
+      { id: 'Question',     title: 'Question' },
+      { id: 'Answer',       title: 'Answer' },
+      { id: 'Final Answer', title: 'Final Answer' }
+    ],
+    append: false            // overwrite (we always pass full rows array)
+  });
+}
+
+/* ---------- MAIN ---------- */
+
+async function run(qCsv = 'rfp_questions.csv', outCsv = 'rfp_responses.csv') {
+  const corpus = await buildEmbeddings(process.argv.includes('--embed'));
+
+  /* ---- Pass 1 ---- */
+  const rows = await readCsv(outCsv);
+  const answeredSet = new Set(rows.map(r => r.Question));
+
+  const questions = [];
+  fs.createReadStream(qCsv)
+    .pipe(csv())
+    .on('data', r => {
+      const q = (r['Question'] || r['QUESTION TITLE'])?.trim();
+      if (q) questions.push(q);
+    })
+    .on('end', async () => {
+      for (const [idx, q] of questions.entries()) {
+        if (answeredSet.has(q)) continue;
+        console.log(`📝  Pass-1 ${idx + 1}/${questions.length}: ${q.slice(0, 60)}…`);
+        const ans = await getShortAnswer(q, corpus);
+        rows.push({ Question: q, Answer: ans, 'Final Answer': '' });
+        await makeWriter(outCsv).writeRecords(rows);   // updates file immediately
+        await sleep(QUESTION_INTERVAL_MS);
+      }
+      console.log('✅  Pass-1 complete.');
+
+      /* ---- Pass 2 ---- */
+      for (const [i, r] of rows.entries()) {
+        if (r['Final Answer']) continue;
+        console.log(`📜  Pass-2 ${i + 1}/${rows.length}: finalising…`);
+        r['Final Answer'] = await getFinalAnswer(r.Question, r.Answer, corpus);
+        await makeWriter(outCsv).writeRecords(rows);   // rewrite after each row
+        await sleep(QUESTION_INTERVAL_MS);
+      }
+      console.log('🎉  All passes done – CSV continually updated.');
+    });
+}
+
+run();
