@@ -382,11 +382,6 @@ Please customize these instructions based on the specific RFP requirements and y
                 <Plus className="w-6 h-6 text-gray-400 mx-auto" />
                 <div>
                   <p className="text-sm text-gray-600">Drop additional documents here or click to browse</p>
-                  <label htmlFor="additional-docs">
-                    <Button variant="outline" size="sm" className="cursor-pointer mt-2">
-                      Browse Files
-                    </Button>
-                  </label>
                   <input
                     id="additional-docs"
                     type="file"
@@ -395,6 +390,14 @@ Please customize these instructions based on the specific RFP requirements and y
                     className="hidden"
                     accept=".pdf,.doc,.docx,.txt,.md"
                   />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="cursor-pointer mt-2"
+                    onClick={() => document.getElementById('additional-docs')?.click()}
+                  >
+                    Browse Files
+                  </Button>
                 </div>
                 <p className="text-xs text-gray-400">PDF, DOC, TXT, MD files supported (up to 5 files)</p>
               </div>
