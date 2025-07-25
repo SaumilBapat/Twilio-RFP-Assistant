@@ -61,6 +61,12 @@ export class ContentChunkerService {
   private splitBySemanticBoundaries(content: string): string[] {
     const chunks: string[] = [];
     
+    // Ensure content is a string
+    if (typeof content !== 'string') {
+      console.error('Content is not a string:', typeof content, content);
+      return [];
+    }
+    
     // Split by double newlines (paragraph breaks)
     const paragraphs = content.split(/\n\s*\n/);
     

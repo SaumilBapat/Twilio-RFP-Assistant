@@ -197,7 +197,7 @@ export class BackgroundProcessor {
       throw new Error('Failed to scrape URL content');
     }
     
-    const chunks = contentChunkerService.chunkContent(content, url);
+    const chunks = contentChunkerService.chunkContent(content.content, url);
     const totalChunks = chunks.length;
     
     console.log(`📊 Processing ${totalChunks} chunks for ${url}`);
