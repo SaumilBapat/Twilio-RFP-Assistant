@@ -97,30 +97,10 @@ export class ReferenceResearchService {
       
       console.log('✅ Final prompt:', prompt);
     } else {
-      // Fallback to generic prompt (this should NOT happen)
-      console.log('\n⚠️ [DEBUG] FALLING BACK to generic prompt - THIS IS THE PROBLEM!');
-      systemPrompt = "You are a research expert finding authoritative sources for RFP questions.";
-      prompt = `Find authoritative sources and references that would help answer this RFP question: "${question}"
-
-Return your response as a JSON object with this structure:
-{
-  "references": [
-    {
-      "url": "https://example.com/resource",
-      "title": "Resource Title",
-      "description": "Brief description of why this resource is relevant"
-    }
-  ]
-}
-
-Focus on:
-- Official documentation and whitepapers
-- Industry standards and compliance documents  
-- Authoritative company resources
-- Government regulatory documents
-- Academic or research publications
-
-Provide 3-5 high-quality references with working URLs.`;
+      // This should NEVER happen - always require pipeline configuration
+      console.error('\n❌ [CRITICAL ERROR] No agent configuration provided to referenceResearch!');
+      console.error('This means the pipeline configuration is not being passed properly.');
+      throw new Error('Agent configuration is required for reference research. Pipeline configuration missing.');
     }
 
     console.log('\n🤖 [DEBUG] Calling OpenAI with:');
