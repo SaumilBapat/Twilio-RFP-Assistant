@@ -402,10 +402,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addUrlToCache(url: string): Promise<void> {
-    // This method will trigger the URL to be processed by the enhanced embeddings service
-    // For now, we'll create a placeholder entry that will be updated when processing occurs
+    // Check if URL already has actual content (not just placeholder)
     const existingChunks = await this.getReferenceChunksByUrl(url);
-    if (existingChunks.length === 0) {
+    const hasRealContent = existingChunks.some(chunk => 
+      chunk.chunkText !== 'URL queued for processing' && 
+      chunk.contentHash !== 'pending'
+    );
+    
+    if (!hasRealContent) {
+      // Delete any existing placeholder entries first
+      await db.delete(referenceCache).where(eq(referenceCache.url, url));
+      
       // Create a placeholder entry to mark this URL for processing
       await db.insert(referenceCache).values({
         url,
@@ -413,8 +420,7 @@ export class DatabaseStorage implements IStorage {
         chunkIndex: 0,
         chunkText: 'URL queued for processing',
         chunkEmbedding: '[]',
-        metadata: { status: 'pending' },
-        createdAt: new Date()
+        metadata: { status: 'pending' }
       });
     }
   }

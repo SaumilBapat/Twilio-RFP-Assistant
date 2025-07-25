@@ -136,9 +136,14 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
           continue;
         }
 
-        // Check if we already have this content in cache
+        // Check if we already have real content in cache (not just placeholders)
         const existingChunks = await storage.getReferenceChunksByUrl(url);
-        if (existingChunks.length > 0) {
+        const hasRealContent = existingChunks.some(chunk => 
+          chunk.chunkText !== 'URL queued for processing' && 
+          chunk.contentHash !== 'pending'
+        );
+        
+        if (hasRealContent) {
           if (jobId) {
             broadcastJobUpdate(jobId, {
               event: 'processing_log',
@@ -151,6 +156,20 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
           console.log(`♻️ URL already processed: ${url} (${existingChunks.length} chunks)`);
           processedUrls.push(url);
           continue;
+        }
+
+        // If we only have placeholder entries, remove them before processing
+        if (existingChunks.length > 0) {
+          if (jobId) {
+            broadcastJobUpdate(jobId, {
+              event: 'processing_log',
+              data: {
+                step: 'Reference Research',
+                log: `🔄 Replacing placeholder entries for: ${url.length > 50 ? url.substring(0, 47) + '...' : url}`
+              }
+            });
+          }
+          await storage.deleteUrlFromCache(url);
         }
 
         // Scrape the content
