@@ -227,26 +227,40 @@ export class FileUploadService {
   }
 
   private fixEncodingIssues(text: string): string {
-    // Fix common UTF-8 mojibake issues
+    // Fix common UTF-8 mojibake issues - more comprehensive mapping
     const fixes: { [key: string]: string } = {
+      // Bullet points and dashes
       '‚Ä¢': '•',      // Bullet point
+      '‚Äî': '—',      // Em dash
       'â€¢': '•',      // Bullet point variant
       'â€™': "'",      // Right single quotation mark
       'â€œ': '"',      // Left double quotation mark
       'â€': '"',       // Right double quotation mark
-      'â€"': '—',      // Em dash
+      'â€"': '—',      // Em dash variant
+      // Accented characters
       'Ã¡': 'á',       // a with acute
       'Ã©': 'é',       // e with acute
       'Ã­': 'í',       // i with acute
       'Ã³': 'ó',       // o with acute
       'Ãº': 'ú',       // u with acute
       'Ã±': 'ñ',       // n with tilde
+      // Symbols
       'â‚¬': '€',       // Euro symbol
+      // Additional common mojibake patterns
+      'â€¦': '…',       // Ellipsis
+      'â€˜': "'",      // Left single quotation mark
+      'â€š': ',',       // Single low-9 quotation mark
+      'â€ž': '„',       // Double low-9 quotation mark
     };
     
     let fixedText = text;
+    
+    // Apply each fix with proper regex escaping
     for (const [corrupted, correct] of Object.entries(fixes)) {
-      fixedText = fixedText.replace(new RegExp(corrupted.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), correct);
+      // Escape special regex characters in the corrupted text
+      const escapedCorrupted = corrupted.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedCorrupted, 'g');
+      fixedText = fixedText.replace(regex, correct);
     }
     
     return fixedText;
