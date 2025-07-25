@@ -44,10 +44,34 @@ export class FileUploadService {
         fileSize: 25 * 1024 * 1024, // 25MB
       },
       fileFilter: (req, file, cb) => {
-        if (file.mimetype === 'text/csv' || path.extname(file.originalname).toLowerCase() === '.csv') {
-          cb(null, true);
-        } else {
-          cb(new Error('Only CSV files are allowed'));
+        // Allow CSV files for the main upload
+        if (file.fieldname === 'csvFile') {
+          if (file.mimetype === 'text/csv' || path.extname(file.originalname).toLowerCase() === '.csv') {
+            cb(null, true);
+          } else {
+            cb(new Error('Main file must be a CSV file'));
+          }
+        }
+        // Allow additional document types for additional files
+        else if (file.fieldname.startsWith('additionalDoc_')) {
+          const allowedTypes = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain',
+            'text/markdown'
+          ];
+          const allowedExtensions = ['.pdf', '.doc', '.docx', '.txt', '.md'];
+          
+          if (allowedTypes.includes(file.mimetype) || 
+              allowedExtensions.some(ext => file.originalname.toLowerCase().endsWith(ext))) {
+            cb(null, true);
+          } else {
+            cb(new Error('Additional documents must be PDF, DOC, DOCX, TXT, or MD files'));
+          }
+        }
+        else {
+          cb(new Error('Unknown file field'));
         }
       }
     });
