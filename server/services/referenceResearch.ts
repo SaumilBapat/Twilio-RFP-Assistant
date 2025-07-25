@@ -118,20 +118,29 @@ Provide 3-5 high-quality references with working URLs.`;
     }
 
     let referencesData;
+    let cleanOutput = result.output.trim();
+    
     try {
-      // Clean the response to remove markdown code fences if present
-      let cleanOutput = result.output.trim();
-      if (cleanOutput.startsWith('```json')) {
-        cleanOutput = cleanOutput.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (cleanOutput.startsWith('```')) {
-        cleanOutput = cleanOutput.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      console.log(`🔍 Debug - Original output:`, result.output);
+      console.log(`🔍 Debug - Clean output before processing:`, cleanOutput);
+      
+      // More robust cleaning for markdown code fences
+      if (cleanOutput.includes('```json')) {
+        cleanOutput = cleanOutput.replace(/```json\s*/g, '').replace(/\s*```/g, '');
+      } else if (cleanOutput.includes('```')) {
+        cleanOutput = cleanOutput.replace(/```\s*/g, '').replace(/\s*```/g, '');
       }
       
+      console.log(`🔍 Debug - Clean output after processing:`, cleanOutput);
+      
       referencesData = JSON.parse(cleanOutput);
+      console.log(`✅ Successfully parsed JSON:`, referencesData);
     } catch (error) {
       console.error(`❌ JSON Parse Error:`, error);
+      console.error(`❌ Original Output Length:`, result.output.length);
       console.error(`❌ Original Output:`, result.output);
-      throw new Error(`Failed to parse reference response: ${result.output}`);
+      console.error(`❌ Clean Output:`, cleanOutput);
+      throw new Error(`Failed to parse reference response: ${result.output.substring(0, 500)}...`);
     }
 
     const references = referencesData.references || [];
