@@ -169,7 +169,7 @@ export class BackgroundProcessor {
   }
 
   /**
-   * Process a single URL
+   * Process a single URL with progress tracking
    */
   private async processUrl(url: string): Promise<number> {
     // Check if already processed (not placeholder)
@@ -188,15 +188,50 @@ export class BackgroundProcessor {
       await storage.deleteUrlFromCache(url);
     }
 
-    // Process the URL
-    const processedUrls = await enhancedEmbeddingsService.processUrls([url]);
-    if (processedUrls.length === 0) {
-      throw new Error('Failed to process URL - no content retrieved');
+    // Process the URL with progress callbacks
+    console.log(`🔄 Starting URL processing: ${url}`);
+    
+    // Scrape content first to get estimated chunks
+    const content = await webScraperService.scrapeUrl(url);
+    if (!content) {
+      throw new Error('Failed to scrape URL content');
+    }
+    
+    const chunks = contentChunkerService.chunkContent(content, url);
+    const totalChunks = chunks.length;
+    
+    console.log(`📊 Processing ${totalChunks} chunks for ${url}`);
+    
+    // Process chunks with progress updates
+    let processedChunks = 0;
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      
+      // Generate embedding for this chunk
+      const embedding = await enhancedEmbeddingsService.generateEmbedding(chunk.text);
+      
+      // Store chunk with embedding
+      await storage.createReferenceCache({
+        url,
+        contentHash: `${url}-${i}`,
+        chunkIndex: i,
+        chunkText: chunk.text,
+        chunkEmbedding: JSON.stringify(embedding),
+        metadata: { tokenCount: chunk.tokenCount }
+      });
+      
+      processedChunks++;
+      
+      // Broadcast progress update
+      this.broadcastProgressUpdate(url, processedChunks, totalChunks);
+      
+      console.log(`💾 Stored chunk ${processedChunks}/${totalChunks} for ${url}`);
+      
+      // Small delay to prevent overwhelming the system
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Get final chunk count
-    const finalChunks = await storage.getReferenceChunksByUrl(url);
-    return finalChunks.length;
+    return totalChunks;
   }
 
   /**
@@ -234,6 +269,25 @@ export class BackgroundProcessor {
         data: {
           ...item,
           status,
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+  }
+
+  /**
+   * Broadcast chunk processing progress via WebSocket
+   */
+  private broadcastProgressUpdate(url: string, processedChunks: number, totalChunks: number) {
+    const broadcastJobUpdate = (global as any).broadcastJobUpdate;
+    if (broadcastJobUpdate) {
+      broadcastJobUpdate('processing_queue', {
+        event: 'processing_progress',
+        data: {
+          url,
+          processedChunks,
+          totalChunks,
+          progress: Math.round((processedChunks / totalChunks) * 100),
           timestamp: new Date().toISOString()
         }
       });

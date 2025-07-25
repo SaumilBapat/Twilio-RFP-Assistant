@@ -93,4 +93,24 @@ export class URLNormalizer {
   }
 }
 
-export const urlNormalizer = URLNormalizer;
+export const urlNormalizer = {
+  normalize: URLNormalizer.normalize,
+  isValid: URLNormalizer.isValid,
+  getDomain: URLNormalizer.getDomain,
+  isTwilioEcosystem: URLNormalizer.isTwilioEcosystem,
+  
+  validateTwilioUrl: (url: string) => {
+    if (!URLNormalizer.isValid(url)) {
+      return { isValid: false, error: 'Invalid URL format' };
+    }
+    
+    if (!URLNormalizer.isTwilioEcosystem(url)) {
+      return { 
+        isValid: false, 
+        error: 'Only Twilio ecosystem URLs are allowed (twilio.com, sendgrid.com, segment.com)' 
+      };
+    }
+    
+    return { isValid: true, normalizedUrl: URLNormalizer.normalize(url) };
+  }
+};

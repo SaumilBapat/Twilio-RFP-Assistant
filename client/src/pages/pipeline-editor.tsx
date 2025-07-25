@@ -77,6 +77,42 @@ export default function PipelineEditor() {
     queryKey: ['/api/reference-urls'],
   });
 
+  // Track processing progress for URLs being actively processed
+  const [processingProgress, setProcessingProgress] = useState<Record<string, {processedChunks: number, totalChunks: number}>>({});
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user?.id || 'admin-user'}`;
+    
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.event === 'processing_progress') {
+          const { url, processedChunks, totalChunks } = message.data;
+          setProcessingProgress(prev => ({
+            ...prev,
+            [url]: { processedChunks, totalChunks }
+          }));
+        } else if (message.event === 'processing_status' && message.data.status === 'completed') {
+          // Remove from processing when completed
+          setProcessingProgress(prev => {
+            const { [message.data.url]: removed, ...rest } = prev;
+            return rest;
+          });
+          // Refresh URL list to show updated chunks
+          queryClient.invalidateQueries({ queryKey: ['/api/reference-urls'] });
+        }
+      } catch (error) {
+        console.error('WebSocket message parsing error:', error);
+      }
+    };
+
+    return () => ws.close();
+  }, [user?.id, queryClient]);
+
   const uploadDocumentMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
@@ -623,7 +659,14 @@ export default function PipelineEditor() {
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                     >
                       <div className="flex items-center space-x-3 flex-1">
-                        <Link className="h-4 w-4 text-gray-600" />
+                        <ProcessingStatusIcon 
+                          status={(() => {
+                            const progress = processingProgress[urlData.url];
+                            const isActivelyProcessing = !!progress;
+                            const isCompleted = urlData.chunkCount > 0;
+                            return isActivelyProcessing ? 'processing' : (isCompleted ? 'completed' : 'pending');
+                          })()} 
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2">
                             <a
@@ -637,16 +680,21 @@ export default function PipelineEditor() {
                             </a>
                             <ExternalLink className="h-3 w-3 text-gray-400" />
                           </div>
-                          <p className="text-xs text-gray-500">
-                            {urlData.chunkCount === 1 ? (
-                              <span className="flex items-center space-x-1">
-                                <span className="animate-spin">⚡</span>
-                                <span>Processing...</span>
-                              </span>
-                            ) : (
-                              `${urlData.chunkCount} chunks • Last cached: ${new Date(urlData.lastCached).toLocaleDateString()}`
-                            )}
-                          </p>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {(() => {
+                              const progress = processingProgress[urlData.url];
+                              const isActivelyProcessing = !!progress;
+                              const isCompleted = urlData.chunkCount > 0;
+                              
+                              if (isActivelyProcessing) {
+                                return `Processing ${progress.processedChunks} of ${progress.totalChunks} chunks...`;
+                              } else if (isCompleted) {
+                                return `✅ ${urlData.chunkCount} chunks processed • ${new Date(urlData.lastCached).toLocaleDateString()}`;
+                              } else {
+                                return "⏳ Queued for processing...";
+                              }
+                            })()}
+                          </div>
                         </div>
                       </div>
                       <Button
