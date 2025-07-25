@@ -1,5 +1,13 @@
 import { enhancedEmbeddingsService } from './enhancedEmbeddings';
 
+/**
+ * Normalize URL by removing fragment identifier (everything after #)
+ */
+function normalizeUrl(url: string): string {
+  const hashIndex = url.indexOf('#');
+  return hashIndex !== -1 ? url.substring(0, hashIndex) : url;
+}
+
 export interface EnhancedReferenceResult {
   processedUrls: string[];
   relevantChunks: Array<{
@@ -49,8 +57,23 @@ export async function performEnhancedReferenceResearch(
       return { urls: [] };
     }
     
+    // Normalize URLs to remove fragments and deduplicate
+    const normalizedUrls = [...new Set(urls.map(url => normalizeUrl(url)))];
+    
+    if (jobId && broadcastJobUpdate) {
+      broadcastJobUpdate(jobId, {
+        event: 'processing_log',
+        data: {
+          step: 'Reference Research',
+          log: `📋 Found ${urls.length} URLs, normalized to ${normalizedUrls.length} unique URLs (${urls.length - normalizedUrls.length} duplicates removed)`
+        }
+      });
+    }
+    
+    console.log(`📋 Found ${urls.length} URLs, normalized to ${normalizedUrls.length} unique URLs for processing`);
+    
     // Step 2: Process URLs (scrape, chunk, embed, store)
-    const processedUrls = await enhancedEmbeddingsService.processUrls(urls, jobId);
+    const processedUrls = await enhancedEmbeddingsService.processUrls(normalizedUrls, jobId);
     
     const result = { processedUrls, relevantChunks: [] };
     

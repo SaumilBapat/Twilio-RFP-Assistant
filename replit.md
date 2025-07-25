@@ -207,6 +207,14 @@ Preferred communication style: Simple, everyday language.
 - Equal domain coverage maintained: All three domains (twilio.com, sendgrid.com, segment.com) are searched and processed
 - Architecture shift enables much more precise and contextually relevant responses through semantic similarity matching
 
+### ✅ URL Fragment Normalization for Cache Optimization (January 25, 2025)
+- Added URL normalization to remove fragment identifiers (everything after #) before caching
+- Prevents duplicate caching of same page content when URLs only differ by fragment identifiers
+- Implemented in both enhancedEmbeddings.ts and enhancedReferenceResearch.ts services
+- Automatic deduplication removes duplicate URLs after normalization
+- Processing logs now show number of duplicates removed during URL normalization
+- Cache efficiency improved by treating URLs like "page.html#section1" and "page.html#section2" as same content
+
 ## External Dependencies
 
 ### Core Technologies
