@@ -86,6 +86,17 @@ export class ResponseGenerationService {
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       
+      // Helper function to determine correct token parameter based on model
+      const getTokensParam = (model: string, maxTokens: number) => {
+        // o3 models require max_completion_tokens instead of max_tokens
+        if (model.startsWith('o3')) {
+          return { max_completion_tokens: maxTokens };
+        }
+        return { max_tokens: maxTokens };
+      };
+
+      const tokensParam = getTokensParam(agent.model, agent.maxTokens || 2000);
+
       const response = await openai.chat.completions.create({
         model: agent.model,
         messages: [
@@ -93,7 +104,7 @@ export class ResponseGenerationService {
           { role: "user", content: processedUserPrompt }
         ],
         temperature: agent.temperature || 0.3,
-        max_tokens: agent.maxTokens || 2000,
+        ...tokensParam,
       });
 
       const output = response.choices[0]?.message?.content || '';

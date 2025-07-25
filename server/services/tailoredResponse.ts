@@ -55,6 +55,17 @@ export class TailoredResponseService {
 
       console.log(`🚀 Using ${config.agent.model} with ${config.additionalDocuments?.length || 0} additional documents`);
 
+      // Helper function to determine correct token parameter based on model
+      const getTokensParam = (model: string, maxTokens: number) => {
+        // o3 models require max_completion_tokens instead of max_tokens
+        if (model.startsWith('o3')) {
+          return { max_completion_tokens: maxTokens };
+        }
+        return { max_tokens: maxTokens };
+      };
+
+      const tokensParam = getTokensParam(config.agent.model, config.agent.maxTokens || 3000);
+
       const response = await openai.chat.completions.create({
         model: config.agent.model,
         messages: [
@@ -62,7 +73,7 @@ export class TailoredResponseService {
           { role: "user", content: userPrompt }
         ],
         temperature: config.agent.temperature || 0.4,
-        max_tokens: config.agent.maxTokens || 3000,
+        ...tokensParam,
       });
 
       const output = response.choices[0]?.message?.content || '';

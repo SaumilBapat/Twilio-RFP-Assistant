@@ -37,6 +37,15 @@ export class OpenAIService {
     }
   }
 
+  // Helper function to determine correct token parameter based on model
+  private getTokensParam(model: string, maxTokens: number) {
+    // o3 models require max_completion_tokens instead of max_tokens
+    if (model.startsWith('o3')) {
+      return { max_completion_tokens: maxTokens };
+    }
+    return { max_tokens: maxTokens };
+  }
+
   // Direct OpenAI call to avoid circular dependencies
   async callOpenAIDirect(config: {
     model: string;
@@ -48,6 +57,8 @@ export class OpenAIService {
     const startTime = Date.now();
     
     try {
+      const tokensParam = this.getTokensParam(config.model, config.maxTokens || 1000);
+      
       const response = await openai.chat.completions.create({
         model: config.model,
         messages: [
@@ -55,7 +66,7 @@ export class OpenAIService {
           { role: "user", content: config.userPrompt }
         ],
         temperature: config.temperature || 0.7,
-        max_tokens: config.maxTokens || 1000
+        ...tokensParam
       });
 
       const latency = Date.now() - startTime;
@@ -115,10 +126,11 @@ export class OpenAIService {
       let modelToUse = agent.model;
       
       // Handle special models that don't support certain parameters
+      const tokensParam = this.getTokensParam(modelToUse, agent.maxTokens || 2000);
       const completionOptions: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
         model: modelToUse,
         messages,
-        max_tokens: agent.maxTokens,
+        ...tokensParam,
       };
 
       // Some models like gpt-4o-search-preview don't support temperature parameter
