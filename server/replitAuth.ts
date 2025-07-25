@@ -82,6 +82,22 @@ export function setupAuth(app: Express) {
               name: 'Admin User (Preview)',
               googleId: null
             };
+            
+            // Ensure admin user exists in database
+            const existingUser = await storage.getUser('admin-user');
+            if (!existingUser) {
+              // User doesn't exist, create it
+              await storage.createUser({
+                id: 'admin-user',
+                email: 'admin@twilio.com',
+                name: 'Admin User (Preview)',
+                googleId: null
+              });
+              console.log('✓ Created admin user in database');
+            } else {
+              console.log('✓ Admin user already exists in database');
+            }
+            
             return done(null, adminUser);
           }
           

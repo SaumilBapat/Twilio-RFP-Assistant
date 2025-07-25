@@ -187,10 +187,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ job, validation });
     } catch (error) {
+      console.error('Job creation failed:', error);
+      
       if (req.file) {
         await fileUploadService.deleteFile(req.file.path);
       }
-      res.status(500).json({ message: 'Failed to create job' });
+      res.status(500).json({ 
+        message: 'Failed to create job',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
