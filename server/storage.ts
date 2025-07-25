@@ -1,4 +1,4 @@
-import { users, jobs, pipelines, jobSteps, csvData, referenceCache, responseCache, referenceDocuments, type User, type InsertUser, type Job, type InsertJob, type Pipeline, type InsertPipeline, type JobStep, type InsertJobStep, type CsvData, type InsertCsvData, type ReferenceCache, type InsertReferenceCache, type ResponseCache, type InsertResponseCache, type ReferenceDocument, type InsertReferenceDocument, type JobStatus } from "@shared/schema";
+import { users, jobs, pipelines, jobSteps, csvData, referenceCache, responseCache, referenceDocuments, processingQueue, type User, type InsertUser, type Job, type InsertJob, type Pipeline, type InsertPipeline, type JobStep, type InsertJobStep, type CsvData, type InsertCsvData, type ReferenceCache, type InsertReferenceCache, type ResponseCache, type InsertResponseCache, type ReferenceDocument, type InsertReferenceDocument, type JobStatus } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
 
@@ -70,6 +70,25 @@ export interface IStorage {
     totalJobs: number;
     activeJobs: number;
     completedToday: number;
+  }>;
+
+  // Processing Queue
+  addToProcessingQueue(item: {
+    type: 'url' | 'document';
+    url?: string;
+    documentId?: string;
+    status: string;
+    payloadSize?: number;
+    estimatedChunks?: number;
+    priority: number;
+  }): Promise<any>;
+  getNextProcessingQueueItem(): Promise<any>;
+  updateProcessingQueueStatus(id: string, status: string, updates: any): Promise<void>;
+  getProcessingQueueStats(): Promise<{
+    pending: number;
+    processing: number;
+    completed: number;
+    failed: number;
   }>;
 }
 
@@ -423,6 +442,68 @@ export class DatabaseStorage implements IStorage {
         metadata: { status: 'pending' }
       });
     }
+  }
+
+  // Processing Queue Methods
+  async addToProcessingQueue(item: {
+    type: 'url' | 'document';
+    url?: string;
+    documentId?: string;
+    status: string;
+    payloadSize?: number;
+    estimatedChunks?: number;
+    priority: number;
+  }): Promise<any> {
+    const [queueItem] = await db
+      .insert(processingQueue)
+      .values(item)
+      .returning();
+    return queueItem;
+  }
+
+  async getNextProcessingQueueItem(): Promise<any> {
+    const [item] = await db
+      .select()
+      .from(processingQueue)
+      .where(eq(processingQueue.status, 'pending'))
+      .orderBy(processingQueue.priority, processingQueue.createdAt)
+      .limit(1);
+    return item;
+  }
+
+  async updateProcessingQueueStatus(id: string, status: string, updates: any): Promise<void> {
+    await db
+      .update(processingQueue)
+      .set({ status, ...updates })
+      .where(eq(processingQueue.id, id));
+  }
+
+  async getProcessingQueueStats(): Promise<{
+    pending: number;
+    processing: number;
+    completed: number;
+    failed: number;
+  }> {
+    const stats = await db
+      .select({
+        status: processingQueue.status,
+        count: count()
+      })
+      .from(processingQueue)
+      .groupBy(processingQueue.status);
+
+    const result = {
+      pending: 0,
+      processing: 0,
+      completed: 0,
+      failed: 0
+    };
+
+    stats.forEach(stat => {
+      result[stat.status as keyof typeof result] = stat.count;
+    });
+
+    return result;
   }
 }
 

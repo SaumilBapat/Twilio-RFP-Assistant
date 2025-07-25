@@ -8,6 +8,7 @@ import { openaiService } from "./services/openai";
 import { documentProcessor } from "./services/documentProcessor";
 import { urlNormalizer } from "./services/urlNormalizer";
 import { enhancedEmbeddingsService } from "./services/enhancedEmbeddings";
+import { backgroundProcessor } from "./services/backgroundProcessor";
 import multer from "multer";
 import { insertJobSchema, insertPipelineSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -828,6 +829,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Failed to delete URL:', error);
       res.status(500).json({ message: 'Failed to delete URL' });
+    }
+  });
+
+  // Processing queue endpoints for background processing with payload preview
+  app.get('/api/processing-queue/status', isAuthenticated, async (req, res) => {
+    try {
+      const stats = await backgroundProcessor.getQueueStatus();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error getting queue status:', error);
+      res.status(500).json({ message: 'Failed to get queue status' });
+    }
+  });
+
+  app.post('/api/processing-queue/url', isAuthenticated, async (req, res) => {
+    try {
+      const { url } = req.body;
+      if (!url) {
+        return res.status(400).json({ message: 'URL is required' });
+      }
+
+      // Validate and normalize URL
+      const validationResult = urlNormalizer.validateTwilioUrl(url);
+      if (!validationResult.isValid) {
+        return res.status(400).json({ message: validationResult.error });
+      }
+
+      const normalizedUrl = urlNormalizer.normalize(url);
+      
+      // Queue URL for background processing with payload size estimation
+      const queueItem = await backgroundProcessor.queueUrl(normalizedUrl);
+      
+      res.json({ 
+        message: 'URL queued for background processing', 
+        url: normalizedUrl,
+        payloadSize: queueItem.payloadSize || 0,
+        estimatedChunks: queueItem.estimatedChunks || 1,
+        queueId: queueItem.id,
+        status: queueItem.status
+      });
+    } catch (error) {
+      console.error('Error queuing URL:', error);
+      res.status(500).json({ message: 'Failed to queue URL for processing' });
     }
   });
 

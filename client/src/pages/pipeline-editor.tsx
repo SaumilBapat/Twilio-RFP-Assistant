@@ -12,6 +12,7 @@ import { ArrowLeft, ArrowRight, Save, Settings, Zap, Brain, Target, Trash2, Uplo
 import { authService } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ProcessingStatusIcon, formatPayloadSize } from "@/components/ProcessingStatusIcon";
 
 interface PipelineStep {
   name: string;

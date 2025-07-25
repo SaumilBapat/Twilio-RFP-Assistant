@@ -120,6 +120,27 @@ export const referenceCache = pgTable("reference_cache", {
   index("idx_reference_cache_created").on(table.createdAt)
 ]);
 
+// Processing queue for async URL and document processing with status tracking
+export const processingQueue = pgTable("processing_queue", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: varchar("type").notNull(), // 'url' or 'document'
+  url: text("url"),
+  documentId: varchar("document_id").references(() => referenceDocuments.id),
+  status: varchar("status").notNull().default('pending'), // 'pending', 'processing', 'completed', 'failed'
+  payloadSize: integer("payload_size"), // Size in bytes
+  estimatedChunks: integer("estimated_chunks"), // Estimated number of chunks
+  actualChunks: integer("actual_chunks"), // Actual chunks created  
+  errorMessage: text("error_message"),
+  priority: integer("priority").default(1), // Processing priority
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+}, (table) => [
+  index("idx_processing_queue_status").on(table.status),
+  index("idx_processing_queue_type").on(table.type),
+  index("idx_processing_queue_priority").on(table.priority)
+]);
+
 // Cache table for final response generation with question + reference embeddings
 export const responseCache = pgTable("response_cache", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -244,6 +265,8 @@ export type CsvData = typeof csvData.$inferSelect;
 export type InsertCsvData = z.infer<typeof insertCsvDataSchema>;
 export type ReferenceCache = typeof referenceCache.$inferSelect;
 export type InsertReferenceCache = z.infer<typeof insertReferenceCacheSchema>;
+export type ProcessingQueue = typeof processingQueue.$inferSelect;
+export type InsertProcessingQueue = typeof processingQueue.$inferInsert;
 export type ResponseCache = typeof responseCache.$inferSelect;
 export type InsertResponseCache = z.infer<typeof insertResponseCacheSchema>;
 export type ReferenceDocument = typeof referenceDocuments.$inferSelect;
