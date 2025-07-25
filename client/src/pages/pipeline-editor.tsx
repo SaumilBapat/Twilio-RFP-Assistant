@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, ArrowRight, Save, Settings, Zap, Brain, Target, Trash2, Upload, FileText, CheckCircle, Loader2, AlertCircle, Link, Plus, ExternalLink, ChevronDown, ChevronRight, FolderOpen, Folder, File, Globe } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Settings, Zap, Brain, Target, Trash2, Upload, FileText, CheckCircle, Loader2, AlertCircle, Link, Plus, ExternalLink, ChevronDown, ChevronRight, FolderOpen, Folder, File, Globe, X } from "lucide-react";
 import { authService } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -188,6 +188,92 @@ export default function PipelineEditor() {
         description: error instanceof Error ? error.message : 'Failed to delete URL',
         variant: 'destructive'
       });
+    }
+  };
+
+  // Single URL add functionality
+  const handleAddUrl = async () => {
+    if (!newUrl.trim()) return;
+
+    setIsAddingUrl(true);
+    try {
+      const response = await fetch('/api/reference-urls', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || 'admin-user'
+        },
+        body: JSON.stringify({ url: newUrl.trim() })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to add URL');
+      }
+
+      setNewUrl('');
+      queryClient.invalidateQueries({ queryKey: ['/api/reference-urls'] });
+      
+      toast({
+        title: 'URL Added',
+        description: 'Reference URL has been queued for processing'
+      });
+    } catch (error) {
+      console.error('Add URL error:', error);
+      toast({
+        title: 'Add Failed',
+        description: error instanceof Error ? error.message : 'Failed to add URL',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsAddingUrl(false);
+    }
+  };
+
+  // Bulk URL add functionality
+  const handleBulkAddUrls = async () => {
+    if (!bulkUrls.trim()) return;
+
+    const urls = bulkUrls.split('\n').filter(url => url.trim()).map(url => url.trim());
+    if (urls.length === 0) return;
+
+    setIsAddingUrl(true);
+    try {
+      const response = await fetch('/api/reference-urls/bulk', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || 'admin-user'
+        },
+        body: JSON.stringify({ urls })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to process bulk URLs');
+      }
+
+      const results = await response.json();
+      setBulkResults(results);
+      setBulkUrls('');
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/reference-urls'] });
+      
+      toast({
+        title: 'Bulk Processing Complete',
+        description: `Processed ${urls.length} URLs. Check results below.`
+      });
+    } catch (error) {
+      console.error('Bulk add URLs error:', error);
+      toast({
+        title: 'Bulk Processing Failed',
+        description: error instanceof Error ? error.message : 'Failed to process bulk URLs',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsAddingUrl(false);
     }
   };
 
@@ -407,6 +493,114 @@ export default function PipelineEditor() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {/* Bulk URL Upload Section */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant={!isBulkUpload ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setIsBulkUpload(false)}
+                        >
+                          Single URL
+                        </Button>
+                        <Button
+                          variant={isBulkUpload ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setIsBulkUpload(true)}
+                        >
+                          Bulk URLs
+                        </Button>
+                      </div>
+                    </div>
+
+                    {!isBulkUpload ? (
+                      /* Single URL Input */
+                      <div className="flex space-x-2">
+                        <Input
+                          placeholder="Enter Twilio ecosystem URL to cache..."
+                          value={newUrl}
+                          onChange={(e) => setNewUrl(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && !isAddingUrl && handleAddUrl()}
+                        />
+                        <Button 
+                          onClick={handleAddUrl}
+                          disabled={!newUrl.trim() || isAddingUrl}
+                          size="sm"
+                        >
+                          {isAddingUrl ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Plus className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      /* Bulk URL Input */
+                      <div className="space-y-3">
+                        <Textarea
+                          placeholder="Enter multiple URLs (one per line)&#10;https://www.twilio.com/docs/...&#10;https://sendgrid.com/docs/...&#10;https://segment.com/docs/..."
+                          value={bulkUrls}
+                          onChange={(e) => setBulkUrls(e.target.value)}
+                          rows={6}
+                          className="resize-none"
+                        />
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-500">
+                            {bulkUrls.split('\n').filter(url => url.trim()).length} URLs to process
+                          </span>
+                          <Button 
+                            onClick={handleBulkAddUrls}
+                            disabled={!bulkUrls.trim() || isAddingUrl}
+                            size="sm"
+                          >
+                            {isAddingUrl ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <Plus className="h-4 w-4 mr-2" />
+                            )}
+                            Process URLs
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Bulk Results Display */}
+                    {bulkResults && (
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium text-sm mb-2">Bulk Upload Results:</h4>
+                        <div className="text-sm space-y-1">
+                          <p className="text-green-600">✓ {bulkResults.queued} URLs queued for processing</p>
+                          <p className="text-yellow-600">⚠ {bulkResults.skipped} URLs already cached</p>
+                          <p className="text-red-600">✗ {bulkResults.invalid} URLs invalid/rejected</p>
+                        </div>
+                        {bulkResults.results && bulkResults.results.length > 0 && (
+                          <div className="mt-3 max-h-32 overflow-y-auto space-y-1">
+                            {bulkResults.results.map((result: any, index: number) => (
+                              <div key={index} className={`text-xs px-2 py-1 rounded ${
+                                result.status === 'queued' ? 'bg-green-100 text-green-700' :
+                                result.status === 'skipped' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                <span className="font-mono">{result.url}</span>
+                                {result.message && <span className="ml-2">- {result.message}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setBulkResults(null)}
+                          className="mt-2"
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Clear Results
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
                   {urlsLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
