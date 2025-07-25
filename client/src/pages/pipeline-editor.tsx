@@ -54,6 +54,8 @@ export default function PipelineEditor() {
   const [editingStep, setEditingStep] = useState<number | null>(null);
   const [editedStep, setEditedStep] = useState<PipelineStep | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadingCount, setUploadingCount] = useState(0);
+  const [totalUploads, setTotalUploads] = useState(0);
   const [newUrl, setNewUrl] = useState('');
   const [isAddingUrl, setIsAddingUrl] = useState(false);
   const [isBulkUpload, setIsBulkUpload] = useState(false);
@@ -135,20 +137,40 @@ export default function PipelineEditor() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Document uploaded successfully",
-      });
+      const newCount = uploadingCount + 1;
+      setUploadingCount(newCount);
+      
+      if (newCount === totalUploads) {
+        // All files uploaded
+        setUploadingFile(false);
+        setUploadingCount(0);
+        setTotalUploads(0);
+        toast({
+          title: "Success", 
+          description: totalUploads === 1 
+            ? "Document uploaded successfully"
+            : `${totalUploads} documents uploaded successfully`,
+        });
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['/api/reference-documents'] });
-      setUploadingFile(false);
     },
     onError: (error: Error) => {
+      const newCount = uploadingCount + 1;
+      setUploadingCount(newCount);
+      
       toast({
         title: "Error",
         description: error.message || "Failed to upload document",
         variant: "destructive",
       });
-      setUploadingFile(false);
+      
+      if (newCount === totalUploads) {
+        // All files processed (success or error)
+        setUploadingFile(false);
+        setUploadingCount(0);
+        setTotalUploads(0);
+      }
     }
   });
 
@@ -361,12 +383,19 @@ export default function PipelineEditor() {
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
       setUploadingFile(true);
-      uploadDocumentMutation.mutate(file);
+      setUploadingCount(0);
+      setTotalUploads(fileArray.length);
+      
+      // Upload files one by one
+      fileArray.forEach(file => {
+        uploadDocumentMutation.mutate(file);
+      });
     }
-    // Reset input value to allow re-selecting the same file
+    // Reset input value to allow re-selecting the same files
     event.target.value = '';
   };
 
@@ -546,6 +575,7 @@ export default function PipelineEditor() {
                     ref={fileInputRef}
                     onChange={handleFileSelect}
                     accept=".pdf,.doc,.docx,.csv,.txt,.xlsx,.xlsm"
+                    multiple
                     className="hidden"
                   />
                   <Button
@@ -557,12 +587,15 @@ export default function PipelineEditor() {
                     {uploadingFile || uploadDocumentMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Uploading...
+                        {totalUploads > 1 
+                          ? `Uploading ${uploadingCount}/${totalUploads}...`
+                          : "Uploading..."
+                        }
                       </>
                     ) : (
                       <>
                         <Upload className="h-4 w-4 mr-2" />
-                        Upload Document
+                        Upload Documents
                       </>
                     )}
                   </Button>
@@ -578,7 +611,7 @@ export default function PipelineEditor() {
                 <div className="text-center py-8 text-gray-500">
                   <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                   <p>No reference documents uploaded yet</p>
-                  <p className="text-sm mt-1">Upload PDF, Word documents, CSV, or text files</p>
+                  <p className="text-sm mt-1">Upload PDF, Word, Excel, CSV, or text files (select multiple files at once)</p>
                 </div>
               ) : (
                 <div className="space-y-2">
