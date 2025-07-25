@@ -56,17 +56,17 @@ export class OpenAIService {
       // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       let modelToUse = agent.model;
       
-      // Handle special models - keep as requested but note gpt-4o-search-preview may not be available
-      if (agent.model === 'gpt-4o-search-preview') {
-        modelToUse = 'gpt-4o-search-preview'; // Try the specific model first
-      }
-
+      // Handle special models that don't support certain parameters
       const completionOptions: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
         model: modelToUse,
         messages,
-        temperature: agent.temperature,
         max_tokens: agent.maxTokens,
       };
+
+      // Some models like gpt-4o-search-preview don't support temperature parameter
+      if (!agent.model.includes('search-preview')) {
+        completionOptions.temperature = agent.temperature;
+      }
 
       // Add JSON response format for structured output
       if (agent.tools?.includes('json_output')) {

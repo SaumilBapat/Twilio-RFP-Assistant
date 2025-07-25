@@ -62,9 +62,9 @@ export default function Spreadsheet() {
   useEffect(() => {
     if (!lastMessage) return;
     
-    const { event, data } = lastMessage;
-    if (data?.jobId === jobId) {
-      switch (event) {
+    const { type, payload } = lastMessage;
+    if (payload?.jobId === jobId) {
+      switch (type) {
         case 'jobStarted':
         case 'jobPaused':
         case 'jobCompleted':
@@ -79,7 +79,7 @@ export default function Spreadsheet() {
           
           toast({
             title: "Processing Update",
-            description: `Row ${data.rowIndex + 1} processed (${data.progress}% complete)`,
+            description: `Row ${payload.rowIndex + 1} processed (${payload.progress}% complete)`,
           });
           break;
       }

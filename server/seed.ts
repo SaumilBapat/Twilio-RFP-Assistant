@@ -5,28 +5,28 @@ import { eq } from "drizzle-orm";
 async function seedDatabase() {
   console.log('Seeding database...');
   
-  // Create default pipeline with search and refinement steps
+  // Create default pipeline with research and response steps
   const defaultPipeline = {
-    name: "RFP Research & Response Pipeline",
-    description: "A two-step pipeline using search preview and answer refinement",
+    name: "RFP Research & Response Pipeline", 
+    description: "A two-step pipeline for researching and crafting RFP responses",
     steps: [
       {
-        name: "Reference Search",
-        model: "gpt-4o-search-preview",
-        temperature: 0.0,
-        maxTokens: 1000,
+        name: "Research & Analysis",
+        model: "gpt-4o",
+        temperature: 0.1,
+        maxTokens: 1500,
         tools: [],
-        systemPrompt: "You are a research assistant. Find relevant references and quotes for RFP questions.",
-        userPrompt: "Please find relevant references and quotes for the following RFP question: {{FIRST_COLUMN}}"
+        systemPrompt: "You are a research assistant specialized in RFP analysis. Research the question thoroughly and provide relevant background information, industry standards, and key points to address.",
+        userPrompt: "Research and analyze this RFP question: {{FIRST_COLUMN}}\n\nProvide relevant background information, industry standards, and key points that should be addressed in a comprehensive response."
       },
       {
-        name: "Answer Refinement", 
-        model: "gpt-3.5-turbo",
-        temperature: 0.7,
+        name: "Response Generation",
+        model: "gpt-4o",
+        temperature: 0.3,
         maxTokens: 2000,
         tools: [],
-        systemPrompt: "You are a helpful assistant. Provide a thorough answer and list references at the end.",
-        userPrompt: "Based on the research: {{Reference Search}}\n\nAnswer the RFP question: {{FIRST_COLUMN}} and include citations to the above references."
+        systemPrompt: "You are a professional RFP response writer. Create clear, compelling, and comprehensive responses based on research provided.",
+        userPrompt: "Based on this research: {{Research & Analysis}}\n\nWrite a professional, comprehensive response to this RFP question: {{FIRST_COLUMN}}\n\nEnsure the response is well-structured, addresses all key points, and demonstrates expertise."
       }
     ],
     isDefault: true
