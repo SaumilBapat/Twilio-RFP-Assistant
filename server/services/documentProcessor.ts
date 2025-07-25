@@ -23,22 +23,40 @@ class DocumentProcessor {
     // Calculate file hash
     const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
 
-    // Check if document already exists
+    // Check if document with same content already exists for this user
     const existingDoc = await storage.getReferenceDocumentByHash(fileHash);
     if (existingDoc && existingDoc.userId === userId) {
+      console.log(`📋 Duplicate document detected: "${fileName}" matches existing "${existingDoc.fileName}" (hash: ${fileHash.substring(0, 12)}...)`);
+      
+      // Return existing document to avoid duplicate processing
       return existingDoc;
     }
+    
+    // Create standardized document name if it's a duplicate filename for this user
+    let finalFileName = fileName;
+    const userDocs = await storage.getUserReferenceDocuments(userId);
+    const existingNames = userDocs.map(doc => doc.fileName);
+    
+    if (existingNames.includes(fileName)) {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const extension = fileName.split('.').pop();
+      const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+      finalFileName = `${nameWithoutExt}_${timestamp}.${extension}`;
+      console.log(`📝 Renamed duplicate filename: "${fileName}" → "${finalFileName}"`);
+    }
 
-    // Create document record
+    // Create document record with standardized name
     const document = await storage.createReferenceDocument({
       userId,
-      fileName,
+      fileName: finalFileName,
       fileType,
       fileSize,
       fileHash,
       cachingStatus: 'pending' as CachingStatus,
       totalChunks: 0
     });
+    
+    console.log(`✅ New document created: "${finalFileName}" (${(fileSize / 1024).toFixed(1)}KB, hash: ${fileHash.substring(0, 12)}...)`);
 
     // Start async processing
     this.startProcessing(document.id, fileBuffer, fileType);
@@ -88,8 +106,7 @@ class DocumentProcessor {
           
           // Mark document as failed and don't crash the entire process
           await storage.updateReferenceDocument(documentId, { 
-            cachingStatus: 'failed' as CachingStatus,
-            errorMessage: `PDF parsing failed: ${pdfError instanceof Error ? pdfError.message : 'Unknown PDF error'}`
+            cachingStatus: 'failed' as CachingStatus
           });
           
           // Don't throw - just return early so other documents can still process
