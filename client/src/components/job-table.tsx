@@ -16,7 +16,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
-  RotateCcw
+  RotateCcw,
+  RefreshCw
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useLocation } from "wouter";
@@ -267,24 +268,46 @@ export function JobTable({ jobs, onJobUpdate }: JobTableProps) {
                         </Button>
                       )}
                       {job.status === 'in_progress' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleJobAction(job.id, 'pause')}
-                          className="text-warning-600 hover:text-warning-900"
-                        >
-                          <Pause className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleJobAction(job.id, 'pause')}
+                            className="text-warning-600 hover:text-warning-900"
+                          >
+                            <Pause className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleJobAction(job.id, 'reset')}
+                            className="text-orange-600 hover:text-orange-900"
+                            title="Reset - Clear all progress and start fresh"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
                       {job.status === 'paused' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleJobAction(job.id, 'resume')}
-                          className="text-success-600 hover:text-success-900"
-                        >
-                          <Play className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleJobAction(job.id, 'resume')}
+                            className="text-success-600 hover:text-success-900"
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleJobAction(job.id, 'reset')}
+                            className="text-orange-600 hover:text-orange-900"
+                            title="Reset - Clear all progress and start fresh"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
                       {(job.status === 'completed' || job.status === 'error') && (
                         <Button

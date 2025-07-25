@@ -415,6 +415,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/jobs/:id/reset', isAuthenticated, async (req: any, res) => {
+    try {
+      await jobProcessor.resetJob(req.params.id);
+      res.json({ message: 'Job reset successfully' });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to reset job' });
+    }
+  });
+
   // Pipeline routes
   app.get('/api/pipelines', async (req, res) => {
     try {

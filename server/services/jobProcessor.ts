@@ -98,6 +98,40 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     this.emit('jobReset', { jobId });
   }
 
+  async resetJob(jobId: string): Promise<void> {
+    const job = await storage.getJob(jobId);
+    if (!job) {
+      throw new Error('Job not found');
+    }
+    
+    // Stop current processing if running
+    this.activeJobs.delete(jobId);
+    this.pausedJobs.delete(jobId);
+    
+    // Reset job status and clear processed data
+    await storage.updateJob(jobId, {
+      status: 'not_started',
+      processedRows: 0,
+      progress: 0,
+      errorMessage: null,
+      updatedAt: new Date()
+    });
+
+    // Clear enriched data from all CSV rows (keep only original data)
+    const csvData = await storage.getCsvData(jobId);
+    for (const row of csvData) {
+      await storage.updateCsvData(row.id, {
+        enrichedData: null
+      });
+    }
+
+    // Clear all job steps
+    await storage.clearJobSteps(jobId);
+    
+    console.log(`🔄 Job ${jobId} has been reset to start from scratch`);
+    this.emit('jobReset', { jobId });
+  }
+
   private async processJob(job: Job, pipeline: Pipeline): Promise<void> {
     const csvData = await storage.getJobCsvData(job.id);
     const steps = pipeline.steps as AgentConfig[];

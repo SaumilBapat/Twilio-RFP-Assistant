@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Filter, Search, Download, Edit, ExternalLink, Play, Pause, RotateCcw } from "lucide-react";
+import { ArrowLeft, Filter, Search, Download, Edit, ExternalLink, Play, Pause, RotateCcw, RefreshCw } from "lucide-react";
 import { StepInspectionPanel } from "@/components/step-inspection-panel";
 import { authService } from "@/lib/auth";
 import { useWebSocket } from "@/hooks/use-websocket";
@@ -280,23 +280,43 @@ export default function Spreadsheet() {
                 </Button>
               )}
               {job.status === 'in_progress' && (
-                <Button
-                  onClick={() => handleJobAction('pause')}
-                  variant="outline"
-                  className="text-warning-600 border-warning-600 hover:bg-warning-50"
-                >
-                  <Pause className="h-4 w-4 mr-2" />
-                  Pause
-                </Button>
+                <>
+                  <Button
+                    onClick={() => handleJobAction('pause')}
+                    variant="outline"
+                    className="text-warning-600 border-warning-600 hover:bg-warning-50"
+                  >
+                    <Pause className="h-4 w-4 mr-2" />
+                    Pause
+                  </Button>
+                  <Button
+                    onClick={() => handleJobAction('reset')}
+                    variant="outline"
+                    className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Reset
+                  </Button>
+                </>
               )}
               {job.status === 'paused' && (
-                <Button
-                  onClick={() => handleJobAction('resume')}
-                  className="bg-success-600 hover:bg-success-700"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Resume
-                </Button>
+                <>
+                  <Button
+                    onClick={() => handleJobAction('resume')}
+                    className="bg-success-600 hover:bg-success-700"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Resume
+                  </Button>
+                  <Button
+                    onClick={() => handleJobAction('reset')}
+                    variant="outline"
+                    className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Reset
+                  </Button>
+                </>
               )}
               
               {(job.status === 'completed' || job.status === 'error') && (
