@@ -791,26 +791,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Add placeholder and immediately start processing
-      await storage.addUrlToCache(normalizedUrl);
-      
-      // Process URL immediately (not in background) for immediate feedback
-      try {
-        console.log(`🚀 Starting immediate processing for URL: ${normalizedUrl}`);
-        const processedUrls = await enhancedEmbeddingsService.processUrls([normalizedUrl]);
-        console.log(`✅ URL processing completed: ${processedUrls.length} URLs processed`);
-      } catch (error) {
-        console.error(`❌ Failed to process URL ${normalizedUrl}:`, error);
-        // Keep the placeholder for manual retry
-      }
+      // Queue URL for background processing (async)
+      console.log(`📋 Queuing URL for background processing: ${normalizedUrl}`);
+      const queueItem = await backgroundProcessor.queueUrl(normalizedUrl);
       
       res.json({ 
-        message: 'URL added successfully',
-        url: normalizedUrl 
+        message: 'URL queued for processing',
+        url: normalizedUrl,
+        queueId: queueItem.id,
+        status: 'pending'
       });
     } catch (error) {
       console.error('Failed to add URL:', error);
       res.status(500).json({ message: 'Failed to add URL' });
+    }
+  });
+
+  // Bulk URL upload endpoint
+  app.post('/api/reference-urls/bulk', isAuthenticated, async (req: any, res) => {
+    try {
+      const { urls } = req.body;
+      
+      if (!urls || !Array.isArray(urls)) {
+        return res.status(400).json({ message: 'URLs array is required' });
+      }
+      
+      const results = [];
+      let queued = 0;
+      let skipped = 0;
+      let invalid = 0;
+      
+      for (const url of urls) {
+        if (!url || typeof url !== 'string' || !url.trim()) {
+          invalid++;
+          continue;
+        }
+        
+        const trimmedUrl = url.trim();
+        
+        // Validate and normalize the URL
+        if (!urlNormalizer.isValid(trimmedUrl)) {
+          results.push({ url: trimmedUrl, status: 'invalid', message: 'Invalid URL format' });
+          invalid++;
+          continue;
+        }
+        
+        const normalizedUrl = urlNormalizer.normalize(trimmedUrl);
+        
+        // Check if URL is from Twilio ecosystem
+        if (!urlNormalizer.isTwilioEcosystem(normalizedUrl)) {
+          results.push({ 
+            url: normalizedUrl, 
+            status: 'invalid', 
+            message: 'Only Twilio ecosystem URLs allowed' 
+          });
+          invalid++;
+          continue;
+        }
+        
+        // Check if URL already has real content
+        const existingChunks = await storage.getReferenceChunksByUrl(normalizedUrl);
+        const hasRealContent = existingChunks.some(chunk => 
+          chunk.chunkText !== 'URL queued for processing' && 
+          chunk.contentHash !== 'pending'
+        );
+        
+        if (hasRealContent) {
+          results.push({ 
+            url: normalizedUrl, 
+            status: 'skipped', 
+            message: 'Already cached' 
+          });
+          skipped++;
+          continue;
+        }
+        
+        // Queue URL for background processing
+        try {
+          const queueItem = await backgroundProcessor.queueUrl(normalizedUrl);
+          results.push({ 
+            url: normalizedUrl, 
+            status: 'queued', 
+            queueId: queueItem.id 
+          });
+          queued++;
+        } catch (error) {
+          results.push({ 
+            url: normalizedUrl, 
+            status: 'error', 
+            message: 'Failed to queue' 
+          });
+          invalid++;
+        }
+      }
+      
+      console.log(`📦 Bulk upload results: ${queued} queued, ${skipped} skipped, ${invalid} invalid`);
+      
+      res.json({ 
+        message: `Bulk upload completed: ${queued} URLs queued for processing`,
+        summary: { queued, skipped, invalid, total: urls.length },
+        results
+      });
+    } catch (error) {
+      console.error('Failed to process bulk URLs:', error);
+      res.status(500).json({ message: 'Failed to process bulk URLs' });
     }
   });
 

@@ -56,6 +56,9 @@ export default function PipelineEditor() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [newUrl, setNewUrl] = useState('');
   const [isAddingUrl, setIsAddingUrl] = useState(false);
+  const [isBulkUpload, setIsBulkUpload] = useState(false);
+  const [bulkUrls, setBulkUrls] = useState('');
+  const [bulkResults, setBulkResults] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const user = authService.getCurrentUser();
   const queryClient = useQueryClient();
@@ -189,14 +192,49 @@ export default function PipelineEditor() {
       setNewUrl('');
       setIsAddingUrl(false);
       toast({
-        title: "URL processed",
-        description: "The URL has been scraped, chunked, and cached for semantic search.",
+        title: "URL Queued",
+        description: "URL queued for background processing. You can continue working while it processes.",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to add URL. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkUploadMutation = useMutation({
+    mutationFn: async (urls: string[]) => {
+      const response = await fetch('/api/reference-urls/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to process bulk URLs');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setBulkResults(data);
+      setBulkUrls('');
+      setIsBulkUpload(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/reference-urls'] });
+      toast({
+        title: "Bulk Upload Complete",
+        description: `${data.summary.queued} URLs queued, ${data.summary.skipped} skipped, ${data.summary.invalid} invalid`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process bulk URLs",
         variant: "destructive",
       });
     },
@@ -232,6 +270,28 @@ export default function PipelineEditor() {
       });
     },
   });
+
+  // Event handlers
+  const handleAddUrl = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUrl.trim()) return;
+    addUrlMutation.mutate(newUrl.trim());
+  };
+
+  const handleBulkUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkUrls.trim()) return;
+    
+    // Parse URLs from textarea (split by newlines and filter empty lines)
+    const urls = bulkUrls
+      .split('\n')
+      .map(url => url.trim())
+      .filter(url => url.length > 0);
+    
+    if (urls.length === 0) return;
+    
+    bulkUploadMutation.mutate(urls);
+  };
 
   const updatePipelineMutation = useMutation({
     mutationFn: (updatedPipeline: Pipeline) => 
@@ -325,13 +385,6 @@ export default function PipelineEditor() {
 
   const getFileTypeIcon = (fileType: string) => {
     return <FileText className="h-4 w-4 text-gray-600" />;
-  };
-
-  const handleAddUrl = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newUrl.trim()) {
-      addUrlMutation.mutate(newUrl.trim());
-    }
   };
 
   const formatUrlDisplay = (url: string) => {
@@ -585,14 +638,30 @@ export default function PipelineEditor() {
                     Manage cached URLs from Twilio ecosystem for enhanced AI responses
                   </CardDescription>
                 </div>
-                <Button
-                  onClick={() => setIsAddingUrl(!isAddingUrl)}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add URL
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => {
+                      setIsAddingUrl(!isAddingUrl);
+                      setIsBulkUpload(false);
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add URL
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setIsBulkUpload(!isBulkUpload);
+                      setIsAddingUrl(false);
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Bulk Upload
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -637,6 +706,90 @@ export default function PipelineEditor() {
                   <p className="text-xs text-gray-500 mt-2">
                     Only URLs from twilio.com, sendgrid.com, and segment.com are allowed
                   </p>
+                </div>
+              )}
+
+              {/* Bulk Upload Form */}
+              {isBulkUpload && (
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <form onSubmit={handleBulkUpload} className="space-y-3">
+                    <div>
+                      <Label htmlFor="bulkUrls">URLs (one per line)</Label>
+                      <Textarea
+                        id="bulkUrls"
+                        placeholder="https://twilio.com/docs/..."
+                        value={bulkUrls}
+                        onChange={(e) => setBulkUrls(e.target.value)}
+                        rows={6}
+                        disabled={bulkUploadMutation.isPending}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button 
+                        type="submit" 
+                        disabled={!bulkUrls.trim() || bulkUploadMutation.isPending}
+                        size="sm"
+                      >
+                        {bulkUploadMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          'Upload URLs'
+                        )}
+                      </Button>
+                      <Button 
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsBulkUpload(false);
+                          setBulkUrls('');
+                          setBulkResults(null);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Only URLs from twilio.com, sendgrid.com, and segment.com are allowed
+                  </p>
+                </div>
+              )}
+
+              {/* Bulk Upload Results */}
+              {bulkResults && (
+                <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">Bulk Upload Results</h4>
+                  <div className="grid grid-cols-4 gap-4 mb-3">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-green-600">{bulkResults.summary.queued}</div>
+                      <div className="text-xs text-green-700">Queued</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-yellow-600">{bulkResults.summary.skipped}</div>
+                      <div className="text-xs text-yellow-700">Skipped</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-red-600">{bulkResults.summary.invalid}</div>
+                      <div className="text-xs text-red-700">Invalid</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-gray-600">{bulkResults.summary.total}</div>
+                      <div className="text-xs text-gray-700">Total</div>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setBulkResults(null)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Dismiss
+                  </Button>
                 </div>
               )}
 
