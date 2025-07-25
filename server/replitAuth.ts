@@ -38,9 +38,12 @@ export function setupAuth(app: Express) {
     const getCallbackURL = () => {
       // For development, use the Replit domain if available
       if (process.env.NODE_ENV === 'development' && process.env.REPLIT_DOMAINS) {
-        return `https://${process.env.REPLIT_DOMAINS}/api/auth/google/callback`;
+        const callbackURL = `https://${process.env.REPLIT_DOMAINS}/api/auth/google/callback`;
+        console.log('Using development callback URL:', callbackURL);
+        return callbackURL;
       }
       // For production or when REPLIT_DOMAINS not available, use relative URL
+      console.log('Using relative callback URL: /api/auth/google/callback');
       return "/api/auth/google/callback";
     };
 
@@ -110,9 +113,21 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/auth/google/callback", (req, res, next) => {
+    console.log('OAuth callback received:', {
+      url: req.url,
+      query: req.query,
+      headers: {
+        host: req.get('host'),
+        'user-agent': req.get('user-agent'),
+        referer: req.get('referer')
+      }
+    });
+    
     if (!hasCredentials) {
+      console.error('OAuth callback called but credentials not configured');
       return res.redirect("/?error=oauth_not_configured");
     }
+    
     passport.authenticate("google", (err: any, user: any, info: any) => {
       if (err) {
         console.error('Google auth error:', err);
