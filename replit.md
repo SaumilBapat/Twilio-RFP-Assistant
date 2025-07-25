@@ -238,7 +238,8 @@ Preferred communication style: Simple, everyday language.
 - Cache efficiency improved by treating URLs like "page.html#section1" and "page.html#section2" as same content
 
 ### ✅ Semantic Similarity Threshold Optimization and UI Fixes (January 25, 2025)
-- Fixed critical semantic search issue: lowered similarity threshold from 0.75 to 0.5 for better content matching
+- Fixed critical semantic search issue: lowered similarity threshold from 0.75 to 0.4 for better content matching
+- Based on real logs showing max similarity of 0.453, adjusted threshold to capture actual content matches
 - Enhanced similarity scoring with detailed logging showing max, average, and threshold statistics
 - Fixed spelling error in job action messages: "pauseed" now correctly displays as "paused"
 - Implemented proper past tense mapping for all job actions in both job table and spreadsheet components

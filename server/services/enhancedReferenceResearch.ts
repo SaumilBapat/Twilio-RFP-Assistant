@@ -127,7 +127,7 @@ export async function getRelevantContentChunks(
       text: result.chunkText,
       url: result.url,
       similarity: result.similarity,
-      source: result.metadata?.title || new URL(result.url).hostname
+      source: result.metadata?.title || (result.url ? new URL(result.url).hostname : 'Unknown')
     }));
     
   } catch (error) {
