@@ -13,16 +13,23 @@ import {
 import { StatsCards } from "@/components/stats-cards";
 import { JobTable } from "@/components/job-table";
 import { UploadModal } from "@/components/upload-modal";
-
-import { SystemHealth } from "@/components/system-health";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useAuth } from "@/hooks/useAuth";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 
+interface ProcessingLog {
+  step: string;
+  log: string;
+  timestamp: Date;
+  jobId?: string;
+}
+
 export default function Dashboard() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [processingLogs, setProcessingLogs] = useState<ProcessingLog[]>([]);
+  const [activeJobs, setActiveJobs] = useState<Set<string>>(new Set());
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
@@ -71,14 +78,49 @@ export default function Dashboard() {
   useEffect(() => {
     if (lastMessage) {
       console.log('🔄 [Dashboard] Processing WebSocket message:', lastMessage);
-      switch (lastMessage.event) {
+      const { event, data } = lastMessage;
+      
+      switch (event) {
         case 'jobStarted':
-        case 'jobCompleted':
-        case 'jobPaused':
-        case 'rowProcessed':
-          console.log('🔄 [Dashboard] Invalidating queries due to job update');
+          if (data?.jobId) {
+            setActiveJobs(prev => new Set(prev).add(data.jobId));
+            setProcessingLogs([]); // Clear logs when new job starts
+          }
           queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
           queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
+          break;
+          
+        case 'jobCompleted':
+        case 'jobPaused':
+          if (data?.jobId) {
+            setActiveJobs(prev => {
+              const next = new Set(prev);
+              next.delete(data.jobId);
+              return next;
+            });
+            // Clear logs after a delay
+            setTimeout(() => setProcessingLogs([]), 3000);
+          }
+          queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
+          break;
+          
+        case 'rowProcessed':
+          queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
+          break;
+          
+        case 'processing_log':
+          // Handle detailed processing logs
+          if (data?.step && data?.log) {
+            const newLog: ProcessingLog = {
+              step: data.step,
+              log: data.log,
+              timestamp: new Date(),
+              jobId: data.jobId
+            };
+            setProcessingLogs(prev => [...prev.slice(-20), newLog]); // Keep last 20 logs
+          }
           break;
       }
     }
@@ -211,10 +253,42 @@ export default function Dashboard() {
           <JobTable jobs={jobs as any} onJobUpdate={handleJobUpdate} />
         )}
 
-        {/* System Health Panel */}
-        <div className="mt-8">
-          <SystemHealth />
-        </div>
+        {/* Real-time Processing Console */}
+        {activeJobs.size > 0 && processingLogs.length > 0 && (
+          <div className="mt-6 bg-slate-900 rounded-xl shadow-sm border border-gray-700 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-slate-100">Processing Console</h3>
+                <div className="flex items-center space-x-2">
+                  <span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  <span className="text-xs text-slate-400">
+                    {activeJobs.size} active job{activeJobs.size > 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 space-y-2 max-h-64 overflow-y-auto">
+              {processingLogs.map((log, index) => (
+                <div key={index} className="flex items-start space-x-3 text-sm">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <span className="inline-block w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start space-x-2">
+                      <span className="text-slate-400 font-medium whitespace-nowrap">{log.step}:</span>
+                      <span className="text-slate-200 break-words">{log.log}</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      {log.timestamp.toLocaleTimeString()}
+                      {log.jobId && <span className="ml-2 text-slate-600">Job: {log.jobId.slice(0, 8)}...</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Upload Modal */}

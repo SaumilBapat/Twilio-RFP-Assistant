@@ -237,6 +237,16 @@ Preferred communication style: Simple, everyday language.
 - Processing logs now show number of duplicates removed during URL normalization
 - Cache efficiency improved by treating URLs like "page.html#section1" and "page.html#section2" as same content
 
+### ✅ Dashboard UI Improvements and Real-time Console (January 25, 2025)
+- Removed system health bar from main dashboard to simplify interface
+- Added real-time Processing Console component showing live job execution details
+- Processing Console displays: current processing step, URLs being embedded, questions being answered, timestamps
+- Console only appears when jobs are actively processing, with dark terminal-style theme
+- Enhanced WebSocket handling to capture and display processing_log events from backend
+- Processing logs are kept to last 20 entries to prevent UI overflow
+- Added user profile dropdown menu with sign out functionality in dashboard header
+- Google OAuth sign out redirects to /api/logout endpoint to properly end session
+
 ## External Dependencies
 
 ### Core Technologies
