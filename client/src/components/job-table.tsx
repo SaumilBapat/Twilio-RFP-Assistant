@@ -248,6 +248,16 @@ export function JobTable({ jobs, onJobUpdate }: JobTableProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
+                      {job.status === 'not_started' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleJobAction(job.id, 'start')}
+                          className="text-success-600 hover:text-success-900"
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                      )}
                       {job.status === 'in_progress' && (
                         <Button
                           variant="ghost"

@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Filter, Search, Download, Edit, ExternalLink } from "lucide-react";
+import { ArrowLeft, Filter, Search, Download, Edit, ExternalLink, Play, Pause } from "lucide-react";
 import { StepInspectionPanel } from "@/components/step-inspection-panel";
 import { authService } from "@/lib/auth";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface CsvRow {
   id: string;
@@ -30,6 +33,8 @@ export default function Spreadsheet() {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const user = authService.getCurrentUser();
   const jobId = params.id;
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: job, isLoading: jobLoading } = useQuery({
     queryKey: ['/api/jobs', jobId],
@@ -46,8 +51,40 @@ export default function Spreadsheet() {
       credentials: 'include',
       headers: { 'x-user-id': user?.id || 'user-1' }
     }).then(res => res.json()),
-    enabled: !!jobId
+    enabled: !!jobId,
+    refetchInterval: job?.status === 'in_progress' ? 2000 : false, // Poll every 2 seconds when job is in progress
   });
+
+  // WebSocket connection for real-time updates
+  const { lastMessage } = useWebSocket(user?.id || '');
+
+  // Handle WebSocket messages
+  useEffect(() => {
+    if (!lastMessage) return;
+    
+    const { event, data } = lastMessage;
+    if (data?.jobId === jobId) {
+      switch (event) {
+        case 'jobStarted':
+        case 'jobPaused':
+        case 'jobCompleted':
+        case 'jobError':
+          // Refetch job data
+          queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
+          break;
+        case 'rowProcessed':
+          // Refetch both job and CSV data for progress updates
+          queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
+          queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId, 'csv-data'] });
+          
+          toast({
+            title: "Processing Update",
+            description: `Row ${data.rowIndex + 1} processed (${data.progress}% complete)`,
+          });
+          break;
+      }
+    }
+  }, [lastMessage, jobId, queryClient, toast]);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -70,6 +107,26 @@ export default function Spreadsheet() {
   const handleStepInspection = (rowIndex: number) => {
     setSelectedRowIndex(rowIndex);
     setInspectionOpen(true);
+  };
+
+  const handleJobAction = async (action: string) => {
+    if (!jobId) return;
+    
+    try {
+      await apiRequest('POST', `/api/jobs/${jobId}/${action}`);
+      toast({
+        title: "Success",
+        description: `Job ${action}${action.endsWith('e') ? 'd' : 'ed'} successfully`,
+      });
+      // Refetch job data to update status
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${action} job`,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExport = async () => {
@@ -150,25 +207,91 @@ export default function Spreadsheet() {
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">{job.fileName}</h2>
                 <div className="flex items-center space-x-4 mt-1">
-                  <span className="text-sm text-gray-500">{job.totalRows.toLocaleString()} rows</span>
                   {getStatusBadge(job.status)}
+                  <span className="text-sm text-gray-500">
+                    {job.processedRows} of {job.totalRows} rows processed
+                  </span>
                 </div>
               </div>
             </div>
-            
             <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-              </Button>
-              <Button variant="outline" size="sm">
-                <Search className="mr-2 h-4 w-4" />
-                Search
-              </Button>
-              <Button onClick={handleExport}>
-                <Download className="mr-2 h-4 w-4" />
+              {/* Job Control Buttons */}
+              {job.status === 'not_started' && (
+                <Button
+                  onClick={() => handleJobAction('start')}
+                  className="bg-success-600 hover:bg-success-700"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Start Processing
+                </Button>
+              )}
+              {job.status === 'in_progress' && (
+                <Button
+                  onClick={() => handleJobAction('pause')}
+                  variant="outline"
+                  className="text-warning-600 border-warning-600 hover:bg-warning-50"
+                >
+                  <Pause className="h-4 w-4 mr-2" />
+                  Pause
+                </Button>
+              )}
+              {job.status === 'paused' && (
+                <Button
+                  onClick={() => handleJobAction('resume')}
+                  className="bg-success-600 hover:bg-success-700"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Resume
+                </Button>
+              )}
+              
+              <Button 
+                variant="outline" 
+                onClick={handleExport}
+                className="text-gray-600 border-gray-300"
+              >
+                <Download className="h-4 w-4 mr-2" />
                 Export CSV
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Bar for In-Progress Jobs */}
+        {job.status === 'in_progress' && (
+          <div className="bg-gray-50 border-b border-gray-200 px-6 py-3">
+            <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+              <span>Processing Progress</span>
+              <span>{job.processedRows} / {job.totalRows} rows ({Math.round((job.processedRows / job.totalRows) * 100)}%)</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-primary-500 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${Math.round((job.processedRows / job.totalRows) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Table Controls */}
+        <div className="bg-white border-b border-gray-200 px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search rows..."
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
+              </Button>
+            </div>
+            <div className="text-sm text-gray-500">
+              {csvData.length} rows • {columns.length} columns
             </div>
           </div>
         </div>

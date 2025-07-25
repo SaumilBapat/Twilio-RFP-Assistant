@@ -41,11 +41,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Broadcast to user's connections
-  const broadcastToUser = (userId: string, data: any) => {
+  // Connect job processor events to WebSocket broadcasts
+  const broadcastToUser = (userId: string, event: string, data: any) => {
     const connections = userConnections.get(userId);
     if (connections) {
-      const message = JSON.stringify(data);
+      const message = JSON.stringify({ event, data });
       connections.forEach(ws => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(message);
@@ -55,45 +55,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   // Job processor event listeners
-  jobProcessor.on('jobStarted', ({ jobId, job }) => {
-    broadcastToUser(job.userId, {
-      type: 'JOB_STARTED',
-      payload: { jobId, job }
-    });
+  jobProcessor.on('jobStarted', async ({ jobId, job }) => {
+    broadcastToUser(job.userId, 'jobStarted', { jobId, job });
   });
 
-  jobProcessor.on('rowProcessed', ({ jobId, rowIndex, progress, totalRows }) => {
-    storage.getJob(jobId).then(job => {
-      if (job) {
-        broadcastToUser(job.userId, {
-          type: 'JOB_PROGRESS',
-          payload: { jobId, rowIndex, progress, totalRows }
-        });
-      }
-    });
+  jobProcessor.on('rowProcessed', async ({ jobId, rowIndex, progress, totalRows }) => {
+    const job = await storage.getJob(jobId);
+    if (job) {
+      broadcastToUser(job.userId, 'rowProcessed', { 
+        jobId, 
+        rowIndex, 
+        progress, 
+        totalRows,
+        processedRows: job.processedRows 
+      });
+    }
   });
 
-  jobProcessor.on('jobCompleted', ({ jobId }) => {
-    storage.getJob(jobId).then(job => {
-      if (job) {
-        broadcastToUser(job.userId, {
-          type: 'JOB_COMPLETED',
-          payload: { jobId }
-        });
-      }
-    });
+  jobProcessor.on('jobCompleted', async ({ jobId }) => {
+    const job = await storage.getJob(jobId);
+    if (job) {
+      broadcastToUser(job.userId, 'jobCompleted', { jobId, job });
+    }
   });
 
-  jobProcessor.on('jobPaused', ({ jobId }) => {
-    storage.getJob(jobId).then(job => {
-      if (job) {
-        broadcastToUser(job.userId, {
-          type: 'JOB_PAUSED',
-          payload: { jobId }
-        });
-      }
-    });
+  jobProcessor.on('jobPaused', async ({ jobId }) => {
+    const job = await storage.getJob(jobId);
+    if (job) {
+      broadcastToUser(job.userId, 'jobPaused', { jobId, job });
+    }
   });
+
+  jobProcessor.on('jobError', async ({ jobId, error }) => {
+    const job = await storage.getJob(jobId);
+    if (job) {
+      broadcastToUser(job.userId, 'jobError', { jobId, job, error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
+
 
   // Health check route for deployment monitoring
   app.get('/api/health', (req, res) => {
@@ -322,6 +322,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.download(exportPath);
     } catch (error) {
       res.status(500).json({ message: 'Failed to export CSV' });
+    }
+  });
+
+  // Job action routes (start/pause/resume)
+  app.post('/api/jobs/:id/start', isAuthenticated, async (req: any, res) => {
+    try {
+      await jobProcessor.startJob(req.params.id);
+      res.json({ message: 'Job started successfully' });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to start job' });
+    }
+  });
+
+  app.post('/api/jobs/:id/pause', isAuthenticated, async (req: any, res) => {
+    try {
+      await jobProcessor.pauseJob(req.params.id);
+      res.json({ message: 'Job paused successfully' });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to pause job' });
+    }
+  });
+
+  app.post('/api/jobs/:id/resume', isAuthenticated, async (req: any, res) => {
+    try {
+      await jobProcessor.resumeJob(req.params.id);
+      res.json({ message: 'Job resumed successfully' });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to resume job' });
     }
   });
 
