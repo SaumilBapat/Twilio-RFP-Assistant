@@ -55,7 +55,7 @@ export function setupAuth(app: Express) {
         
         return done(null, user);
       } catch (error) {
-        return done(error, null);
+        return done(error, false);
       }
     }));
 
@@ -68,7 +68,7 @@ export function setupAuth(app: Express) {
         const user = await storage.getUser(id);
         done(null, user);
       } catch (error) {
-        done(error, null);
+        done(error, false);
       }
     });
   } else {
