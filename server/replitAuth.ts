@@ -36,14 +36,9 @@ export function setupAuth(app: Express) {
   if (hasCredentials) {
     // Get the base URL for OAuth callback
     const getCallbackURL = () => {
-      // For development, use the Replit domain if available
-      if (process.env.NODE_ENV === 'development' && process.env.REPLIT_DOMAINS) {
-        const callbackURL = `https://${process.env.REPLIT_DOMAINS}/api/auth/google/callback`;
-        console.log('Using development callback URL:', callbackURL);
-        return callbackURL;
-      }
-      // For production or when REPLIT_DOMAINS not available, use relative URL
-      console.log('Using relative callback URL: /api/auth/google/callback');
+      // Always use relative URL - this works for both preview and deployed environments
+      // The key is to configure Google OAuth with wildcard or multiple domains
+      console.log('Using relative callback URL for maximum compatibility');
       return "/api/auth/google/callback";
     };
 
@@ -98,10 +93,13 @@ export function setupAuth(app: Express) {
       });
     }
     
-    // Log the actual domain being used
-    const protocol = req.protocol;
+    // Log the actual domain being used for debugging
+    const protocol = req.get('x-forwarded-proto') || req.protocol;
     const host = req.get('host');
+    const fullCallbackURL = `${protocol}://${host}/api/auth/google/callback`;
+    
     console.log(`OAuth request from: ${protocol}://${host}`);
+    console.log(`Expected callback URL: ${fullCallbackURL}`);
     console.log('Headers:', {
       host: req.get('host'),
       'x-forwarded-host': req.get('x-forwarded-host'),
