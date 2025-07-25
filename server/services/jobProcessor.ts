@@ -195,12 +195,17 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     const job = await storage.getJob(jobId);
     let currentData = { ...rowData.originalData };
     
-    // Add cross-question context if this question references previous ones
-    const previousContext = await this.getPreviousQuestionContext(jobId, rowIndex, currentData);
-    if (previousContext) {
-      currentData['PREVIOUS_CONTEXT'] = previousContext;
-      console.log(`🔗 Added context from ${previousContext.referencedQuestions.length} previous questions`);
-    }
+    // Resolve question context using LLM to create full contextual question
+    const fullContextualQuestion = await this.resolveQuestionContext(jobId, rowIndex, currentData);
+    
+    // Store the full contextual question in the database
+    await storage.updateCsvData(rowData.id, {
+      fullContextualQuestion
+    });
+    
+    // Add it to the processing data - this will be used instead of the original question
+    currentData['FULL_CONTEXTUAL_QUESTION'] = fullContextualQuestion;
+    console.log(`🧠 Full contextual question: ${fullContextualQuestion.substring(0, 100)}...`);
     
     // Add RFP-specific context for Step 3 processing
     if (job?.rfpInstructions) {
@@ -295,45 +300,42 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     return this.pausedJobs.has(jobId);
   }
 
-  private async getPreviousQuestionContext(jobId: string, currentRowIndex: number, currentData: any): Promise<any> {
-    // Get the current question text to analyze for references
-    const questionText = this.extractQuestionText(currentData);
-    if (!questionText) return null;
-
-    // Check if question contains references to previous questions
-    const references = this.detectQuestionReferences(questionText, currentRowIndex);
-    if (references.length === 0) return null;
-
-    // Get previous processed rows with their answers
+  private async resolveQuestionContext(jobId: string, currentRowIndex: number, currentData: any): Promise<string> {
+    // Import the context resolution service
+    const { contextResolutionService } = await import('./contextResolution');
+    
+    // Get all CSV data for this job to build context
     const allCsvData = await storage.getJobCsvData(jobId);
-    const referencedQuestions = [];
-
-    for (const ref of references) {
-      if (ref.rowIndex < currentRowIndex && ref.rowIndex < allCsvData.length) {
-        const previousRow = allCsvData[ref.rowIndex];
-        if (previousRow.enrichedData) {
-          const enrichedData = typeof previousRow.enrichedData === 'string' 
-            ? JSON.parse(previousRow.enrichedData) 
-            : previousRow.enrichedData;
-          
-          referencedQuestions.push({
-            questionNumber: ref.rowIndex + 1,
-            question: this.extractQuestionText(previousRow.originalData),
-            referenceResearch: enrichedData['Reference Research'] || '',
-            genericDraft: enrichedData['Generic Draft Generation'] || '',
-            tailoredResponse: enrichedData['Tailored RFP Response'] || '',
-            referencedAs: ref.referenceText
-          });
-        }
+    
+    // Build array of all questions with their numbers
+    const allQuestions = allCsvData.map((row, index) => ({
+      questionNumber: index + 1,
+      question: this.extractQuestionText(row.originalData)
+    })).filter(q => q.question); // Filter out empty questions
+    
+    const currentQuestionNumber = currentRowIndex + 1;
+    
+    try {
+      console.log(`🧠 Resolving context for question ${currentQuestionNumber} using LLM analysis`);
+      
+      const result = await contextResolutionService.resolveQuestionContext(
+        allQuestions,
+        currentQuestionNumber
+      );
+      
+      console.log(`🎯 Context resolution: ${result.hasReferences ? 'References detected' : 'No references'}`);
+      if (result.hasReferences) {
+        console.log(`📋 Referenced questions: ${result.referencedQuestions.join(', ')}`);
+        console.log(`💭 Reasoning: ${result.reasoning}`);
       }
+      
+      return result.fullContextualQuestion;
+      
+    } catch (error) {
+      console.error(`❌ Context resolution failed for question ${currentQuestionNumber}:`, error);
+      // Fallback to original question
+      return this.extractQuestionText(currentData);
     }
-
-    if (referencedQuestions.length === 0) return null;
-
-    return {
-      referencedQuestions,
-      contextNote: `This question references previous questions: ${references.map(r => r.referenceText).join(', ')}`
-    };
   }
 
   private extractQuestionText(data: any): string {
@@ -354,60 +356,7 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     return firstTextValue as string || '';
   }
 
-  private detectQuestionReferences(questionText: string, currentRowIndex: number): Array<{rowIndex: number, referenceText: string}> {
-    const references = [];
-    const text = questionText.toLowerCase();
 
-    // Pattern 1: Explicit question numbers (Q1, Q2, Question 1, etc.)
-    const questionNumPattern = /(?:q|question)\s*(\d+)/gi;
-    let match;
-    while ((match = questionNumPattern.exec(text)) !== null) {
-      const questionNum = parseInt(match[1]) - 1; // Convert to 0-based index
-      if (questionNum >= 0 && questionNum < currentRowIndex) {
-        references.push({
-          rowIndex: questionNum,
-          referenceText: match[0]
-        });
-      }
-    }
-
-    // Pattern 2: References to "previous", "above", "earlier"
-    const implicitPatterns = [
-      /(?:the\s+)?(?:previous|above|earlier|prior)\s+(?:question|response|answer|solution|implementation)/gi,
-      /(?:as\s+)?(?:mentioned|described|outlined)\s+(?:above|previously|earlier)/gi,
-      /(?:from\s+)?(?:the\s+)?(?:above|previous)\s+(?:question|response)/gi
-    ];
-
-    for (const pattern of implicitPatterns) {
-      const matches = text.match(pattern);
-      if (matches && currentRowIndex > 0) {
-        // For implicit references, assume they refer to the immediately previous question
-        references.push({
-          rowIndex: currentRowIndex - 1,
-          referenceText: matches[0]
-        });
-      }
-    }
-
-    // Pattern 3: Specific implementation/solution references (like "CCaaS implementation")
-    const implementationPattern = /(\w+(?:\s+\w+)*)\s+(?:implementation|solution|approach|method)\s+(?:from\s+)?(?:q|question)\s*(\d+)/gi;
-    while ((match = implementationPattern.exec(text)) !== null) {
-      const questionNum = parseInt(match[2]) - 1;
-      if (questionNum >= 0 && questionNum < currentRowIndex) {
-        references.push({
-          rowIndex: questionNum,
-          referenceText: `${match[1]} implementation from Q${match[2]}`
-        });
-      }
-    }
-
-    // Remove duplicates
-    const unique = references.filter((ref, index, self) => 
-      index === self.findIndex(r => r.rowIndex === ref.rowIndex)
-    );
-
-    return unique;
-  }
 
   private async loadAdditionalDocuments(additionalDocuments: any[]): Promise<Array<{fileName: string, content: string}>> {
     const fs = await import('fs/promises');

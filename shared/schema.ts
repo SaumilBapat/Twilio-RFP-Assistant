@@ -79,6 +79,7 @@ export const csvData = pgTable("csv_data", {
   rowIndex: integer("row_index").notNull(),
   originalData: jsonb("original_data").notNull(),
   enrichedData: jsonb("enriched_data"),
+  fullContextualQuestion: text("full_contextual_question"), // LLM-generated contextual question
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

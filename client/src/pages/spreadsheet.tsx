@@ -15,6 +15,7 @@ interface CsvRow {
   rowIndex: number;
   originalData: Record<string, any>;
   enrichedData?: Record<string, any>;
+  fullContextualQuestion?: string;
 }
 
 interface Job {
@@ -196,12 +197,15 @@ export default function Spreadsheet() {
       key => !originalColumns.includes(key)
     );
     
+    // Add Full Contextual Question column after original columns
+    const contextualColumn = firstRow.fullContextualQuestion ? ["Full Contextual Question"] : [];
+    
     // Ensure pipeline steps appear in correct order
     const pipelineOrder = ["Reference Research", "Generic Draft Generation", "Tailored RFP Response"];
     const orderedEnrichedColumns = pipelineOrder.filter(col => enrichedColumns.includes(col));
     const otherEnrichedColumns = enrichedColumns.filter(col => !pipelineOrder.includes(col));
     
-    return [...originalColumns, ...orderedEnrichedColumns, ...otherEnrichedColumns];
+    return [...originalColumns, ...contextualColumn, ...orderedEnrichedColumns, ...otherEnrichedColumns];
   };
 
   const columns = getAllColumns();
@@ -418,7 +422,10 @@ export default function Spreadsheet() {
                       {row.rowIndex + 1}
                     </td>
                     {columns.map((column) => {
-                      const rawValue = row.enrichedData?.[column] || row.originalData?.[column] || '';
+                      // Handle special Full Contextual Question column
+                      const rawValue = column === "Full Contextual Question" 
+                        ? row.fullContextualQuestion 
+                        : (row.enrichedData?.[column] || row.originalData?.[column]) || '';
                       const isAiGenerated = row.enrichedData && row.enrichedData[column];
                       
                       // Handle different value types - some might be objects with content/fileName
