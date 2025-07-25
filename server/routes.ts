@@ -255,7 +255,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await jobProcessor.startJob(job.id);
-      res.json({ message: 'Job started' });
+      
+      // Check final job status to determine appropriate message
+      const updatedJob = await storage.getJob(job.id);
+      if (!updatedJob) {
+        return res.status(404).json({ message: 'Job not found after processing' });
+      }
+      
+      const message = updatedJob.status === 'completed' 
+        ? 'Job completed successfully' 
+        : updatedJob.status === 'error'
+        ? 'Job failed'
+        : updatedJob.status === 'paused'
+        ? 'Job paused'
+        : 'Job started successfully';
+        
+      res.json({ message, status: updatedJob.status });
     } catch (error) {
       res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to start job' });
     }
