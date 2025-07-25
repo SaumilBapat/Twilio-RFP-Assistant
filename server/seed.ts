@@ -5,28 +5,28 @@ import { eq } from "drizzle-orm";
 async function seedDatabase() {
   console.log('Seeding database...');
   
-  // Create default pipeline
+  // Create default pipeline with search and refinement steps
   const defaultPipeline = {
     name: "RFP Research & Response Pipeline",
-    description: "A two-step pipeline for researching and composing RFP responses",
+    description: "A two-step pipeline using search preview and answer refinement",
     steps: [
       {
-        name: "Research Agent",
-        model: "gpt-4o",
-        temperature: 0,
+        name: "Reference Search",
+        model: "gpt-4o-search-preview",
+        temperature: 0.0,
         maxTokens: 1000,
-        tools: ["web_search"],
-        systemPrompt: "You are a research assistant for Twilio. Your job is to research information relevant to the question being asked.",
-        userPrompt: "Research the following question and provide relevant information: {{Question}}"
+        tools: [],
+        systemPrompt: "You are a research assistant. Find relevant references and quotes for RFP questions.",
+        userPrompt: "Please find relevant references and quotes for the following RFP question: {{FIRST_COLUMN}}"
       },
       {
-        name: "Response Agent",
-        model: "gpt-4o",
-        temperature: 0.2,
+        name: "Answer Refinement", 
+        model: "gpt-3.5-turbo",
+        temperature: 0.7,
         maxTokens: 2000,
         tools: [],
-        systemPrompt: "You are a professional RFP response writer for Twilio. Write clear, accurate, and compelling responses.",
-        userPrompt: "Based on the research provided, write a professional response to this question: {{Question}}"
+        systemPrompt: "You are a helpful assistant. Provide a thorough answer and list references at the end.",
+        userPrompt: "Based on the research: {{Reference Search}}\n\nAnswer the RFP question: {{FIRST_COLUMN}} and include citations to the above references."
       }
     ],
     isDefault: true
@@ -40,7 +40,15 @@ async function seedDatabase() {
       await db.insert(pipelines).values(defaultPipeline);
       console.log('✓ Default pipeline created');
     } else {
-      console.log('✓ Default pipeline already exists');
+      // Update existing pipeline with new structure
+      await db.update(pipelines)
+        .set({
+          name: defaultPipeline.name,
+          description: defaultPipeline.description,
+          steps: defaultPipeline.steps
+        })
+        .where(eq(pipelines.isDefault, true));
+      console.log('✓ Default pipeline updated with new workflow');
     }
   } catch (error) {
     console.error('Error seeding database:', error);

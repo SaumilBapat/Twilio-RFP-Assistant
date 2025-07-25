@@ -53,8 +53,16 @@ export class OpenAIService {
         { role: "user", content: processedUserPrompt }
       ];
 
+      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      let modelToUse = agent.model;
+      
+      // Handle special models - keep as requested but note gpt-4o-search-preview may not be available
+      if (agent.model === 'gpt-4o-search-preview') {
+        modelToUse = 'gpt-4o-search-preview'; // Try the specific model first
+      }
+
       const completionOptions: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
-        model: agent.model,
+        model: modelToUse,
         messages,
         temperature: agent.temperature,
         max_tokens: agent.maxTokens,
@@ -94,7 +102,16 @@ export class OpenAIService {
   }
 
   private replacePlaceholders(template: string, data: Record<string, any>): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    let result = template;
+    
+    // Handle special placeholder for first column
+    const firstColumnKey = Object.keys(data)[0];
+    if (firstColumnKey) {
+      result = result.replace(/\{\{FIRST_COLUMN\}\}/g, String(data[firstColumnKey] || ''));
+    }
+    
+    // Replace placeholders like {{ColumnName}} with actual values
+    return result.replace(/\{\{(\w+)\}\}/g, (match, key) => {
       return data[key] || match;
     });
   }

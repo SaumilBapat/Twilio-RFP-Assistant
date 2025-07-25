@@ -153,8 +153,8 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
           throw new Error(`Step ${step.name} failed: ${result.error}`);
         }
 
-        // Update current data with the result
-        currentData[`${step.name}_result`] = result.output;
+        // Create a new column for this step's output
+        currentData[step.name] = result.output;
         
         await storage.updateJobStep(jobStep.id, {
           status: 'completed',

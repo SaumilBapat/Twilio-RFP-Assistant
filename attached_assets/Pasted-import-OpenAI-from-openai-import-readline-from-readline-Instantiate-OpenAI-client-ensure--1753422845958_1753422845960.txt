@@ -1,0 +1,60 @@
+import OpenAI from "openai";
+import readline from "readline";
+
+// Instantiate OpenAI client (ensure OPENAI_API_KEY is set in your environment)
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Utility to read a line from stdin
+function promptInput(query) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  return new Promise(resolve => rl.question(query, ans => {
+    rl.close();
+    resolve(ans.trim());
+  }));
+}
+
+async function handleRFPQuestion() {
+  try {
+    // 1. Read the RFP question from the user
+    const rfpQuestion = await promptInput("Enter your RFP question: ");
+
+    // 2. Use gpt-4o-search-preview to find relevant references and quotes
+    console.log("🔍 Searching for relevant references...");
+    const searchResp = await openai.chat.completions.create({
+      model: "gpt-4o-search-preview",
+      messages: [
+        { role: "user", content: `Please find relevant references and quotes for the following RFP question:\n\n"${rfpQuestion}"` }
+      ],
+      temperature: 0.0
+    });
+
+    // Extract the search results text
+    const references = searchResp.choices
+      .map(c => c.message.content)
+      .join("\n---\n");
+
+    console.log("📋 References found:\n", references);
+
+    // 3. Use gpt-3.5-turbo ("o3") to answer, including references
+    console.log("✍️ Generating answer with references...");
+    const answerResp = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo", // replace with "o3" if your API supports it
+      messages: [
+        { role: "system", content: "You are a helpful assistant. Provide a thorough answer and list references at the end." },
+        { role: "user", content: references + `\n\nAnswer the RFP question: "${rfpQuestion}" and include citations to the above references.` }
+      ],
+      temperature: 0.7
+    });
+
+    // Output the final answer
+    console.log("\n📝 Final Answer:\n", answerResp.choices[0].message.content);
+  } catch (err) {
+    console.error("Error during processing:", err);
+  }
+}
+
+// Run the handler
+handleRFPQuestion();

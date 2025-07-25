@@ -69,10 +69,18 @@ export class FileUploadService {
         createReadStream(filePath)
           .pipe(csv())
           .on('headers', (headers) => {
-            result.headers = headers;
+            // Only keep the first column (questions)
+            const firstColumnHeader = headers[0];
+            if (!firstColumnHeader) {
+              result.isValid = false;
+              result.errors.push('CSV must have at least one column');
+              return;
+            }
+            
+            result.headers = [firstColumnHeader]; // Only include first column
             
             // Validate headers
-            if (headers.length === 0) {
+            if (result.headers.length === 0) {
               result.errors.push('CSV file has no headers');
               result.isValid = false;
             }
@@ -89,12 +97,16 @@ export class FileUploadService {
             }
           })
           .on('data', (row) => {
-            rows.push(row);
+            // Only keep the first column data
+            const firstColumnKey = Object.keys(row)[0];
+            const filteredRow = firstColumnKey ? { [result.headers[0]]: row[firstColumnKey] } : {};
+            
+            rows.push(filteredRow);
             result.rowCount++;
             
             // Store first 5 rows for preview
-            if (rows.length <= 5) {
-              result.preview.push(row);
+            if (result.preview.length < 5) {
+              result.preview.push(filteredRow);
             }
           })
           .on('error', (error) => {
@@ -126,12 +138,19 @@ export class FileUploadService {
 
   async parseCSVToArray(filePath: string): Promise<Record<string, any>[]> {
     const rows: Record<string, any>[] = [];
+    let firstColumnHeader: string = '';
     
     return new Promise((resolve, reject) => {
       createReadStream(filePath)
         .pipe(csv())
+        .on('headers', (headers) => {
+          firstColumnHeader = headers[0]; // Store first column header
+        })
         .on('data', (row) => {
-          rows.push(row);
+          // Only keep the first column data
+          const firstColumnKey = Object.keys(row)[0];
+          const filteredRow = firstColumnKey ? { [firstColumnHeader]: row[firstColumnKey] } : {};
+          rows.push(filteredRow);
         })
         .on('error', reject)
         .on('end', () => {
