@@ -196,7 +196,12 @@ export default function Spreadsheet() {
       key => !originalColumns.includes(key)
     );
     
-    return [...originalColumns, ...enrichedColumns];
+    // Ensure pipeline steps appear in correct order
+    const pipelineOrder = ["Reference Research", "Generic Draft Generation", "Tailored RFP Response"];
+    const orderedEnrichedColumns = pipelineOrder.filter(col => enrichedColumns.includes(col));
+    const otherEnrichedColumns = enrichedColumns.filter(col => !pipelineOrder.includes(col));
+    
+    return [...originalColumns, ...orderedEnrichedColumns, ...otherEnrichedColumns];
   };
 
   const columns = getAllColumns();

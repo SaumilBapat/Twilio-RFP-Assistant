@@ -126,6 +126,21 @@ Preferred communication style: Simple, everyday language.
 - Performance optimization: Avoids duplicate AI processing and reference validation
 - Database schema includes reference_cache and response_cache tables with embedding storage
 
+### ✅ Real-time Dashboard Updates (January 25, 2025)
+- Fixed WebSocket connection issues with malformed URL handling for different environments
+- Updated message format to match backend event structure (event/data instead of type/payload)
+- Added comprehensive debugging logs for WebSocket connection tracking
+- Dashboard and spreadsheet views now update automatically without page refresh
+- Real-time progress indicators show current job processing activity
+- Fixed job table displays with live status changes and row processing updates
+
+### ✅ Spreadsheet UI and Response Quality Improvements (January 25, 2025)
+- Fixed React rendering error when CSV values contained objects with content/fileName properties
+- Implemented proper column ordering: Original columns → Reference Research → Generic Draft → Tailored RFP Response
+- Updated Tailored RFP Response prompts to eliminate inappropriate headers and meta-text
+- Responses now generate clean, submission-ready content without "Company Overview" or "Response to RFP Question:" headers
+- Enhanced value display handling for complex object types in spreadsheet cells
+
 ## External Dependencies
 
 ### Core Technologies
