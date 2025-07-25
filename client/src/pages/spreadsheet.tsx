@@ -215,20 +215,22 @@ export default function Spreadsheet() {
     const firstRow = csvData[0];
     if (!firstRow || !firstRow.originalData) return [];
     
-    const originalColumns = Object.keys(firstRow.originalData || {});
-    const enrichedColumns = Object.keys(firstRow.enrichedData || {}).filter(
-      key => !originalColumns.includes(key)
-    );
+    // Columns to exclude from the display
+    const excludedColumns = ["RFP_INSTRUCTIONS", "ADDITIONAL_DOCUMENTS", "FULL_CONTEXTUAL_QUESTION"];
     
-    // Add Full Contextual Question column after original columns
-    const contextualColumn = firstRow.fullContextualQuestion ? ["Full Contextual Question"] : [];
+    const originalColumns = Object.keys(firstRow.originalData || {}).filter(
+      key => !excludedColumns.includes(key)
+    );
+    const enrichedColumns = Object.keys(firstRow.enrichedData || {}).filter(
+      key => !originalColumns.includes(key) && !excludedColumns.includes(key)
+    );
     
     // Ensure pipeline steps appear in correct order
     const pipelineOrder = ["Reference Research", "Generic Draft Generation", "Tailored RFP Response"];
     const orderedEnrichedColumns = pipelineOrder.filter(col => enrichedColumns.includes(col));
     const otherEnrichedColumns = enrichedColumns.filter(col => !pipelineOrder.includes(col));
     
-    return [...originalColumns, ...contextualColumn, ...orderedEnrichedColumns, ...otherEnrichedColumns];
+    return [...originalColumns, ...orderedEnrichedColumns, ...otherEnrichedColumns];
   };
 
   const columns = getAllColumns();
@@ -475,10 +477,7 @@ export default function Spreadsheet() {
                       {row.rowIndex + 1}
                     </td>
                     {columns.map((column) => {
-                      // Handle special Full Contextual Question column
-                      const rawValue = column === "Full Contextual Question" 
-                        ? row.fullContextualQuestion 
-                        : (row.enrichedData?.[column] || row.originalData?.[column]) || '';
+                      const rawValue = (row.enrichedData?.[column] || row.originalData?.[column]) || '';
                       const isAiGenerated = row.enrichedData && row.enrichedData[column];
                       
                       // Handle different value types - some might be objects with content/fileName
