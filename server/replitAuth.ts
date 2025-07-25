@@ -31,61 +31,70 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Skip Google OAuth setup if credentials not provided (for development)
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  const hasCredentials = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
+
+  if (hasCredentials) {
+    passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      callbackURL: "/api/auth/google/callback"
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        // Check if user exists
+        let user = await storage.getUserByGoogleId(profile.id);
+        
+        if (!user) {
+          // Create new user
+          user = await storage.createUser({
+            email: profile.emails?.[0]?.value || '',
+            name: profile.displayName || '',
+            googleId: profile.id,
+          });
+        }
+        
+        return done(null, user);
+      } catch (error) {
+        return done(error, null);
+      }
+    }));
+
+    passport.serializeUser((user: any, done) => {
+      done(null, user.id);
+    });
+
+    passport.deserializeUser(async (id: string, done) => {
+      try {
+        const user = await storage.getUser(id);
+        done(null, user);
+      } catch (error) {
+        done(error, null);
+      }
+    });
+  } else {
     console.warn('Google OAuth credentials not provided - authentication disabled');
-    return;
   }
 
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID!,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: "/api/auth/google/callback"
-  },
-  async (accessToken, refreshToken, profile, done) => {
-    try {
-      // Check if user exists
-      let user = await storage.getUserByGoogleId(profile.id);
-      
-      if (!user) {
-        // Create new user
-        user = await storage.createUser({
-          email: profile.emails?.[0]?.value || '',
-          name: profile.displayName || '',
-          googleId: profile.id,
-        });
-      }
-      
-      return done(null, user);
-    } catch (error) {
-      return done(error, null);
+  // Auth routes - always available
+  app.get("/api/auth/google", (req, res) => {
+    if (!hasCredentials) {
+      return res.status(503).json({ 
+        error: "Google OAuth not configured", 
+        message: "Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET" 
+      });
     }
-  }));
-
-  passport.serializeUser((user: any, done) => {
-    done(null, user.id);
+    passport.authenticate("google", { scope: ["profile", "email"] })(req, res);
   });
 
-  passport.deserializeUser(async (id: string, done) => {
-    try {
-      const user = await storage.getUser(id);
-      done(null, user);
-    } catch (error) {
-      done(error, null);
+  app.get("/api/auth/google/callback", (req, res) => {
+    if (!hasCredentials) {
+      return res.redirect("/?error=oauth_not_configured");
     }
+    passport.authenticate("google", { 
+      failureRedirect: "/?error=auth_failed",
+      successRedirect: "/"
+    })(req, res);
   });
-
-  // Auth routes
-  app.get("/api/auth/google", 
-    passport.authenticate("google", { scope: ["profile", "email"] })
-  );
-
-  app.get("/api/auth/google/callback",
-    passport.authenticate("google", { failureRedirect: "/" }),
-    (req, res) => {
-      res.redirect("/");
-    }
-  );
 
   app.get("/api/logout", (req, res) => {
     req.logout((err) => {
