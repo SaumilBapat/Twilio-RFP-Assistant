@@ -306,7 +306,7 @@ export default function PipelineEditor() {
                       <Button 
                         onClick={saveStep}
                         disabled={updatePipelineMutation.isPending}
-                        className="bg-success-600 hover:bg-success-700"
+                        className="bg-green-600 hover:bg-green-700 text-white"
                       >
                         <Save className="h-4 w-4 mr-2" />
                         Save Changes
