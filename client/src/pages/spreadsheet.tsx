@@ -37,22 +37,34 @@ export default function Spreadsheet() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: job, isLoading: jobLoading } = useQuery({
+  const { data: job, isLoading: jobLoading, error: jobError } = useQuery({
     queryKey: ['/api/jobs', jobId],
-    queryFn: () => fetch(`/api/jobs/${jobId}`, {
-      credentials: 'include',
-      headers: { 'x-user-id': user?.id || 'user-1' }
-    }).then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`/api/jobs/${jobId}`, {
+        credentials: 'include',
+        headers: { 'x-user-id': user?.id || 'user-1' }
+      });
+      if (!res.ok) {
+        throw new Error('Job not found');
+      }
+      return res.json();
+    },
     enabled: !!jobId
   });
 
-  const { data: csvData = [], isLoading: dataLoading } = useQuery({
+  const { data: csvData = [], isLoading: dataLoading, error: dataError } = useQuery({
     queryKey: ['/api/jobs', jobId, 'csv-data'],
-    queryFn: () => fetch(`/api/jobs/${jobId}/csv-data`, {
-      credentials: 'include',
-      headers: { 'x-user-id': user?.id || 'user-1' }
-    }).then(res => res.json()),
-    enabled: !!jobId,
+    queryFn: async () => {
+      const res = await fetch(`/api/jobs/${jobId}/csv-data`, {
+        credentials: 'include',
+        headers: { 'x-user-id': user?.id || 'user-1' }
+      });
+      if (!res.ok) {
+        throw new Error('CSV data not found');
+      }
+      return res.json();
+    },
+    enabled: !!jobId && !!job,
     refetchInterval: job?.status === 'in_progress' ? 2000 : false, // Poll every 2 seconds when job is in progress
   });
 
@@ -171,9 +183,11 @@ export default function Spreadsheet() {
   };
 
   const getAllColumns = () => {
-    if (csvData.length === 0) return [];
+    if (!csvData || csvData.length === 0) return [];
     
     const firstRow = csvData[0];
+    if (!firstRow || !firstRow.originalData) return [];
+    
     const originalColumns = Object.keys(firstRow.originalData || {});
     const enrichedColumns = Object.keys(firstRow.enrichedData || {}).filter(
       key => !originalColumns.includes(key)
@@ -188,6 +202,25 @@ export default function Spreadsheet() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+
+  // Handle errors first
+  if (jobError || dataError) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900">
+            {jobError ? 'Job not found' : 'Unable to load data'}
+          </h2>
+          <p className="text-gray-600 mt-2">
+            {jobError ? 'This job may have been deleted or does not exist.' : 'There was an error loading the job data.'}
+          </p>
+          <Button onClick={() => setLocation('/dashboard')} className="mt-4">
+            Back to Dashboard
+          </Button>
+        </div>
       </div>
     );
   }
