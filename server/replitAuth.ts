@@ -31,12 +31,12 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  const hasCredentials = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
+  const hasCredentials = process.env.RFP_GOOGLE_CLIENT_ID && process.env.RFP_GOOGLE_CLIENT_SECRET;
 
   if (hasCredentials) {
     passport.use(new GoogleStrategy({
-      clientID: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientID: process.env.RFP_GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.RFP_GOOGLE_CLIENT_SECRET!,
       callbackURL: "/api/auth/google/callback"
     },
     async (accessToken, refreshToken, profile, done) => {
@@ -80,7 +80,7 @@ export function setupAuth(app: Express) {
     if (!hasCredentials) {
       return res.status(503).json({ 
         error: "Google OAuth not configured", 
-        message: "Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET" 
+        message: "Please configure RFP_GOOGLE_CLIENT_ID and RFP_GOOGLE_CLIENT_SECRET" 
       });
     }
     passport.authenticate("google", { scope: ["profile", "email"] })(req, res);
