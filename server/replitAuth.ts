@@ -77,14 +77,26 @@ export function setupAuth(app: Express) {
   }
 
   // Auth routes - always available
-  app.get("/api/auth/google", (req, res) => {
+  app.get("/api/auth/google", (req, res, next) => {
     if (!hasCredentials) {
       return res.status(503).json({ 
         error: "Google OAuth not configured", 
         message: "Please configure RFP_GOOGLE_CLIENT_ID and RFP_GOOGLE_CLIENT_SECRET" 
       });
     }
-    passport.authenticate("google", { scope: ["profile", "email"] })(req, res);
+    
+    // Log the actual domain being used
+    const protocol = req.protocol;
+    const host = req.get('host');
+    console.log(`OAuth request from: ${protocol}://${host}`);
+    console.log('Headers:', {
+      host: req.get('host'),
+      'x-forwarded-host': req.get('x-forwarded-host'),
+      'x-forwarded-proto': req.get('x-forwarded-proto'),
+      origin: req.get('origin')
+    });
+    
+    passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
   });
 
   app.get("/api/auth/google/callback", (req, res, next) => {
