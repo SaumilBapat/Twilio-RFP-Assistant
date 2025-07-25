@@ -67,7 +67,10 @@ export default function PipelineEditor() {
   });
 
   const clearCacheMutation = useMutation({
-    mutationFn: () => apiRequest('DELETE', '/api/cache/clear'),
+    mutationFn: async () => {
+      const response = await apiRequest('DELETE', '/api/cache/clear');
+      return response.json();
+    },
     onSuccess: (data: any) => {
       toast({
         title: "Cache Cleared",
