@@ -1,5 +1,6 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as LocalStrategy } from "passport-local";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
@@ -34,6 +35,29 @@ export function setupAuth(app: Express) {
   const hasCredentials = process.env.RFP_GOOGLE_CLIENT_ID && process.env.RFP_GOOGLE_CLIENT_SECRET;
   const isDevelopment = process.env.NODE_ENV === 'development';
   const useDevBypass = process.env.DEV_AUTH_BYPASS === 'true' || (!hasCredentials && isDevelopment);
+
+  // Always setup local username/password authentication
+  passport.use(new LocalStrategy(
+    async (username, password, done) => {
+      try {
+        // Simple hardcoded admin user
+        if (username === 'admin' && password === 'twilio') {
+          const adminUser = {
+            id: 'admin-user',
+            email: 'admin@twilio.com',
+            name: 'Admin User',
+            googleId: null
+          };
+          return done(null, adminUser);
+        }
+        
+        // Invalid credentials
+        return done(null, false, { message: 'Invalid username or password' });
+      } catch (error) {
+        return done(error);
+      }
+    }
+  ));
 
   if (hasCredentials) {
     // Get the base URL for OAuth callback
@@ -201,6 +225,12 @@ export function setupAuth(app: Express) {
         return res.redirect("/");
       });
     })(req, res, next);
+  });
+
+  // Username/password login route
+  app.post("/api/auth/login", passport.authenticate('local'), (req, res) => {
+    console.log('User authenticated via username/password:', req.user);
+    res.json({ success: true, user: req.user });
   });
 
   app.get("/api/logout", (req, res) => {

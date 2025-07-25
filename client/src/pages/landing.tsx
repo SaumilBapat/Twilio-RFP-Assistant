@@ -1,11 +1,35 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { CheckCircle, FileSpreadsheet, Bot, Zap, Shield, Users } from "lucide-react";
 import { useEffect, useState } from "react";
+import { authService } from "@/lib/auth";
+import { useLocation } from "wouter";
 
 export default function Landing() {
   const [error, setError] = useState<string | null>(null);
+  const [showLogin, setShowLogin] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [, setLocation] = useLocation();
+
+  const handleUsernameLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await authService.signInWithCredentials(username, password);
+      setLocation('/dashboard');
+    } catch (error) {
+      setError('Invalid username or password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Check for error in URL params
@@ -43,14 +67,22 @@ export default function Landing() {
             <Bot className="h-8 w-8 text-blue-600" />
             <span className="text-2xl font-bold text-gray-900 dark:text-white">RFP Assistant</span>
           </div>
-          <Button 
-            onClick={() => {
-              window.location.href = '/api/auth/google';
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Sign In with Google
-          </Button>
+          <div className="space-x-2">
+            <Button 
+              onClick={() => setShowLogin(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Sign In
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                window.location.href = '/api/auth/google';
+              }}
+            >
+              Sign In with Google
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -67,9 +99,7 @@ export default function Landing() {
           </p>
           <Button 
             size="lg"
-            onClick={() => {
-              window.location.href = '/api/auth/google';
-            }}
+            onClick={() => setShowLogin(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-4"
           >
             Get Started Now
@@ -198,6 +228,67 @@ export default function Landing() {
           <p>&copy; 2025 Twilio Inc. RFP Assistant - Internal Tool for AI-Powered Document Processing</p>
         </footer>
       </main>
+
+      {/* Login Modal */}
+      {showLogin && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Sign In to RFP Assistant</CardTitle>
+              <CardDescription>
+                Use your credentials to access the platform
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUsernameLogin} className="space-y-4">
+                <div>
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter username"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter password"
+                    required
+                  />
+                </div>
+                <div className="text-sm text-gray-600">
+                  <strong>Demo Credentials:</strong><br />
+                  Username: admin<br />
+                  Password: twilio
+                </div>
+                <div className="flex space-x-2">
+                  <Button 
+                    type="submit" 
+                    disabled={isLoading}
+                    className="flex-1"
+                  >
+                    {isLoading ? 'Signing In...' : 'Sign In'}
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowLogin(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
