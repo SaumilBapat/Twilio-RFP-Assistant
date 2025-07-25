@@ -94,6 +94,13 @@ Preferred communication style: Simple, everyday language.
 - Follows enterprise patterns used by Facebook, Google, Microsoft for multi-environment auth
 - Development mode auto-authenticates users to enable feature development without OAuth setup
 
+### ✅ Secure Preview Authentication (January 25, 2025)
+- Restricted username/password login to preview mode only (replit.dev domains)
+- Production environments can only use Google OAuth for security
+- Admin credentials (admin/twilio) work only in preview, not production
+- Frontend dynamically shows appropriate login options based on environment
+- Prevents unauthorized access using hardcoded credentials in deployed applications
+
 ## External Dependencies
 
 ### Core Technologies

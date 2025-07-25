@@ -14,6 +14,7 @@ export default function Landing() {
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [usernameAuthAvailable, setUsernameAuthAvailable] = useState(false);
   const [, setLocation] = useLocation();
 
   const handleUsernameLogin = async (e: React.FormEvent) => {
@@ -50,6 +51,12 @@ export default function Landing() {
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+
+    // Check if username/password auth is available
+    fetch('/api/auth/username-available')
+      .then(res => res.json())
+      .then(data => setUsernameAuthAvailable(data.available))
+      .catch(() => setUsernameAuthAvailable(false));
   }, []);
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -68,14 +75,17 @@ export default function Landing() {
             <span className="text-2xl font-bold text-gray-900 dark:text-white">RFP Assistant</span>
           </div>
           <div className="space-x-2">
+            {usernameAuthAvailable && (
+              <Button 
+                onClick={() => setShowLogin(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Sign In
+              </Button>
+            )}
             <Button 
-              onClick={() => setShowLogin(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Sign In
-            </Button>
-            <Button 
-              variant="outline"
+              variant={usernameAuthAvailable ? "outline" : "default"}
+              className={usernameAuthAvailable ? "" : "bg-blue-600 hover:bg-blue-700 text-white"}
               onClick={() => {
                 window.location.href = '/api/auth/google';
               }}
@@ -99,7 +109,7 @@ export default function Landing() {
           </p>
           <Button 
             size="lg"
-            onClick={() => setShowLogin(true)}
+            onClick={() => usernameAuthAvailable ? setShowLogin(true) : window.location.href = '/api/auth/google'}
             className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-4"
           >
             Get Started Now
@@ -263,10 +273,11 @@ export default function Landing() {
                     required
                   />
                 </div>
-                <div className="text-sm text-gray-600">
-                  <strong>Demo Credentials:</strong><br />
+                <div className="text-sm text-gray-600 bg-yellow-50 p-3 rounded">
+                  <strong>Preview Mode Credentials:</strong><br />
                   Username: admin<br />
-                  Password: twilio
+                  Password: twilio<br />
+                  <em className="text-xs">Only available in preview environment</em>
                 </div>
                 <div className="flex space-x-2">
                   <Button 

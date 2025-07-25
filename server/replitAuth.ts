@@ -35,29 +35,39 @@ export function setupAuth(app: Express) {
   const hasCredentials = process.env.RFP_GOOGLE_CLIENT_ID && process.env.RFP_GOOGLE_CLIENT_SECRET;
   const isDevelopment = process.env.NODE_ENV === 'development';
   const useDevBypass = process.env.DEV_AUTH_BYPASS === 'true' || (!hasCredentials && isDevelopment);
+  
+  // Check if we're in preview mode (Replit domain)
+  const isPreviewMode = () => {
+    return process.env.REPLIT_DOMAINS && process.env.REPLIT_DOMAINS.includes('replit.dev');
+  };
 
-  // Always setup local username/password authentication
-  passport.use(new LocalStrategy(
-    async (username, password, done) => {
-      try {
-        // Simple hardcoded admin user
-        if (username === 'admin' && password === 'twilio') {
-          const adminUser = {
-            id: 'admin-user',
-            email: 'admin@twilio.com',
-            name: 'Admin User',
-            googleId: null
-          };
-          return done(null, adminUser);
+  // Only setup username/password authentication in preview mode
+  if (isPreviewMode()) {
+    console.log('🔒 Preview mode detected - enabling username/password authentication');
+    passport.use(new LocalStrategy(
+      async (username, password, done) => {
+        try {
+          // Simple hardcoded admin user (only works in preview)
+          if (username === 'admin' && password === 'twilio') {
+            const adminUser = {
+              id: 'admin-user',
+              email: 'admin@twilio.com',
+              name: 'Admin User (Preview)',
+              googleId: null
+            };
+            return done(null, adminUser);
+          }
+          
+          // Invalid credentials
+          return done(null, false, { message: 'Invalid username or password' });
+        } catch (error) {
+          return done(error);
         }
-        
-        // Invalid credentials
-        return done(null, false, { message: 'Invalid username or password' });
-      } catch (error) {
-        return done(error);
       }
-    }
-  ));
+    ));
+  } else {
+    console.log('🔒 Production mode - username/password authentication disabled');
+  }
 
   if (hasCredentials) {
     // Get the base URL for OAuth callback
@@ -137,6 +147,12 @@ export function setupAuth(app: Express) {
   } else {
     console.warn('Google OAuth credentials not provided - authentication disabled');
   }
+
+  // Check if username/password auth is enabled for this request
+  const isUsernamePasswordEnabled = (req: any) => {
+    const host = req.get('host') || '';
+    return host.includes('replit.dev') || isPreviewMode();
+  };
 
   // Auth routes - always available
   app.get("/api/auth/google", (req, res, next) => {
@@ -227,10 +243,37 @@ export function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  // Username/password login route
-  app.post("/api/auth/login", passport.authenticate('local'), (req, res) => {
-    console.log('User authenticated via username/password:', req.user);
-    res.json({ success: true, user: req.user });
+  // Username/password login route (preview mode only)
+  app.post("/api/auth/login", (req, res, next) => {
+    if (!isUsernamePasswordEnabled(req)) {
+      console.log('🔒 Username/password login blocked - not in preview mode');
+      return res.status(403).json({ 
+        error: 'Username/password authentication is only available in preview mode',
+        message: 'Please use Google OAuth for production access'
+      });
+    }
+    
+    passport.authenticate('local', (err: any, user: any, info: any) => {
+      if (err) {
+        return res.status(500).json({ error: 'Authentication error' });
+      }
+      if (!user) {
+        return res.status(401).json({ error: info?.message || 'Invalid credentials' });
+      }
+      
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          return res.status(500).json({ error: 'Login error' });
+        }
+        console.log('🔒 User authenticated via username/password (preview mode):', user.email);
+        res.json({ success: true, user: user });
+      });
+    })(req, res, next);
+  });
+
+  // Check if username/password is available (for frontend)
+  app.get("/api/auth/username-available", (req, res) => {
+    res.json({ available: isUsernamePasswordEnabled(req) });
   });
 
   app.get("/api/logout", (req, res) => {
