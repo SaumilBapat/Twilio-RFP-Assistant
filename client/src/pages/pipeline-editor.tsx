@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ArrowRight, Save, Settings, Zap, Brain, Target } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ArrowLeft, ArrowRight, Save, Settings, Zap, Brain, Target, Trash2 } from "lucide-react";
 import { authService } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +61,23 @@ export default function PipelineEditor() {
       toast({
         title: "Error", 
         description: "Failed to update pipeline",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const clearCacheMutation = useMutation({
+    mutationFn: () => apiRequest('DELETE', '/api/cache/clear'),
+    onSuccess: (data: any) => {
+      toast({
+        title: "Cache Cleared",
+        description: `Deleted ${data.deletedReferences} reference entries and ${data.deletedResponses} response entries`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to clear cache",
         variant: "destructive",
       });
     }
@@ -176,6 +194,35 @@ export default function PipelineEditor() {
               <p className="text-gray-600 mt-1">Configure the AI processing steps for RFP responses</p>
             </div>
           </div>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear Cache
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clear AI Cache</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete all cached AI responses and references from the database. 
+                  This action cannot be undone and will force the system to regenerate all responses 
+                  from scratch on the next processing jobs.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => clearCacheMutation.mutate()}
+                  disabled={clearCacheMutation.isPending}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {clearCacheMutation.isPending ? "Clearing..." : "Clear Cache"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         {/* Pipeline Overview */}

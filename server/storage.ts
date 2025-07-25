@@ -48,6 +48,9 @@ export interface IStorage {
   findSimilarResponses(combinedEmbedding: number[], threshold?: number): Promise<ResponseCache[]>;
   createResponseCache(cache: InsertResponseCache): Promise<ResponseCache>;
 
+  // Cache Management
+  clearAllCache(): Promise<{deletedReferences: number; deletedResponses: number}>;
+
   // Statistics
   getUserJobStats(userId: string): Promise<{
     totalJobs: number;
@@ -257,6 +260,22 @@ export class DatabaseStorage implements IStorage {
   async createResponseCache(cache: InsertResponseCache): Promise<ResponseCache> {
     const [created] = await db.insert(responseCache).values(cache).returning();
     return created;
+  }
+
+  // Cache Management
+  async clearAllCache(): Promise<{deletedReferences: number; deletedResponses: number}> {
+    // Count items before deletion
+    const [refCount] = await db.select({ count: count() }).from(referenceCache);
+    const [respCount] = await db.select({ count: count() }).from(responseCache);
+    
+    // Delete all cache entries
+    await db.delete(referenceCache);
+    await db.delete(responseCache);
+    
+    return {
+      deletedReferences: refCount?.count || 0,
+      deletedResponses: respCount?.count || 0
+    };
   }
 
   // Statistics

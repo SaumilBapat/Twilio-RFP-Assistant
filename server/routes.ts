@@ -483,5 +483,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cache management routes
+  app.delete('/api/cache/clear', isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await storage.clearAllCache();
+      res.json({ 
+        message: 'Cache cleared successfully',
+        deletedReferences: result.deletedReferences,
+        deletedResponses: result.deletedResponses
+      });
+    } catch (error) {
+      console.error('Failed to clear cache:', error);
+      res.status(500).json({ message: 'Failed to clear cache' });
+    }
+  });
+
   return httpServer;
 }
