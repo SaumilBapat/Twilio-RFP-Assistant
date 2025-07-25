@@ -74,6 +74,32 @@ class DocumentProcessor {
         textContent = pdfData.text;
       } else if (fileType === 'text/plain' || fileType === 'text/csv') {
         textContent = fileBuffer.toString('utf-8');
+      } else if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+                 fileType === 'application/vnd.ms-excel.sheet.macroEnabled.12') {
+        // Handle Excel files (.xlsx and .xlsm)
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+        
+        let allSheetsContent = '';
+        workbook.SheetNames.forEach((sheetName, index) => {
+          const worksheet = workbook.Sheets[sheetName];
+          const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          
+          // Add sheet header
+          allSheetsContent += `\n\n=== Sheet: ${sheetName} ===\n`;
+          
+          // Convert sheet data to text
+          sheetData.forEach((row: any[]) => {
+            if (row && row.length > 0) {
+              const rowText = row.map(cell => cell ? String(cell).trim() : '').join(' | ');
+              if (rowText.trim()) {
+                allSheetsContent += rowText + '\n';
+              }
+            }
+          });
+        });
+        
+        textContent = allSheetsContent.trim();
       } else if (fileType === 'application/msword' || fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
         // For Word documents, we'll use a simple text extraction
         // In production, you'd use a proper library like mammoth
@@ -103,7 +129,7 @@ class DocumentProcessor {
           documentId,
           contentHash,
           chunkIndex: i,
-          chunkText: chunk,
+          chunkText: chunk.text,
           metadata: {
             fileName: (await storage.getReferenceDocument(documentId))?.fileName,
             fileType,

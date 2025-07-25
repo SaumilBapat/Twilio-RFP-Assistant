@@ -45,6 +45,8 @@
     "@types/memoizee": "^0.4.12",
     "@types/multer": "^2.0.0",
     "@types/passport-google-oauth20": "^2.0.16",
+    "@types/pdf-parse": "^1.1.5",
+    "@types/xlsx": "^0.0.35",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -84,6 +86,7 @@
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
     "ws": "^8.18.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0"
   },

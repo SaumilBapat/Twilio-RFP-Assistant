@@ -638,13 +638,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'application/pdf',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel.sheet.macroEnabled.12', // .xlsm
         'text/csv',
         'text/plain'
       ];
       if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
       } else {
-        cb(new Error('Invalid file type. Only PDF, Word documents, CSV, and text files are allowed.'));
+        cb(new Error('Invalid file type. Only PDF, Word documents, Excel files (.xlsx, .xlsm), CSV, and text files are allowed.'));
       }
     }
   });

@@ -537,7 +537,7 @@ export default function PipelineEditor() {
                 <div>
                   <CardTitle>Reference Documents</CardTitle>
                   <CardDescription>
-                    Upload company documentation to enhance AI responses with specific context
+                    Upload company documentation to enhance AI responses with specific context. Supports PDF, Word, CSV, TXT, and Excel files (.xlsx, .xlsm)
                   </CardDescription>
                 </div>
                 <div>
@@ -545,7 +545,7 @@ export default function PipelineEditor() {
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileSelect}
-                    accept=".pdf,.doc,.docx,.csv,.txt"
+                    accept=".pdf,.doc,.docx,.csv,.txt,.xlsx,.xlsm"
                     className="hidden"
                   />
                   <Button
