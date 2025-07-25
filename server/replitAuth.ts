@@ -36,9 +36,19 @@ export function setupAuth(app: Express) {
   if (hasCredentials) {
     // Get the base URL for OAuth callback
     const getCallbackURL = () => {
-      // Always use relative URL - this works for both preview and deployed environments
-      // The key is to configure Google OAuth with wildcard or multiple domains
-      console.log('Using relative callback URL for maximum compatibility');
+      // For development, prefer localhost if available
+      // This allows using a separate dev OAuth app with localhost callback
+      if (process.env.NODE_ENV === 'development') {
+        // Check if we're running on localhost (local development)
+        const isLocalhost = process.env.REPLIT_DOMAINS && process.env.REPLIT_DOMAINS.includes('localhost');
+        if (isLocalhost || process.env.USE_LOCALHOST_OAUTH === 'true') {
+          console.log('Using localhost callback for development OAuth app');
+          return "http://localhost:5000/api/auth/google/callback";
+        }
+      }
+      
+      // Default to relative URL for production and Replit preview
+      console.log('Using relative callback URL');
       return "/api/auth/google/callback";
     };
 
