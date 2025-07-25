@@ -776,13 +776,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Add URL to cache and start processing
+      // Check if URL already has real content
+      const existingChunks = await storage.getReferenceChunksByUrl(normalizedUrl);
+      const hasRealContent = existingChunks.some(chunk => 
+        chunk.chunkText !== 'URL queued for processing' && 
+        chunk.contentHash !== 'pending'
+      );
+      
+      if (hasRealContent) {
+        return res.json({ 
+          message: 'URL already cached',
+          url: normalizedUrl 
+        });
+      }
+      
+      // Add placeholder and immediately start processing
       await storage.addUrlToCache(normalizedUrl);
       
-      // Trigger background processing to scrape and embed the URL
-      enhancedEmbeddingsService.processUrls([normalizedUrl]).catch(error => {
-        console.error(`Failed to process URL ${normalizedUrl}:`, error);
-      });
+      // Process URL immediately (not in background) for immediate feedback
+      try {
+        console.log(`🚀 Starting immediate processing for URL: ${normalizedUrl}`);
+        const processedUrls = await enhancedEmbeddingsService.processUrls([normalizedUrl]);
+        console.log(`✅ URL processing completed: ${processedUrls.length} URLs processed`);
+      } catch (error) {
+        console.error(`❌ Failed to process URL ${normalizedUrl}:`, error);
+        // Keep the placeholder for manual retry
+      }
       
       res.json({ 
         message: 'URL added successfully',

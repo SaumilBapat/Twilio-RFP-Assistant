@@ -152,8 +152,8 @@ export default function PipelineEditor() {
       setNewUrl('');
       setIsAddingUrl(false);
       toast({
-        title: "URL added",
-        description: "The URL has been added to your reference collection and is being processed.",
+        title: "URL processed",
+        description: "The URL has been scraped, chunked, and cached for semantic search.",
       });
     },
     onError: (error: any) => {
@@ -637,7 +637,14 @@ export default function PipelineEditor() {
                             <ExternalLink className="h-3 w-3 text-gray-400" />
                           </div>
                           <p className="text-xs text-gray-500">
-                            {urlData.chunkCount} chunks • Last cached: {new Date(urlData.lastCached).toLocaleDateString()}
+                            {urlData.chunkCount === 1 ? (
+                              <span className="flex items-center space-x-1">
+                                <span className="animate-spin">⚡</span>
+                                <span>Processing...</span>
+                              </span>
+                            ) : (
+                              `${urlData.chunkCount} chunks • Last cached: ${new Date(urlData.lastCached).toLocaleDateString()}`
+                            )}
                           </p>
                         </div>
                       </div>
