@@ -484,26 +484,64 @@ export default function Spreadsheet() {
                       
                       // Handle different value types - some might be objects with content/fileName
                       const getDisplayValue = (val: any, columnName: string): string | JSX.Element => {
-                        if (typeof val === 'string') return val;
-                        if (typeof val === 'object' && val !== null) {
-                          if (val.content) return val.content;
-                          if (val.fileName) return val.fileName;
+                        // Special handling for Reference Research column
+                        if (columnName === 'Reference Research' && val) {
+                          let urls: string[] = [];
                           
-                          // Special handling for Reference Research URLs
-                          if (columnName === 'Reference Research' && Array.isArray(val)) {
+                          // Handle different data formats
+                          if (typeof val === 'string') {
+                            try {
+                              // Try to parse as JSON first
+                              const parsed = JSON.parse(val);
+                              if (Array.isArray(parsed)) {
+                                urls = parsed;
+                              } else {
+                                // If it's a string that looks like an array, try to extract URLs
+                                const urlMatches = val.match(/https?:\/\/[^\s",\]]+/g);
+                                if (urlMatches) {
+                                  urls = urlMatches;
+                                } else {
+                                  return val; // Return as-is if no URLs found
+                                }
+                              }
+                            } catch {
+                              // If parsing fails, try to extract URLs from the string
+                              const urlMatches = val.match(/https?:\/\/[^\s",\]]+/g);
+                              if (urlMatches) {
+                                urls = urlMatches;
+                              } else {
+                                return val; // Return as-is if no URLs found
+                              }
+                            }
+                          } else if (Array.isArray(val)) {
+                            urls = val;
+                          } else if (typeof val === 'object' && val !== null) {
+                            if (val.content) return val.content;
+                            if (val.fileName) return val.fileName;
+                            return JSON.stringify(val);
+                          }
+                          
+                          // Display URLs on separate lines if we found any
+                          if (urls.length > 0) {
                             return (
                               <div className="space-y-1">
-                                {val.map((url: string, index: number) => (
+                                {urls.map((url: string, index: number) => (
                                   <div key={index} className="break-all text-xs text-blue-600">
-                                    <a href={url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                                      {url}
+                                    <a href={url.trim()} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                      {url.trim()}
                                     </a>
                                   </div>
                                 ))}
                               </div>
                             );
                           }
-                          
+                        }
+                        
+                        // Default handling for other columns
+                        if (typeof val === 'string') return val;
+                        if (typeof val === 'object' && val !== null) {
+                          if (val.content) return val.content;
+                          if (val.fileName) return val.fileName;
                           return JSON.stringify(val);
                         }
                         return String(val || '');
