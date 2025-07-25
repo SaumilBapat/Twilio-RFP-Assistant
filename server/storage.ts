@@ -93,6 +93,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteJob(id: string): Promise<void> {
+    // Delete all related data first (foreign key constraints)
+    await db.delete(jobSteps).where(eq(jobSteps.jobId, id));
+    await db.delete(csvData).where(eq(csvData.jobId, id));
     await db.delete(jobs).where(eq(jobs.id, id));
   }
 

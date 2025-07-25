@@ -14,7 +14,8 @@ import {
   Play, 
   Settings,
   ChevronLeft,
-  ChevronRight 
+  ChevronRight,
+  Trash2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useLocation } from "wouter";
@@ -119,6 +120,27 @@ export function JobTable({ jobs, onJobUpdate }: JobTableProps) {
       toast({
         title: "Error",
         description: "Failed to export CSV",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (jobId: string, jobName: string) => {
+    if (!confirm(`Are you sure you want to delete "${jobName}"? This will permanently remove the job and all associated data.`)) {
+      return;
+    }
+
+    try {
+      await apiRequest('DELETE', `/api/jobs/${jobId}`);
+      toast({
+        title: "Success",
+        description: "Job deleted successfully",
+      });
+      onJobUpdate();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete job",
         variant: "destructive",
       });
     }
@@ -265,9 +287,10 @@ export function JobTable({ jobs, onJobUpdate }: JobTableProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-gray-400 hover:text-gray-600"
+                        onClick={() => handleDelete(job.id, job.name)}
+                        className="text-red-400 hover:text-red-600"
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </td>

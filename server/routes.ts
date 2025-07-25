@@ -255,6 +255,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/jobs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const job = await storage.getJob(req.params.id);
+      if (!job || job.userId !== req.user.id) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      // Delete the uploaded file
+      if (job.filePath) {
+        await fileUploadService.deleteFile(job.filePath);
+      }
+
+      // Delete job and all related data from database
+      await storage.deleteJob(job.id);
+      
+      res.json({ message: 'Job deleted successfully' });
+    } catch (error) {
+      console.error('Failed to delete job:', error);
+      res.status(500).json({ message: 'Failed to delete job' });
+    }
+  });
+
   app.get('/api/jobs/:id/csv-data', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);
