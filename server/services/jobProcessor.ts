@@ -195,6 +195,13 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     const job = await storage.getJob(jobId);
     let currentData = { ...rowData.originalData };
     
+    // Add cross-question context if this question references previous ones
+    const previousContext = await this.getPreviousQuestionContext(jobId, rowIndex, currentData);
+    if (previousContext) {
+      currentData['PREVIOUS_CONTEXT'] = previousContext;
+      console.log(`🔗 Added context from ${previousContext.referencedQuestions.length} previous questions`);
+    }
+    
     // Add RFP-specific context for Step 3 processing
     if (job?.rfpInstructions) {
       currentData['RFP_INSTRUCTIONS'] = job.rfpInstructions;
@@ -286,6 +293,120 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
 
   isJobPaused(jobId: string): boolean {
     return this.pausedJobs.has(jobId);
+  }
+
+  private async getPreviousQuestionContext(jobId: string, currentRowIndex: number, currentData: any): Promise<any> {
+    // Get the current question text to analyze for references
+    const questionText = this.extractQuestionText(currentData);
+    if (!questionText) return null;
+
+    // Check if question contains references to previous questions
+    const references = this.detectQuestionReferences(questionText, currentRowIndex);
+    if (references.length === 0) return null;
+
+    // Get previous processed rows with their answers
+    const allCsvData = await storage.getJobCsvData(jobId);
+    const referencedQuestions = [];
+
+    for (const ref of references) {
+      if (ref.rowIndex < currentRowIndex && ref.rowIndex < allCsvData.length) {
+        const previousRow = allCsvData[ref.rowIndex];
+        if (previousRow.enrichedData) {
+          const enrichedData = typeof previousRow.enrichedData === 'string' 
+            ? JSON.parse(previousRow.enrichedData) 
+            : previousRow.enrichedData;
+          
+          referencedQuestions.push({
+            questionNumber: ref.rowIndex + 1,
+            question: this.extractQuestionText(previousRow.originalData),
+            referenceResearch: enrichedData['Reference Research'] || '',
+            genericDraft: enrichedData['Generic Draft Generation'] || '',
+            tailoredResponse: enrichedData['Tailored RFP Response'] || '',
+            referencedAs: ref.referenceText
+          });
+        }
+      }
+    }
+
+    if (referencedQuestions.length === 0) return null;
+
+    return {
+      referencedQuestions,
+      contextNote: `This question references previous questions: ${references.map(r => r.referenceText).join(', ')}`
+    };
+  }
+
+  private extractQuestionText(data: any): string {
+    // Try different possible field names for questions
+    const possibleFields = [
+      'QUESTION TITLE', 'Question', 'question', 'QUESTION', 
+      'Question Title', 'RFP Question', 'Query'
+    ];
+    
+    for (const field of possibleFields) {
+      if (data[field] && typeof data[field] === 'string') {
+        return data[field];
+      }
+    }
+    
+    // If no specific field found, return first text value
+    const firstTextValue = Object.values(data).find(v => typeof v === 'string' && v.length > 10);
+    return firstTextValue as string || '';
+  }
+
+  private detectQuestionReferences(questionText: string, currentRowIndex: number): Array<{rowIndex: number, referenceText: string}> {
+    const references = [];
+    const text = questionText.toLowerCase();
+
+    // Pattern 1: Explicit question numbers (Q1, Q2, Question 1, etc.)
+    const questionNumPattern = /(?:q|question)\s*(\d+)/gi;
+    let match;
+    while ((match = questionNumPattern.exec(text)) !== null) {
+      const questionNum = parseInt(match[1]) - 1; // Convert to 0-based index
+      if (questionNum >= 0 && questionNum < currentRowIndex) {
+        references.push({
+          rowIndex: questionNum,
+          referenceText: match[0]
+        });
+      }
+    }
+
+    // Pattern 2: References to "previous", "above", "earlier"
+    const implicitPatterns = [
+      /(?:the\s+)?(?:previous|above|earlier|prior)\s+(?:question|response|answer|solution|implementation)/gi,
+      /(?:as\s+)?(?:mentioned|described|outlined)\s+(?:above|previously|earlier)/gi,
+      /(?:from\s+)?(?:the\s+)?(?:above|previous)\s+(?:question|response)/gi
+    ];
+
+    for (const pattern of implicitPatterns) {
+      const matches = text.match(pattern);
+      if (matches && currentRowIndex > 0) {
+        // For implicit references, assume they refer to the immediately previous question
+        references.push({
+          rowIndex: currentRowIndex - 1,
+          referenceText: matches[0]
+        });
+      }
+    }
+
+    // Pattern 3: Specific implementation/solution references (like "CCaaS implementation")
+    const implementationPattern = /(\w+(?:\s+\w+)*)\s+(?:implementation|solution|approach|method)\s+(?:from\s+)?(?:q|question)\s*(\d+)/gi;
+    while ((match = implementationPattern.exec(text)) !== null) {
+      const questionNum = parseInt(match[2]) - 1;
+      if (questionNum >= 0 && questionNum < currentRowIndex) {
+        references.push({
+          rowIndex: questionNum,
+          referenceText: `${match[1]} implementation from Q${match[2]}`
+        });
+      }
+    }
+
+    // Remove duplicates
+    const unique = references.filter((ref, index, self) => 
+      index === self.findIndex(r => r.rowIndex === ref.rowIndex)
+    );
+
+    return unique;
   }
 
   private async loadAdditionalDocuments(additionalDocuments: any[]): Promise<Array<{fileName: string, content: string}>> {

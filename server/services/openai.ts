@@ -104,6 +104,10 @@ export class OpenAIService {
   ): Promise<ProcessingResult> {
     const startTime = Date.now();
     
+    // Process templates with enhanced context handling
+    const processedSystemPrompt = this.processTemplate(agent.systemPrompt, rowData);
+    const processedUserPrompt = this.processTemplate(agent.userPrompt, rowData);
+    
     try {
       // Special handling for Reference Research step
       if (agent.name === "Reference Research") {
@@ -211,8 +215,8 @@ export class OpenAIService {
         userPrompt: agent.userPrompt.substring(0, 100) + '...'
       });
       
-      // Use the enhanced reference research service
-      const result = await referenceResearchService.findReferences(question, agent);
+      // Use the enhanced reference research service with context data
+      const result = await referenceResearchService.findReferences(question, agent, rowData);
       
       // Format the output using the service
       const output = referenceResearchService.formatReferencesForOutput(result.references);
@@ -382,6 +386,44 @@ export class OpenAIService {
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  }
+
+  processTemplate(template: string, data: Record<string, any>): string {
+    // Handle handlebars-style conditional blocks for PREVIOUS_CONTEXT
+    let processed = template;
+    
+    // Check if PREVIOUS_CONTEXT exists
+    const hasContext = data.PREVIOUS_CONTEXT?.referencedQuestions?.length > 0;
+    
+    // Process {{#if PREVIOUS_CONTEXT}} blocks
+    const ifRegex = /\{\{#if PREVIOUS_CONTEXT\}\}([\s\S]*?)\{\{\/if\}\}/g;
+    processed = processed.replace(ifRegex, (match, content) => {
+      return hasContext ? content : '';
+    });
+    
+    // Process {{#each PREVIOUS_CONTEXT.referencedQuestions}} blocks
+    const eachRegex = /\{\{#each PREVIOUS_CONTEXT\.referencedQuestions\}\}([\s\S]*?)\{\{\/each\}\}/g;
+    processed = processed.replace(eachRegex, (match, content) => {
+      if (!hasContext) return '';
+      
+      return data.PREVIOUS_CONTEXT.referencedQuestions.map((question: any) => {
+        let questionContent = content;
+        questionContent = questionContent.replace(/\{\{questionNumber\}\}/g, question.questionNumber);
+        questionContent = questionContent.replace(/\{\{question\}\}/g, question.question);
+        questionContent = questionContent.replace(/\{\{referenceResearch\}\}/g, question.referenceResearch);
+        questionContent = questionContent.replace(/\{\{tailoredResponse\}\}/g, question.tailoredResponse);
+        questionContent = questionContent.replace(/\{\{referencedAs\}\}/g, question.referencedAs);
+        return questionContent;
+      }).join('\n');
+    });
+    
+    // Process PREVIOUS_CONTEXT object references
+    if (hasContext) {
+      processed = processed.replace(/\{\{PREVIOUS_CONTEXT\.contextNote\}\}/g, data.PREVIOUS_CONTEXT.contextNote || '');
+    }
+    
+    // Now process regular placeholders
+    return this.replacePlaceholders(processed, data);
   }
 
   private replacePlaceholders(template: string, data: Record<string, any>): string {

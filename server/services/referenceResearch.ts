@@ -29,11 +29,18 @@ export class ReferenceResearchService {
   private readonly SIMILARITY_THRESHOLD = 0.85;
   private readonly CACHE_VALIDITY_HOURS = 24;
 
-  async findReferences(question: string, agent?: any): Promise<CachedReferences> {
+  async findReferences(question: string, agent?: any, contextData?: any): Promise<CachedReferences> {
     console.log(`🔍 Finding references for question: ${question.substring(0, 100)}...`);
     
-    // Step 1: Check cache for similar questions
-    const cachedResult = await this.checkCache(question);
+    // Check if this question has previous context
+    const hasContext = contextData?.PREVIOUS_CONTEXT?.referencedQuestions?.length > 0;
+    if (hasContext) {
+      console.log(`🔗 Detected cross-question reference: ${contextData.PREVIOUS_CONTEXT.contextNote}`);
+    }
+    
+    // Step 1: Check cache for similar questions (including context-aware caching)
+    const cacheKey = hasContext ? `${question}||${JSON.stringify(contextData.PREVIOUS_CONTEXT)}` : question;
+    const cachedResult = await this.checkCache(cacheKey);
     if (cachedResult) {
       console.log(`💰 Found cached references with ${cachedResult.similarity?.toFixed(3)} similarity`);
       
@@ -48,7 +55,7 @@ export class ReferenceResearchService {
 
     // Step 2: No similar cached results, generate new references
     console.log(`🆕 No similar cached references found, generating new ones...`);
-    return await this.generateNewReferences(question, agent);
+    return await this.generateNewReferences(cacheKey, agent, contextData);
   }
 
   private async checkCache(question: string): Promise<CachedReferences | null> {
@@ -81,7 +88,7 @@ export class ReferenceResearchService {
     return null;
   }
 
-  private async generateNewReferences(question: string, agent?: any): Promise<CachedReferences> {
+  private async generateNewReferences(question: string, agent?: any, contextData?: any): Promise<CachedReferences> {
     // Use agent configuration if provided, otherwise fall back to generic prompt
     let prompt: string;
     let systemPrompt: string;
@@ -93,7 +100,13 @@ export class ReferenceResearchService {
       console.log('👤 User Prompt:', agent.userPrompt);
       
       systemPrompt = agent.systemPrompt;
-      prompt = agent.userPrompt.replace('{{FIRST_COLUMN}}', question);
+      
+      // Process template with context data (imports OpenAI service for template processing)
+      const { openaiService } = await import('./openai');
+      prompt = openaiService.processTemplate(agent.userPrompt, { 
+        FIRST_COLUMN: question, 
+        ...contextData 
+      });
       
       console.log('✅ Final prompt:', prompt);
     } else {
