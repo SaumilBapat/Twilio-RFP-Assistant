@@ -172,6 +172,21 @@ export class ReferenceResearchService {
     const validCount = validatedReferences.filter(r => r.status === 'valid').length;
     console.log(`✅ ${validCount}/${validatedReferences.length} references are valid`);
 
+    // If we don't have enough valid references, try to generate more
+    if (validCount < 5) {
+      console.log(`🔄 Only ${validCount} valid references found. Attempting to find more...`);
+      
+      try {
+        const additionalRefs = await this.generateAdditionalReferences(question, agent, validatedReferences);
+        if (additionalRefs.length > 0) {
+          console.log(`🆕 Found ${additionalRefs.length} additional references`);
+          validatedReferences.push(...additionalRefs);
+        }
+      } catch (error) {
+        console.log(`⚠️ Could not generate additional references: ${error}`);
+      }
+    }
+
     // Cache the results for future use
     await this.cacheReferences(question, validatedReferences);
 
@@ -228,11 +243,78 @@ export class ReferenceResearchService {
     return hoursOld > this.CACHE_VALIDITY_HOURS;
   }
 
+  private async generateAdditionalReferences(question: string, agent: any, existingRefs: ReferenceResult[]): Promise<ReferenceResult[]> {
+    const existingUrls = new Set(existingRefs.map(r => r.url));
+    
+    const fallbackPrompt = `Find MORE specific Twilio ecosystem references for: ${question}
+
+**AVOID these URLs already found:** ${Array.from(existingUrls).join(', ')}
+
+**Focus on these additional areas:**
+- https://www.twilio.com/customers/ (case studies)
+- https://www.twilio.com/resources/guides/ (detailed guides)
+- https://sendgrid.com/marketing-campaigns/ (email marketing)
+- https://segment.com/solutions/ (data solutions)
+- https://www.twilio.com/ahoy/ (developer resources)
+
+Return JSON with at least 3 NEW references that haven't been used yet.`;
+
+    const result = await openaiService.callOpenAIDirect({
+      model: "gpt-4o",
+      systemPrompt: agent.systemPrompt,
+      userPrompt: fallbackPrompt,
+      temperature: 0.3,
+      maxTokens: 1000
+    });
+
+    if (result.error) {
+      return [];
+    }
+
+    let cleanOutput = result.output.trim();
+    if (cleanOutput.includes('```json')) {
+      cleanOutput = cleanOutput.replace(/```json\s*/g, '').replace(/\s*```/g, '');
+    }
+
+    try {
+      const additionalData = JSON.parse(cleanOutput);
+      const newReferences = additionalData.references || [];
+      
+      // Filter out URLs we already have
+      const uniqueRefs = newReferences.filter((ref: any) => !existingUrls.has(ref.url));
+      
+      if (uniqueRefs.length === 0) {
+        return [];
+      }
+
+      // Validate the new URLs
+      const urls = uniqueRefs.map((ref: any) => ref.url);
+      const validationResults = await linkValidator.validateUrls(urls);
+
+      return uniqueRefs.map((ref: any, index: number) => {
+        const validation = validationResults[index];
+        return {
+          url: ref.url,
+          title: ref.title,
+          description: ref.description,
+          status: validation.status,
+          statusCode: validation.statusCode,
+          error: validation.error
+        };
+      });
+
+    } catch (error) {
+      console.log(`❌ Failed to parse additional references: ${error}`);
+      return [];
+    }
+  }
+
   formatReferencesForOutput(references: ReferenceResult[]): string {
     const validRefs = references.filter(ref => ref.status === 'valid');
     const invalidRefs = references.filter(ref => ref.status !== 'valid');
 
     let output = "## 📚 Reference Sources\n\n";
+    output += `**Found ${validRefs.length} verified sources for this question**\n\n`;
 
     if (validRefs.length > 0) {
       output += "### ✅ Verified Sources:\n";
@@ -253,6 +335,10 @@ export class ReferenceResearchService {
         }
         output += "\n";
       });
+    }
+
+    if (validRefs.length < 5) {
+      output += `\n**Note:** Found ${validRefs.length} working sources (target: 5+ sources)\n`;
     }
 
     return output;

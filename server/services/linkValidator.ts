@@ -33,6 +33,7 @@ export class LinkValidationService {
       const response = await fetch(url, {
         method: 'HEAD', // Use HEAD request for faster validation
         signal: controller.signal,
+        redirect: 'follow', // Follow redirects automatically
         headers: {
           'User-Agent': 'Twilio-RFP-Assistant/1.0 (Link Validator)'
         }
@@ -44,7 +45,7 @@ export class LinkValidationService {
       if (response.ok) {
         console.log(`✅ Link valid: ${url} (${response.status}, ${responseTime}ms)`);
         return {
-          url,
+          url: response.url, // Use final URL after any redirects
           status: 'valid',
           statusCode: response.status,
           responseTime
