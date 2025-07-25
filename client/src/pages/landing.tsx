@@ -13,18 +13,8 @@ export default function Landing() {
             <span className="text-2xl font-bold text-gray-900 dark:text-white">RFP Assistant</span>
           </div>
           <Button 
-            onClick={async () => {
-              try {
-                const response = await fetch('/api/auth/google');
-                if (response.status === 503) {
-                  const data = await response.json();
-                  alert(`OAuth Setup Required: ${data.message}`);
-                } else {
-                  window.location.href = '/api/auth/google';
-                }
-              } catch (error) {
-                window.location.href = '/api/auth/google';
-              }
+            onClick={() => {
+              window.location.href = '/api/auth/google';
             }}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
@@ -46,18 +36,8 @@ export default function Landing() {
           </p>
           <Button 
             size="lg"
-            onClick={async () => {
-              try {
-                const response = await fetch('/api/auth/google');
-                if (response.status === 503) {
-                  const data = await response.json();
-                  alert(`OAuth Setup Required: ${data.message}`);
-                } else {
-                  window.location.href = '/api/auth/google';
-                }
-              } catch (error) {
-                window.location.href = '/api/auth/google';
-              }
+            onClick={() => {
+              window.location.href = '/api/auth/google';
             }}
             className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-4"
           >
