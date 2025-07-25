@@ -1,10 +1,41 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, FileSpreadsheet, Bot, Zap, Shield, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Landing() {
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check for error in URL params
+    const params = new URLSearchParams(window.location.search);
+    const errorType = params.get('error');
+    const errorMessage = params.get('message');
+    
+    if (errorType) {
+      if (errorType === 'auth_error') {
+        setError(`Authentication error: ${errorMessage || 'Unknown error occurred'}`);
+      } else if (errorType === 'auth_failed') {
+        setError(`Authentication failed: ${errorMessage || 'Unable to authenticate with Google'}`);
+      } else if (errorType === 'login_error') {
+        setError(`Login error: ${errorMessage || 'Failed to establish session'}`);
+      } else {
+        setError(errorMessage || 'An error occurred during authentication');
+      }
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      {error && (
+        <div className="max-w-7xl mx-auto px-6 pt-4">
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
+      )}
       {/* Header */}
       <header className="w-full p-6">
         <div className="max-w-7xl mx-auto flex justify-between items-center">

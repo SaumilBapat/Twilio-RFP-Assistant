@@ -34,10 +34,16 @@ export function setupAuth(app: Express) {
   const hasCredentials = process.env.RFP_GOOGLE_CLIENT_ID && process.env.RFP_GOOGLE_CLIENT_SECRET;
 
   if (hasCredentials) {
+    // Get the full callback URL for Replit environment
+    const baseUrl = process.env.REPLIT_DB_URL 
+      ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`
+      : 'http://localhost:5000';
+    
     passport.use(new GoogleStrategy({
       clientID: process.env.RFP_GOOGLE_CLIENT_ID!,
       clientSecret: process.env.RFP_GOOGLE_CLIENT_SECRET!,
-      callbackURL: "/api/auth/google/callback"
+      callbackURL: `${baseUrl}/api/auth/google/callback`,
+      proxy: true
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -86,14 +92,28 @@ export function setupAuth(app: Express) {
     passport.authenticate("google", { scope: ["profile", "email"] })(req, res);
   });
 
-  app.get("/api/auth/google/callback", (req, res) => {
+  app.get("/api/auth/google/callback", (req, res, next) => {
     if (!hasCredentials) {
       return res.redirect("/?error=oauth_not_configured");
     }
-    passport.authenticate("google", { 
-      failureRedirect: "/?error=auth_failed",
-      successRedirect: "/"
-    })(req, res);
+    passport.authenticate("google", (err: any, user: any, info: any) => {
+      if (err) {
+        console.error('Google auth error:', err);
+        return res.redirect(`/?error=auth_error&message=${encodeURIComponent(err.message)}`);
+      }
+      if (!user) {
+        console.error('Google auth failed - no user:', info);
+        return res.redirect(`/?error=auth_failed&message=${encodeURIComponent(info?.message || 'Authentication failed')}`);
+      }
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error('Login error:', loginErr);
+          return res.redirect(`/?error=login_error&message=${encodeURIComponent(loginErr.message)}`);
+        }
+        console.log('User successfully authenticated:', user.email);
+        return res.redirect("/");
+      });
+    })(req, res, next);
   });
 
   app.get("/api/logout", (req, res) => {
