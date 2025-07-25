@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, ArrowRight, Save, Settings, Zap, Brain, Target, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Settings, Zap, Brain, Target, Trash2, Upload, FileText, CheckCircle, Loader2, AlertCircle } from "lucide-react";
 import { authService } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -29,10 +29,25 @@ interface Pipeline {
   steps: PipelineStep[];
 }
 
+interface ReferenceDocument {
+  id: string;
+  userId: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  fileHash: string;
+  cachingStatus: 'pending' | 'processing' | 'completed' | 'error';
+  totalChunks: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function PipelineEditor() {
   const [, setLocation] = useLocation();
   const [editingStep, setEditingStep] = useState<number | null>(null);
   const [editedStep, setEditedStep] = useState<PipelineStep | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const user = authService.getCurrentUser();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -43,6 +58,65 @@ export default function PipelineEditor() {
       credentials: 'include',
       headers: { 'x-user-id': user?.id || 'user-1' }
     }).then(res => res.json()),
+  });
+
+  const { data: referenceDocuments = [], isLoading: documentsLoading } = useQuery<ReferenceDocument[]>({
+    queryKey: ['/api/reference-documents'],
+  });
+
+  const uploadDocumentMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/reference-documents', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to upload document');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Document uploaded successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/reference-documents'] });
+      setUploadingFile(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload document",
+        variant: "destructive",
+      });
+      setUploadingFile(false);
+    }
+  });
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: (documentId: string) => 
+      apiRequest('DELETE', `/api/reference-documents/${documentId}`),
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Document deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/reference-documents'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete document",
+        variant: "destructive",
+      });
+    }
   });
 
   const updatePipelineMutation = useMutation({
@@ -110,6 +184,33 @@ export default function PipelineEditor() {
   const cancelEdit = () => {
     setEditingStep(null);
     setEditedStep(null);
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadingFile(true);
+      uploadDocumentMutation.mutate(file);
+    }
+    // Reset input value to allow re-selecting the same file
+    event.target.value = '';
+  };
+
+  const getCachingStatusIcon = (status: ReferenceDocument['cachingStatus']) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'processing':
+        return <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />;
+      case 'error':
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return <AlertCircle className="h-4 w-4 text-gray-400" />;
+    }
+  };
+
+  const getFileTypeIcon = (fileType: string) => {
+    return <FileText className="h-4 w-4 text-gray-600" />;
   };
 
   const saveStep = () => {
@@ -240,6 +341,104 @@ export default function PipelineEditor() {
                 This pipeline processes RFP questions through {pipeline.steps.length} AI-powered steps
               </CardDescription>
             </CardHeader>
+          </Card>
+        </div>
+
+        {/* Reference Documents */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Reference Documents</CardTitle>
+                  <CardDescription>
+                    Upload company documentation to enhance AI responses with specific context
+                  </CardDescription>
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    accept=".pdf,.doc,.docx,.csv,.txt"
+                    className="hidden"
+                  />
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingFile || uploadDocumentMutation.isPending}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {uploadingFile || uploadDocumentMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Document
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {documentsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                </div>
+              ) : referenceDocuments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p>No reference documents uploaded yet</p>
+                  <p className="text-sm mt-1">Upload PDF, Word documents, CSV, or text files</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {referenceDocuments.map((doc: ReferenceDocument) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3 flex-1">
+                        {getFileTypeIcon(doc.fileType)}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {doc.fileName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {(doc.fileSize / 1024 / 1024).toFixed(2)} MB • {doc.totalChunks} chunks
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {getCachingStatusIcon(doc.cachingStatus)}
+                          <span className="text-xs text-gray-600">
+                            {doc.cachingStatus === 'completed' 
+                              ? 'Cached' 
+                              : doc.cachingStatus === 'processing'
+                              ? 'Processing...'
+                              : doc.cachingStatus === 'error'
+                              ? 'Error'
+                              : 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => deleteDocumentMutation.mutate(doc.id)}
+                        disabled={deleteDocumentMutation.isPending}
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
           </Card>
         </div>
 

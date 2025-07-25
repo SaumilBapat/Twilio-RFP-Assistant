@@ -1,4 +1,4 @@
-import { users, jobs, pipelines, jobSteps, csvData, referenceCache, responseCache, type User, type InsertUser, type Job, type InsertJob, type Pipeline, type InsertPipeline, type JobStep, type InsertJobStep, type CsvData, type InsertCsvData, type ReferenceCache, type InsertReferenceCache, type ResponseCache, type InsertResponseCache, type JobStatus } from "@shared/schema";
+import { users, jobs, pipelines, jobSteps, csvData, referenceCache, responseCache, referenceDocuments, type User, type InsertUser, type Job, type InsertJob, type Pipeline, type InsertPipeline, type JobStep, type InsertJobStep, type CsvData, type InsertCsvData, type ReferenceCache, type InsertReferenceCache, type ResponseCache, type InsertResponseCache, type ReferenceDocument, type InsertReferenceDocument, type JobStatus } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
 
@@ -51,6 +51,14 @@ export interface IStorage {
 
   // Cache Management
   clearAllCache(): Promise<{deletedReferences: number; deletedResponses: number}>;
+
+  // Reference Documents
+  getReferenceDocument(id: string): Promise<ReferenceDocument | undefined>;
+  getUserReferenceDocuments(userId: string): Promise<ReferenceDocument[]>;
+  createReferenceDocument(document: InsertReferenceDocument): Promise<ReferenceDocument>;
+  updateReferenceDocument(id: string, updates: Partial<ReferenceDocument>): Promise<ReferenceDocument>;
+  deleteReferenceDocument(id: string): Promise<void>;
+  getReferenceChunksByDocumentId(documentId: string): Promise<ReferenceCache[]>;
 
   // Statistics
   getUserJobStats(userId: string): Promise<{
@@ -318,6 +326,50 @@ export class DatabaseStorage implements IStorage {
 
   async getJobs(userId: string): Promise<Job[]> {
     return await db.select().from(jobs).where(eq(jobs.userId, userId)).orderBy(desc(jobs.createdAt));
+  }
+
+  // Reference Documents implementation
+  async getReferenceDocument(id: string): Promise<ReferenceDocument | undefined> {
+    const [document] = await db.select().from(referenceDocuments).where(eq(referenceDocuments.id, id));
+    return document;
+  }
+
+  async getUserReferenceDocuments(userId: string): Promise<ReferenceDocument[]> {
+    return await db.select().from(referenceDocuments)
+      .where(eq(referenceDocuments.userId, userId))
+      .orderBy(desc(referenceDocuments.createdAt));
+  }
+
+  async createReferenceDocument(document: InsertReferenceDocument): Promise<ReferenceDocument> {
+    const [created] = await db.insert(referenceDocuments).values(document).returning();
+    return created;
+  }
+
+  async updateReferenceDocument(id: string, updates: Partial<ReferenceDocument>): Promise<ReferenceDocument> {
+    const [updated] = await db.update(referenceDocuments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(referenceDocuments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteReferenceDocument(id: string): Promise<void> {
+    await db.delete(referenceDocuments).where(eq(referenceDocuments.id, id));
+  }
+
+  async getReferenceChunksByDocumentId(documentId: string): Promise<ReferenceCache[]> {
+    return await db.select().from(referenceCache)
+      .where(eq(referenceCache.documentId, documentId));
+  }
+
+  async getReferenceDocumentByHash(fileHash: string): Promise<ReferenceDocument | undefined> {
+    const [document] = await db.select().from(referenceDocuments)
+      .where(eq(referenceDocuments.fileHash, fileHash));
+    return document;
+  }
+
+  async deleteReferenceChunk(id: string): Promise<void> {
+    await db.delete(referenceCache).where(eq(referenceCache.id, id));
   }
 }
 

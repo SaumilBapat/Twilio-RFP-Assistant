@@ -84,10 +84,29 @@ export const csvData = pgTable("csv_data", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Table for storing reference documents metadata
+export const referenceDocuments = pgTable("reference_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  fileName: text("file_name").notNull(),
+  fileType: text("file_type").notNull(), // pdf, docx, doc, csv, txt
+  fileSize: integer("file_size").notNull(), // in bytes
+  fileHash: text("file_hash").notNull(), // SHA256 hash of file content
+  cachingStatus: varchar("caching_status", { length: 20 }).notNull().default("pending"), // pending, processing, completed, error
+  totalChunks: integer("total_chunks").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_reference_documents_user").on(table.userId),
+  index("idx_reference_documents_hash").on(table.fileHash),
+  index("idx_reference_documents_status").on(table.cachingStatus)
+]);
+
 // Cache table for chunk-based reference storage with embeddings for semantic search
 export const referenceCache = pgTable("reference_cache", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  url: text("url").notNull(),
+  url: text("url"), // Nullable to support documents
+  documentId: varchar("document_id").references(() => referenceDocuments.id), // Reference to document
   contentHash: text("content_hash").notNull(), // Hash of the full page content
   chunkIndex: integer("chunk_index").notNull(), // Index of this chunk in the page
   chunkText: text("chunk_text").notNull(), // The actual chunk content
@@ -96,6 +115,7 @@ export const referenceCache = pgTable("reference_cache", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_reference_cache_url").on(table.url),
+  index("idx_reference_cache_document").on(table.documentId),
   index("idx_reference_cache_hash").on(table.contentHash),
   index("idx_reference_cache_created").on(table.createdAt)
 ]);
@@ -117,6 +137,7 @@ export const responseCache = pgTable("response_cache", {
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   jobs: many(jobs),
+  referenceDocuments: many(referenceDocuments),
 }));
 
 export const jobsRelations = relations(jobs, ({ one, many }) => ({
@@ -147,6 +168,21 @@ export const csvDataRelations = relations(csvData, ({ one }) => ({
   job: one(jobs, {
     fields: [csvData.jobId],
     references: [jobs.id],
+  }),
+}));
+
+export const referenceDocumentsRelations = relations(referenceDocuments, ({ one, many }) => ({
+  user: one(users, {
+    fields: [referenceDocuments.userId],
+    references: [users.id],
+  }),
+  referenceChunks: many(referenceCache),
+}));
+
+export const referenceCacheRelations = relations(referenceCache, ({ one }) => ({
+  document: one(referenceDocuments, {
+    fields: [referenceCache.documentId],
+    references: [referenceDocuments.id],
   }),
 }));
 
@@ -189,6 +225,12 @@ export const insertResponseCacheSchema = createInsertSchema(responseCache).omit(
   createdAt: true,
 });
 
+export const insertReferenceDocumentsSchema = createInsertSchema(referenceDocuments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -204,5 +246,8 @@ export type ReferenceCache = typeof referenceCache.$inferSelect;
 export type InsertReferenceCache = z.infer<typeof insertReferenceCacheSchema>;
 export type ResponseCache = typeof responseCache.$inferSelect;
 export type InsertResponseCache = z.infer<typeof insertResponseCacheSchema>;
+export type ReferenceDocument = typeof referenceDocuments.$inferSelect;
+export type InsertReferenceDocument = z.infer<typeof insertReferenceDocumentsSchema>;
 export type JobStatus = "not_started" | "in_progress" | "paused" | "completed" | "error" | "cancelled";
 export type StepStatus = "pending" | "running" | "completed" | "error";
+export type CachingStatus = "pending" | "processing" | "completed" | "error";

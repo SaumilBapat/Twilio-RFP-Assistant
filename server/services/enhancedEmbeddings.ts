@@ -335,6 +335,43 @@ Return ONLY the URLs, one per line. No additional text or formatting.`;
   }
 
   /**
+   * Create a reference chunk for documents or URLs
+   */
+  async createReferenceChunk(params: {
+    url: string | null;
+    documentId?: string;
+    contentHash: string;
+    chunkIndex: number;
+    chunkText: string;
+    metadata?: any;
+  }): Promise<void> {
+    const { url, documentId, contentHash, chunkIndex, chunkText, metadata } = params;
+    
+    try {
+      // Generate embedding for the chunk
+      const embedding = await this.generateEmbedding(chunkText);
+      
+      // Create the reference cache entry
+      await storage.createReferenceCache({
+        url,
+        documentId,
+        contentHash,
+        chunkIndex,
+        chunkText,
+        chunkEmbedding: JSON.stringify(embedding),
+        metadata: metadata || {},
+        createdAt: new Date()
+      });
+      
+      console.log(`💾 Stored chunk ${chunkIndex} for ${documentId ? `document ${documentId}` : url}`);
+      
+    } catch (error) {
+      console.error(`Failed to create reference chunk:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Enhanced reference research with semantic search and full content processing
    */
   async enhancedReferenceResearch(contextualQuestion: string): Promise<{

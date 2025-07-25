@@ -5,6 +5,8 @@ import { storage } from "./storage";
 import { fileUploadService } from "./services/fileUpload";
 import { jobProcessor } from "./services/jobProcessor";
 import { openaiService } from "./services/openai";
+import { documentProcessor } from "./services/documentProcessor";
+import multer from "multer";
 import { insertJobSchema, insertPipelineSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { z } from "zod";
@@ -619,6 +621,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Failed to clear cache:', error);
       res.status(500).json({ message: 'Failed to clear cache' });
+    }
+  });
+
+  // Reference document management routes
+  const documentUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 50 * 1024 * 1024, // 50MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/csv',
+        'text/plain'
+      ];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only PDF, Word documents, CSV, and text files are allowed.'));
+      }
+    }
+  });
+
+  // Upload reference document
+  app.post('/api/reference-documents', isAuthenticated, documentUpload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || 'user-1';
+      
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file provided' });
+      }
+
+      // Create document record and start processing
+      const document = await documentProcessor.uploadDocument({
+        userId,
+        fileName: req.file.originalname,
+        fileType: req.file.mimetype,
+        fileSize: req.file.size,
+        fileBuffer: req.file.buffer
+      });
+
+      res.json(document);
+    } catch (error) {
+      console.error('Failed to upload document:', error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : 'Failed to upload document'
+      });
+    }
+  });
+
+  // Get all reference documents for user
+  app.get('/api/reference-documents', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || 'user-1';
+      const documents = await storage.getUserReferenceDocuments(userId);
+      res.json(documents);
+    } catch (error) {
+      console.error('Failed to get reference documents:', error);
+      res.status(500).json({ message: 'Failed to get reference documents' });
+    }
+  });
+
+  // Delete reference document
+  app.delete('/api/reference-documents/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || 'user-1';
+      const { id } = req.params;
+      
+      // Verify document belongs to user
+      const document = await storage.getReferenceDocument(id);
+      if (!document || document.userId !== userId) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+
+      // Delete document and its embeddings
+      await documentProcessor.deleteDocument(id);
+      
+      res.json({ message: 'Document deleted successfully' });
+    } catch (error) {
+      console.error('Failed to delete document:', error);
+      res.status(500).json({ message: 'Failed to delete document' });
     }
   });
 
