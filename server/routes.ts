@@ -6,6 +6,8 @@ import { fileUploadService } from "./services/fileUpload";
 import { jobProcessor } from "./services/jobProcessor";
 import { openaiService } from "./services/openai";
 import { documentProcessor } from "./services/documentProcessor";
+import { urlNormalizer } from "./services/urlNormalizer";
+import { enhancedEmbeddingsService } from "./services/enhancedEmbeddings";
 import multer from "multer";
 import { insertJobSchema, insertPipelineSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -738,6 +740,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeJobs: 0,
         lastUpdated: new Date().toISOString()
       });
+    }
+  });
+
+  // Reference URLs management routes
+  app.get('/api/reference-urls', isAuthenticated, async (req: any, res) => {
+    try {
+      const cachedUrls = await storage.getCachedUrls();
+      res.json(cachedUrls);
+    } catch (error) {
+      console.error('Failed to get cached URLs:', error);
+      res.status(500).json({ message: 'Failed to get cached URLs' });
+    }
+  });
+
+  app.post('/api/reference-urls', isAuthenticated, async (req: any, res) => {
+    try {
+      const { url } = req.body;
+      
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ message: 'URL is required' });
+      }
+      
+      // Validate and normalize the URL
+      if (!urlNormalizer.isValid(url)) {
+        return res.status(400).json({ message: 'Invalid URL format' });
+      }
+      
+      const normalizedUrl = urlNormalizer.normalize(url);
+      
+      // Check if URL is from Twilio ecosystem
+      if (!urlNormalizer.isTwilioEcosystem(normalizedUrl)) {
+        return res.status(400).json({ 
+          message: 'Only Twilio ecosystem URLs (twilio.com, sendgrid.com, segment.com) are allowed' 
+        });
+      }
+      
+      // Add URL to cache and start processing
+      await storage.addUrlToCache(normalizedUrl);
+      
+      // Trigger background processing to scrape and embed the URL
+      enhancedEmbeddingsService.processUrls([normalizedUrl]).catch(error => {
+        console.error(`Failed to process URL ${normalizedUrl}:`, error);
+      });
+      
+      res.json({ 
+        message: 'URL added successfully',
+        url: normalizedUrl 
+      });
+    } catch (error) {
+      console.error('Failed to add URL:', error);
+      res.status(500).json({ message: 'Failed to add URL' });
+    }
+  });
+
+  app.delete('/api/reference-urls/:encodedUrl', isAuthenticated, async (req: any, res) => {
+    try {
+      const url = decodeURIComponent(req.params.encodedUrl);
+      
+      if (!url) {
+        return res.status(400).json({ message: 'URL is required' });
+      }
+      
+      // Delete all chunks associated with this URL
+      await storage.deleteUrlFromCache(url);
+      
+      res.json({ message: 'URL deleted successfully' });
+    } catch (error) {
+      console.error('Failed to delete URL:', error);
+      res.status(500).json({ message: 'Failed to delete URL' });
     }
   });
 

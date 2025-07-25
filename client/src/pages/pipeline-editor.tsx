@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, ArrowRight, Save, Settings, Zap, Brain, Target, Trash2, Upload, FileText, CheckCircle, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Settings, Zap, Brain, Target, Trash2, Upload, FileText, CheckCircle, Loader2, AlertCircle, Link, Plus, ExternalLink } from "lucide-react";
 import { authService } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -42,11 +42,19 @@ interface ReferenceDocument {
   updatedAt: string;
 }
 
+interface ReferenceUrl {
+  url: string;
+  chunkCount: number;
+  lastCached: string;
+}
+
 export default function PipelineEditor() {
   const [, setLocation] = useLocation();
   const [editingStep, setEditingStep] = useState<number | null>(null);
   const [editedStep, setEditedStep] = useState<PipelineStep | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [newUrl, setNewUrl] = useState('');
+  const [isAddingUrl, setIsAddingUrl] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const user = authService.getCurrentUser();
   const queryClient = useQueryClient();
@@ -62,6 +70,10 @@ export default function PipelineEditor() {
 
   const { data: referenceDocuments = [], isLoading: documentsLoading } = useQuery<ReferenceDocument[]>({
     queryKey: ['/api/reference-documents'],
+  });
+
+  const { data: referenceUrls = [], isLoading: urlsLoading } = useQuery<ReferenceUrl[]>({
+    queryKey: ['/api/reference-urls'],
   });
 
   const uploadDocumentMutation = useMutation({
@@ -117,6 +129,71 @@ export default function PipelineEditor() {
         variant: "destructive",
       });
     }
+  });
+
+  const addUrlMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const response = await fetch('/api/reference-urls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add URL');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reference-urls'] });
+      setNewUrl('');
+      setIsAddingUrl(false);
+      toast({
+        title: "URL added",
+        description: "The URL has been added to your reference collection and is being processed.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add URL. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteUrlMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const encodedUrl = encodeURIComponent(url);
+      const response = await fetch(`/api/reference-urls/${encodedUrl}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete URL');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reference-urls'] });
+      toast({
+        title: "URL deleted",
+        description: "The URL and its cached content have been removed.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete URL. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const updatePipelineMutation = useMutation({
@@ -211,6 +288,22 @@ export default function PipelineEditor() {
 
   const getFileTypeIcon = (fileType: string) => {
     return <FileText className="h-4 w-4 text-gray-600" />;
+  };
+
+  const handleAddUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newUrl.trim()) {
+      addUrlMutation.mutate(newUrl.trim());
+    }
+  };
+
+  const formatDomain = (url: string) => {
+    try {
+      const domain = new URL(url).hostname;
+      return domain.replace('www.', '');
+    } catch {
+      return url;
+    }
   };
 
   const saveStep = () => {
@@ -431,6 +524,126 @@ export default function PipelineEditor() {
                         variant="ghost"
                         size="sm"
                         className="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Reference Links */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Reference Links</CardTitle>
+                  <CardDescription>
+                    Manage cached URLs from Twilio ecosystem for enhanced AI responses
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={() => setIsAddingUrl(!isAddingUrl)}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add URL
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Add URL Form */}
+              {isAddingUrl && (
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <form onSubmit={handleAddUrl} className="flex space-x-2">
+                    <Input
+                      type="url"
+                      placeholder="https://twilio.com/docs/..."
+                      value={newUrl}
+                      onChange={(e) => setNewUrl(e.target.value)}
+                      className="flex-1"
+                      disabled={addUrlMutation.isPending}
+                    />
+                    <Button 
+                      type="submit" 
+                      disabled={!newUrl.trim() || addUrlMutation.isPending}
+                      size="sm"
+                    >
+                      {addUrlMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          Adding...
+                        </>
+                      ) : (
+                        'Add URL'
+                      )}
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsAddingUrl(false);
+                        setNewUrl('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </form>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Only URLs from twilio.com, sendgrid.com, and segment.com are allowed
+                  </p>
+                </div>
+              )}
+
+              {/* URLs List */}
+              {urlsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                </div>
+              ) : referenceUrls.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Link className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p>No reference URLs cached yet</p>
+                  <p className="text-sm mt-1">Add URLs from Twilio ecosystem domains</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {referenceUrls.map((urlData: ReferenceUrl) => (
+                    <div
+                      key={urlData.url}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3 flex-1">
+                        <Link className="h-4 w-4 text-gray-600" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2">
+                            <a
+                              href={urlData.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline truncate"
+                            >
+                              {formatDomain(urlData.url)}
+                            </a>
+                            <ExternalLink className="h-3 w-3 text-gray-400" />
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            {urlData.chunkCount} chunks • Last cached: {new Date(urlData.lastCached).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => deleteUrlMutation.mutate(urlData.url)}
+                        disabled={deleteUrlMutation.isPending}
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

@@ -60,6 +60,11 @@ export interface IStorage {
   deleteReferenceDocument(id: string): Promise<void>;
   getReferenceChunksByDocumentId(documentId: string): Promise<ReferenceCache[]>;
 
+  // Reference URLs
+  getCachedUrls(): Promise<{url: string; chunkCount: number; lastCached: Date}[]>;
+  deleteUrlFromCache(url: string): Promise<void>;
+  addUrlToCache(url: string): Promise<void>;
+
   // Statistics
   getUserJobStats(userId: string): Promise<{
     totalJobs: number;
@@ -370,6 +375,48 @@ export class DatabaseStorage implements IStorage {
 
   async deleteReferenceChunk(id: string): Promise<void> {
     await db.delete(referenceCache).where(eq(referenceCache.id, id));
+  }
+
+  // Reference URLs implementation
+  async getCachedUrls(): Promise<{url: string; chunkCount: number; lastCached: Date}[]> {
+    const result = await db
+      .select({
+        url: referenceCache.url,
+        chunkCount: count(referenceCache.id),
+        lastCached: sql<Date>`MAX(${referenceCache.createdAt})`.as('last_cached')
+      })
+      .from(referenceCache)
+      .where(sql`${referenceCache.url} IS NOT NULL`)
+      .groupBy(referenceCache.url)
+      .orderBy(desc(sql`MAX(${referenceCache.createdAt})`));
+    
+    return result.map(row => ({
+      url: row.url!,
+      chunkCount: row.chunkCount,
+      lastCached: row.lastCached
+    }));
+  }
+
+  async deleteUrlFromCache(url: string): Promise<void> {
+    await db.delete(referenceCache).where(eq(referenceCache.url, url));
+  }
+
+  async addUrlToCache(url: string): Promise<void> {
+    // This method will trigger the URL to be processed by the enhanced embeddings service
+    // For now, we'll create a placeholder entry that will be updated when processing occurs
+    const existingChunks = await this.getReferenceChunksByUrl(url);
+    if (existingChunks.length === 0) {
+      // Create a placeholder entry to mark this URL for processing
+      await db.insert(referenceCache).values({
+        url,
+        contentHash: 'pending',
+        chunkIndex: 0,
+        chunkText: 'URL queued for processing',
+        chunkEmbedding: '[]',
+        metadata: { status: 'pending' },
+        createdAt: new Date()
+      });
+    }
   }
 }
 

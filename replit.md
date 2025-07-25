@@ -247,6 +247,18 @@ Preferred communication style: Simple, everyday language.
 - Added user profile dropdown menu with sign out functionality in dashboard header
 - Google OAuth sign out redirects to /api/logout endpoint to properly end session
 
+### ✅ Reference Links Management System (January 25, 2025)
+- Added Reference Links section below Reference Documents in AI Pipeline Editor
+- Implemented URL normalization service to prevent duplicates through consistent formatting
+- Created URL management API endpoints: GET, POST, DELETE for reference URLs with encoding support
+- Added URL validation restricting access to Twilio ecosystem domains only (twilio.com, sendgrid.com, segment.com)
+- Built comprehensive UI for manual URL addition with form validation and real-time feedback
+- Implemented cached URL display showing chunk count, last cached date, and clickable external links
+- Added URL deletion functionality removing URLs and associated embeddings from cache
+- URL auto-formatting removes trailing slashes, normalizes case, removes fragments for consistency
+- Integrated with existing semantic embeddings system for URL content processing and similarity matching
+- Enhanced storage interface with getCachedUrls, deleteUrlFromCache, and addUrlToCache methods
+
 ## External Dependencies
 
 ### Core Technologies
