@@ -152,6 +152,15 @@ export class BackgroundProcessor {
         errorMessage = error instanceof Error ? error.message : 'Processing failed';
         console.error(`❌ Failed to process ${nextItem.type}:`, error);
         
+        // Clean up failed URLs from cache to prevent them staying in pending state
+        if (nextItem.type === 'url' && nextItem.url) {
+          try {
+            await storage.deleteUrlFromCache(nextItem.url);
+          } catch (deleteError) {
+            console.error(`Failed to cleanup failed URL ${nextItem.url}:`, deleteError);
+          }
+        }
+        
         // Mark as failed
         await storage.updateProcessingQueueStatus(nextItem.id, 'failed', {
           errorMessage,
@@ -194,7 +203,10 @@ export class BackgroundProcessor {
     // Scrape content first to get estimated chunks
     const content = await webScraperService.scrapeUrl(url);
     if (!content) {
-      throw new Error('Failed to scrape URL content');
+      console.log(`⚠️ URL returned no content (likely 404 or other error): ${url}`);
+      // Remove from cache so it doesn't stay in "pending" state
+      await storage.deleteUrlFromCache(url);
+      return 0;
     }
     
     const chunks = contentChunkerService.chunkContent(content.content, url);
