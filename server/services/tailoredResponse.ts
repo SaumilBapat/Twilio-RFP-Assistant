@@ -66,15 +66,22 @@ export class TailoredResponseService {
 
       const tokensParam = getTokensParam(config.agent.model, config.agent.maxTokens || 3000);
 
-      const response = await openai.chat.completions.create({
+      // Prepare request parameters - o3 models don't support temperature parameter
+      const requestParams: any = {
         model: config.agent.model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: config.agent.temperature || 0.4,
         ...tokensParam,
-      });
+      };
+
+      // Only add temperature for non-o3 models
+      if (!config.agent.model.startsWith('o3')) {
+        requestParams.temperature = config.agent.temperature || 0.4;
+      }
+
+      const response = await openai.chat.completions.create(requestParams);
 
       const output = response.choices[0]?.message?.content || '';
       const latency = Date.now() - startTime;

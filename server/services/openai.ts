@@ -59,15 +59,22 @@ export class OpenAIService {
     try {
       const tokensParam = this.getTokensParam(config.model, config.maxTokens || 1000);
       
-      const response = await openai.chat.completions.create({
+      // Prepare request parameters - o3 models don't support temperature parameter
+      const requestParams: any = {
         model: config.model,
         messages: [
           { role: "system", content: config.systemPrompt },
           { role: "user", content: config.userPrompt }
         ],
-        temperature: config.temperature || 0.7,
         ...tokensParam
-      });
+      };
+
+      // Only add temperature for non-o3 models
+      if (!config.model.startsWith('o3')) {
+        requestParams.temperature = config.temperature || 0.7;
+      }
+
+      const response = await openai.chat.completions.create(requestParams);
 
       const latency = Date.now() - startTime;
       const output = response.choices[0].message.content || '';
@@ -133,8 +140,8 @@ export class OpenAIService {
         ...tokensParam,
       };
 
-      // Some models like gpt-4o-search-preview don't support temperature parameter
-      if (!agent.model.includes('search-preview')) {
+      // Some models like gpt-4o-search-preview and o3 models don't support temperature parameter
+      if (!agent.model.includes('search-preview') && !agent.model.startsWith('o3')) {
         completionOptions.temperature = agent.temperature;
       }
 
