@@ -205,8 +205,14 @@ export class OpenAIService {
 
       console.log(`🔍 Using intelligent reference research for: ${question.substring(0, 100)}...`);
       
+      console.log(`🔧 [DEBUG] Passing agent config to reference research:`, {
+        name: agent.name,
+        systemPrompt: agent.systemPrompt.substring(0, 100) + '...',
+        userPrompt: agent.userPrompt.substring(0, 100) + '...'
+      });
+      
       // Use the enhanced reference research service
-      const result = await referenceResearchService.findReferences(question);
+      const result = await referenceResearchService.findReferences(question, agent);
       
       // Format the output using the service
       const output = referenceResearchService.formatReferencesForOutput(result.references);

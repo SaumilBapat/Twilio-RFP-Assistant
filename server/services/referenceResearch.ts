@@ -29,7 +29,7 @@ export class ReferenceResearchService {
   private readonly SIMILARITY_THRESHOLD = 0.85;
   private readonly CACHE_VALIDITY_HOURS = 24;
 
-  async findReferences(question: string): Promise<CachedReferences> {
+  async findReferences(question: string, agent?: any): Promise<CachedReferences> {
     console.log(`🔍 Finding references for question: ${question.substring(0, 100)}...`);
     
     // Step 1: Check cache for similar questions
@@ -48,7 +48,7 @@ export class ReferenceResearchService {
 
     // Step 2: No similar cached results, generate new references
     console.log(`🆕 No similar cached references found, generating new ones...`);
-    return await this.generateNewReferences(question);
+    return await this.generateNewReferences(question, agent);
   }
 
   private async checkCache(question: string): Promise<CachedReferences | null> {
@@ -81,9 +81,26 @@ export class ReferenceResearchService {
     return null;
   }
 
-  private async generateNewReferences(question: string): Promise<CachedReferences> {
-    // Call OpenAI directly to avoid circular dependency
-    const prompt = `Find authoritative sources and references that would help answer this RFP question: "${question}"
+  private async generateNewReferences(question: string, agent?: any): Promise<CachedReferences> {
+    // Use agent configuration if provided, otherwise fall back to generic prompt
+    let prompt: string;
+    let systemPrompt: string;
+    
+    if (agent && agent.userPrompt && agent.systemPrompt) {
+      // Use the pipeline configuration prompts
+      console.log('\n🎯 [DEBUG] Using PIPELINE configuration:');
+      console.log('📋 System Prompt:', agent.systemPrompt);
+      console.log('👤 User Prompt:', agent.userPrompt);
+      
+      systemPrompt = agent.systemPrompt;
+      prompt = agent.userPrompt.replace('{{FIRST_COLUMN}}', question);
+      
+      console.log('✅ Final prompt:', prompt);
+    } else {
+      // Fallback to generic prompt (this should NOT happen)
+      console.log('\n⚠️ [DEBUG] FALLING BACK to generic prompt - THIS IS THE PROBLEM!');
+      systemPrompt = "You are a research expert finding authoritative sources for RFP questions.";
+      prompt = `Find authoritative sources and references that would help answer this RFP question: "${question}"
 
 Return your response as a JSON object with this structure:
 {
@@ -104,14 +121,23 @@ Focus on:
 - Academic or research publications
 
 Provide 3-5 high-quality references with working URLs.`;
+    }
+
+    console.log('\n🤖 [DEBUG] Calling OpenAI with:');
+    console.log('🔧 Model: gpt-4o');
+    console.log('🎭 System:', systemPrompt);
+    console.log('💬 User:', prompt);
 
     const result = await openaiService.callOpenAIDirect({
       model: "gpt-4o",
-      systemPrompt: "You are a research expert finding authoritative sources for RFP questions.",
+      systemPrompt: systemPrompt,
       userPrompt: prompt,
       temperature: 0.3,
       maxTokens: 1000
     });
+
+    console.log('\n📤 [DEBUG] OpenAI Response:');
+    console.log('📝 Output:', result.output);
 
     if (result.error) {
       throw new Error(`Reference generation failed: ${result.error}`);
