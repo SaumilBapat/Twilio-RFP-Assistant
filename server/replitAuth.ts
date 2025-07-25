@@ -32,6 +32,8 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   const hasCredentials = process.env.RFP_GOOGLE_CLIENT_ID && process.env.RFP_GOOGLE_CLIENT_SECRET;
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const useDevBypass = process.env.DEV_AUTH_BYPASS === 'true' || (!hasCredentials && isDevelopment);
 
   if (hasCredentials) {
     // Get the base URL for OAuth callback
@@ -90,16 +92,55 @@ export function setupAuth(app: Express) {
         done(error, false);
       }
     });
+  } else if (useDevBypass) {
+    console.log('🔓 Development mode: Using bypass authentication');
+    
+    // Mock authentication for development
+    passport.serializeUser((user: any, done) => {
+      done(null, user.id);
+    });
+
+    passport.deserializeUser(async (id: string, done) => {
+      // Return a mock dev user
+      const mockUser = {
+        id: 'dev-user-123',
+        email: 'developer@twilio.com',
+        name: 'Development User',
+        googleId: 'dev-mock'
+      };
+      done(null, mockUser);
+    });
   } else {
     console.warn('Google OAuth credentials not provided - authentication disabled');
   }
 
   // Auth routes - always available
   app.get("/api/auth/google", (req, res, next) => {
+    // Development bypass - auto-login without OAuth
+    if (useDevBypass) {
+      console.log('🔓 Development bypass: Auto-authenticating user');
+      const mockUser = {
+        id: 'dev-user-123',
+        email: 'developer@twilio.com',
+        name: 'Development User',
+        googleId: 'dev-mock'
+      };
+      
+      req.login(mockUser, (err) => {
+        if (err) {
+          console.error('Dev login error:', err);
+          return res.redirect('/?error=dev_login_failed');
+        }
+        console.log('🔓 Development user auto-authenticated');
+        return res.redirect('/');
+      });
+      return;
+    }
+    
     if (!hasCredentials) {
       return res.status(503).json({ 
         error: "Google OAuth not configured", 
-        message: "Please configure RFP_GOOGLE_CLIENT_ID and RFP_GOOGLE_CLIENT_SECRET" 
+        message: "Please configure RFP_GOOGLE_CLIENT_ID and RFP_GOOGLE_CLIENT_SECRET or set DEV_AUTH_BYPASS=true" 
       });
     }
     
@@ -121,6 +162,12 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/auth/google/callback", (req, res, next) => {
+    // Development bypass - shouldn't reach here, but handle gracefully
+    if (useDevBypass) {
+      console.log('🔓 OAuth callback in dev mode - redirecting to home');
+      return res.redirect('/');
+    }
+    
     console.log('OAuth callback received:', {
       url: req.url,
       query: req.query,
