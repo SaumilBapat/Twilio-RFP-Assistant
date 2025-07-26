@@ -49,6 +49,8 @@ export default function Spreadsheet() {
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [selectedRowForFeedback, setSelectedRowForFeedback] = useState<CsvRow | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
+  const [bulkFeedbackDialogOpen, setBulkFeedbackDialogOpen] = useState(false);
+  const [bulkFeedbackText, setBulkFeedbackText] = useState('');
   const user = authService.getCurrentUser();
   const jobId = params.id;
   const queryClient = useQueryClient();
@@ -324,6 +326,49 @@ export default function Spreadsheet() {
     }
   };
 
+  const handleBulkFeedbackSave = async () => {
+    if (!jobId || !bulkFeedbackText.trim()) return;
+
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/bulk-feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || 'user-1'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ feedback: bulkFeedbackText })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      toast({
+        title: "Success",
+        description: `Applied feedback to ${result.rowsUpdated} rows. Starting reprocessing...`,
+      });
+
+      setBulkFeedbackDialogOpen(false);
+      setBulkFeedbackText('');
+
+      // Start reprocessing automatically
+      setTimeout(() => {
+        handleFeedbackReprocessing();
+      }, 1000);
+
+      // Refresh CSV data to show updated feedback
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId, 'csv-data'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to apply bulk feedback",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getAllColumns = () => {
     if (!csvData || csvData.length === 0) return [];
     
@@ -506,6 +551,14 @@ export default function Spreadsheet() {
                       Reprocess All
                     </Button>
                   )}
+                  <Button
+                    onClick={() => setBulkFeedbackDialogOpen(true)}
+                    variant="outline"
+                    className="text-indigo-600 border-indigo-600 hover:bg-indigo-50"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Add Feedback to All
+                  </Button>
                 </>
               )}
               
@@ -855,6 +908,58 @@ export default function Spreadsheet() {
                   Save Feedback
                 </Button>
               </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Feedback Dialog */}
+      <Dialog open={bulkFeedbackDialogOpen} onOpenChange={setBulkFeedbackDialogOpen}>
+        <DialogContent className="max-w-2xl" aria-describedby="bulk-feedback-dialog-description">
+          <DialogHeader>
+            <DialogTitle>Add Feedback to All Rows</DialogTitle>
+          </DialogHeader>
+          <div id="bulk-feedback-dialog-description" className="sr-only">
+            Add the same feedback to all rows in the CSV for batch reprocessing
+          </div>
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="text-sm font-medium text-blue-700 mb-2">Bulk Feedback Application</div>
+              <div className="text-sm text-blue-600">
+                This will apply the same feedback to all {csvData.length} rows in your CSV. Each row will be reprocessed with this feedback to improve the responses.
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Feedback for All Rows:
+              </label>
+              <Textarea
+                value={bulkFeedbackText}
+                onChange={(e) => setBulkFeedbackText(e.target.value)}
+                placeholder="Enter feedback that applies to all questions. For example: 'Focus on enterprise features and scalability' or 'Include more technical implementation details'..."
+                className="min-h-[120px]"
+              />
+            </div>
+            <div className="text-xs text-gray-500">
+              💡 Tip: This feedback will be used to enhance all responses in the CSV. The system will search for additional references and improve each response based on your feedback.
+            </div>
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setBulkFeedbackDialogOpen(false);
+                  setBulkFeedbackText('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleBulkFeedbackSave}
+                disabled={!bulkFeedbackText.trim()}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                Apply to All Rows
+              </Button>
             </div>
           </div>
         </DialogContent>

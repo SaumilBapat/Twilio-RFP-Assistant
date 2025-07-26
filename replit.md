@@ -241,6 +241,16 @@ Preferred communication style: Simple, everyday language.
 - Added fallback mechanism: Uses Generic Draft Generation as base response when final response is missing or cleared
 - Enhanced error handling prevents response disappearance during feedback processing with comprehensive data preservation
 
+### ✅ Bulk Feedback Application System (January 26, 2025)
+- Added ability to apply the same feedback to all rows in a CSV for batch improvements
+- New "Add Feedback to All" button appears in completed/error state next to reprocessing options
+- Bulk feedback dialog explains the feature and allows entering feedback that applies to all questions
+- Backend endpoint '/api/jobs/:jobId/bulk-feedback' updates all rows with the same feedback and marks for reprocessing
+- After applying bulk feedback, system automatically triggers feedback reprocessing for all rows
+- Useful for organization-wide requirements like "Focus on enterprise features" or "Include more technical details"
+- Bulk feedback uses the same optimized two-step o3 model processing as individual row feedback
+- All rows receive the same feedback but generate unique improvements based on their specific content
+
 ### ✅ URL Fragment Normalization for Cache Optimization (January 25, 2025)
 - Added URL normalization to remove fragment identifiers (everything after #) before caching
 - Prevents duplicate caching of same page content when URLs only differ by fragment identifiers

@@ -411,6 +411,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Apply bulk feedback to all rows
+  app.post('/api/jobs/:jobId/bulk-feedback', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobId } = req.params;
+      const { feedback } = req.body;
+      const userId = req.user?.id || req.headers['x-user-id'] as string;
+
+      if (!feedback || feedback.trim() === '') {
+        return res.status(400).json({ message: 'Feedback cannot be empty' });
+      }
+
+      console.log(`📝 Applying bulk feedback to all rows in job ${jobId}`);
+
+      // Get all CSV rows for this job
+      const allRows = await db
+        .select()
+        .from(csvData)
+        .where(eq(csvData.jobId, jobId))
+        .orderBy(csvData.rowIndex);
+
+      if (allRows.length === 0) {
+        return res.status(404).json({ message: 'No rows found for this job' });
+      }
+
+      // Update all rows with the same feedback
+      await db
+        .update(csvData)
+        .set({ 
+          feedback,
+          needsReprocessing: true,
+          updatedAt: new Date()
+        })
+        .where(eq(csvData.jobId, jobId));
+
+      console.log(`✅ Applied feedback to ${allRows.length} rows`);
+
+      res.json({ 
+        message: 'Bulk feedback applied successfully',
+        rowsUpdated: allRows.length
+      });
+    } catch (error) {
+      console.error('Apply bulk feedback error:', error);
+      res.status(500).json({ message: 'Failed to apply bulk feedback' });
+    }
+  });
+
   // Reprocess rows with feedback
   app.post('/api/jobs/:jobId/reprocess-feedback', isAuthenticated, async (req: any, res) => {
     try {
