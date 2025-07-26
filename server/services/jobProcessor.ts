@@ -462,7 +462,7 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
   }
 
   private async processFeedbackRows(job: any, pipeline: any, rowsToReprocess: any[]): Promise<void> {
-    console.log(`🎯 Processing ${rowsToReprocess.length} rows with feedback using o3 model`);
+    console.log(`🎯 Simplified feedback processing for ${rowsToReprocess.length} rows using o3 model`);
     
     for (const rowData of rowsToReprocess) {
       if (!this.activeJobs.has(job.id)) {
@@ -502,46 +502,122 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
   }
 
   private async processFeedbackRow(job: any, pipeline: any, rowData: any): Promise<void> {
-    const contextualQuestion = rowData.fullContextualQuestion + (rowData.feedback ? ` [User Feedback: ${rowData.feedback}]` : '');
+    const contextualQuestion = rowData.fullContextualQuestion;
     
-    console.log(`🔄 Reprocessing row ${rowData.rowIndex} with feedback using o3 model`);
+    console.log(`🔄 Simplified feedback reprocessing for row ${rowData.rowIndex} using o3 model`);
     
-    // Start from Reference Research step (regenerate all 3 steps)
-    const stepsToReprocess = ['Reference Research', 'Generic Draft Generation', 'Tailored RFP Response'];
+    // Step 1: Find additional references based on feedback
+    console.log(`🔍 Searching for additional references based on feedback: "${rowData.feedback}"`);
+    const feedbackReferences = await this.findAdditionalReferences(contextualQuestion, rowData.feedback);
     
-    for (const stepName of stepsToReprocess) {
-      if (!this.activeJobs.has(job.id) || this.isPaused(job.id)) {
-        return;
-      }
+    // Step 2: Combine existing references with new ones
+    const existingReferences = rowData.enrichedData?.['Reference Research'] || '';
+    const combinedReferences = this.combineReferences(existingReferences, feedbackReferences);
+    
+    // Step 3: Reprocess only the final response with o3 model
+    const finalResponseStep = pipeline.steps.find((s: any) => s.name === 'Tailored RFP Response');
+    if (!finalResponseStep) {
+      console.warn(`⚠️ Final response step not found in pipeline`);
+      return;
+    }
 
-      const step = pipeline.steps.find((s: any) => s.name === stepName);
-      if (!step) {
-        console.warn(`⚠️ Step "${stepName}" not found in pipeline`);
-        continue;
-      }
+    const existingResponse = rowData.enrichedData?.['Tailored RFP Response'] || '';
+    
+    // Enhanced prompt for o3 model with feedback context
+    const enhancedPrompt = `${finalResponseStep.prompt}
 
-      // Use o3 model for feedback reprocessing
-      const feedbackStep = {
-        ...step,
-        model: stepName === 'Tailored RFP Response' ? 'o3-mini' : 'o3-mini' // Use o3 for all feedback reprocessing
-      };
+CONTEXT FOR IMPROVEMENT:
+- Original Question: ${contextualQuestion}
+- User Feedback: ${rowData.feedback}
+- Existing Response: ${existingResponse}
+- Updated References: ${combinedReferences}
 
-      const stepResult = await this.processRow(job, feedbackStep, rowData, contextualQuestion, true);
+Please improve the response based on the user feedback while incorporating any new relevant information from the updated reference list.`;
+
+    const feedbackStep = {
+      ...finalResponseStep,
+      model: 'o3-mini',
+      prompt: enhancedPrompt
+    };
+
+    const improvedResponse = await this.processRow(job, feedbackStep, rowData, contextualQuestion, true);
+    
+    // Update only the final response and reference list
+    const currentEnrichedData = rowData.enrichedData || {};
+    const updatedEnrichedData = {
+      ...currentEnrichedData,
+      'Reference Research': combinedReferences,
+      'Tailored RFP Response': improvedResponse
+    };
+
+    await storage.updateCsvData(rowData.id, {
+      enrichedData: updatedEnrichedData,
+      updatedAt: new Date()
+    });
+
+    console.log(`✅ Simplified feedback reprocessing completed for row ${rowData.rowIndex}`);
+  }
+
+  private async findAdditionalReferences(question: string, feedback: string): Promise<string> {
+    console.log(`🔍 Finding additional references for feedback: "${feedback}"`);
+    
+    try {
+      // Use enhanced embeddings service to find relevant content based on feedback
+      const enhancedEmbeddings = await import('./enhancedEmbeddings');
       
-      // Update enriched data with the new result
-      const currentEnrichedData = rowData.enrichedData || {};
-      const updatedEnrichedData = {
-        ...currentEnrichedData,
-        [stepName]: stepResult
-      };
+      // Create a search query combining the original question with feedback
+      const searchQuery = `${question} ${feedback}`;
+      const relevantChunks = await enhancedEmbeddings.findRelevantChunks(searchQuery, 0.3, 5);
+      
+      if (relevantChunks.length === 0) {
+        console.log(`📝 No additional references found for feedback`);
+        return '';
+      }
 
-      await storage.updateCsvData(rowData.id, {
-        enrichedData: updatedEnrichedData,
-        updatedAt: new Date()
-      });
+      // Extract unique URLs from relevant chunks
+      const additionalUrls = [...new Set(relevantChunks.map(chunk => chunk.url))];
+      console.log(`📚 Found ${additionalUrls.length} additional references based on feedback`);
+      
+      return JSON.stringify(additionalUrls);
+    } catch (error) {
+      console.error('Error finding additional references:', error);
+      return '';
+    }
+  }
 
-      // Update rowData for next step
-      rowData.enrichedData = updatedEnrichedData;
+  private combineReferences(existingRefs: string, additionalRefs: string): string {
+    if (!additionalRefs) return existingRefs;
+    
+    try {
+      // Parse existing references
+      let existingUrls: string[] = [];
+      if (existingRefs) {
+        try {
+          existingUrls = JSON.parse(existingRefs);
+        } catch {
+          // If existing refs aren't JSON, try to extract URLs
+          const urlMatches = existingRefs.match(/https?:\/\/[^\s",\]]+/g);
+          existingUrls = urlMatches || [];
+        }
+      }
+
+      // Parse additional references
+      let additionalUrls: string[] = [];
+      try {
+        additionalUrls = JSON.parse(additionalRefs);
+      } catch {
+        const urlMatches = additionalRefs.match(/https?:\/\/[^\s",\]]+/g);
+        additionalUrls = urlMatches || [];
+      }
+
+      // Combine and deduplicate
+      const combinedUrls = [...new Set([...existingUrls, ...additionalUrls])];
+      console.log(`🔗 Combined references: ${existingUrls.length} existing + ${additionalUrls.length} new = ${combinedUrls.length} total`);
+      
+      return JSON.stringify(combinedUrls);
+    } catch (error) {
+      console.error('Error combining references:', error);
+      return existingRefs;
     }
   }
 

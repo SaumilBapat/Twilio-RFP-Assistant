@@ -229,6 +229,16 @@ Preferred communication style: Simple, everyday language.
 - Equal domain coverage maintained: All three domains (twilio.com, sendgrid.com, segment.com) are searched and processed
 - Architecture shift enables much more precise and contextually relevant responses through semantic similarity matching
 
+### ✅ Simplified Feedback Processing System (January 26, 2025)
+- Streamlined feedback loop to focus on efficiency and targeted improvements
+- Feedback reprocessing now uses two-step approach: (1) Find additional references based on feedback using semantic search (2) Improve final response only using o3 model with existing response, updated references, and user feedback
+- Eliminates regeneration of all pipeline steps for faster processing and better user experience
+- Additional reference discovery uses enhanced embeddings service with relaxed similarity threshold (0.3) to capture feedback-related content
+- Reference combination logic merges existing URLs with newly discovered ones while maintaining deduplication
+- Final response improvement uses o3-mini model with enhanced context including original question, user feedback, existing response, and updated reference list
+- System maintains existing reference research and generic draft while only regenerating the tailored RFP response
+- Significantly reduced processing time while maintaining quality improvements through targeted o3 model usage
+
 ### ✅ URL Fragment Normalization for Cache Optimization (January 25, 2025)
 - Added URL normalization to remove fragment identifiers (everything after #) before caching
 - Prevents duplicate caching of same page content when URLs only differ by fragment identifiers

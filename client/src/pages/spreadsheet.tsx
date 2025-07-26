@@ -812,7 +812,7 @@ export default function Spreadsheet() {
               />
             </div>
             <div className="text-xs text-gray-500">
-              💡 Tip: Your feedback will be used to regenerate all processing steps (Reference Research, Generic Draft, and Tailored Response) using the o3 model for higher quality results.
+              💡 Tip: Your feedback will be used to find additional references and improve the final response using the o3 model. Only the final answer will be regenerated for faster processing.
             </div>
             <div className="flex justify-end space-x-3">
               <Button
