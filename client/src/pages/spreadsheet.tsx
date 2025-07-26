@@ -101,8 +101,14 @@ export default function Spreadsheet() {
         case 'jobCompleted':
         case 'jobError':
           // Refetch job data
-          console.log('🔄 [Spreadsheet] Invalidating job queries');
+          console.log(`🔄 [Spreadsheet] Received ${event} event for job ${jobId}`);
           queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
+          queryClient.refetchQueries({ queryKey: ['/api/jobs', jobId] });
+          
+          // Force update the refetch interval for jobCompleted event
+          if (event === 'jobCompleted') {
+            console.log('✅ [Spreadsheet] Job completed, stopping polling');
+          }
           break;
         case 'rowProcessed':
           // Refetch both job and CSV data for progress updates

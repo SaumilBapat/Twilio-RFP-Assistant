@@ -497,7 +497,9 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
       updatedAt: new Date()
     });
     
-    this.emit('jobCompleted', { jobId: job.id });
+    // Fetch updated job to emit with correct status
+    const updatedJob = await storage.getJob(job.id);
+    this.emit('jobCompleted', { jobId: job.id, job: updatedJob });
     console.log(`🎉 Feedback reprocessing completed for job ${job.id}`);
   }
 
