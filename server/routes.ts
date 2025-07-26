@@ -393,6 +393,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Save feedback for a CSV row
+  app.patch('/api/jobs/:jobId/rows/:rowIndex/feedback', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobId, rowIndex } = req.params;
+      const { feedback } = req.body;
+      const userId = req.headers['x-user-id'] as string;
+
+      await storage.updateCsvRowFeedback(jobId, parseInt(rowIndex), feedback);
+      
+      res.json({ message: 'Feedback saved successfully' });
+    } catch (error) {
+      console.error('Save feedback error:', error);
+      res.status(500).json({ message: 'Failed to save feedback' });
+    }
+  });
+
+  // Reprocess rows with feedback
+  app.post('/api/jobs/:jobId/reprocess-feedback', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobId } = req.params;
+      const userId = req.headers['x-user-id'] as string;
+
+      // Get rows that need reprocessing (have feedback)
+      const rowsToReprocess = await storage.getRowsWithFeedback(jobId);
+      
+      if (rowsToReprocess.length === 0) {
+        return res.status(400).json({ message: 'No rows with feedback found to reprocess' });
+      }
+
+      // Start feedback-based reprocessing job
+      jobProcessor.startFeedbackReprocessing(jobId, rowsToReprocess);
+      
+      res.json({ 
+        message: 'Feedback reprocessing started',
+        rowsToReprocess: rowsToReprocess.length
+      });
+    } catch (error) {
+      console.error('Reprocess feedback error:', error);
+      res.status(500).json({ message: 'Failed to start feedback reprocessing' });
+    }
+  });
+
   app.get('/api/jobs/:id/export', isAuthenticated, async (req: any, res) => {
     try {
       const job = await storage.getJob(req.params.id);

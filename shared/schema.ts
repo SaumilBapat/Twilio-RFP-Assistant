@@ -80,6 +80,9 @@ export const csvData = pgTable("csv_data", {
   originalData: jsonb("original_data").notNull(),
   enrichedData: jsonb("enriched_data"),
   fullContextualQuestion: text("full_contextual_question"), // LLM-generated contextual question
+  feedback: text("feedback"), // User feedback comments for reprocessing
+  needsReprocessing: boolean("needs_reprocessing").notNull().default(false), // Flag for feedback-based reprocessing
+  reprocessedAt: timestamp("reprocessed_at"), // Timestamp of last feedback reprocessing
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

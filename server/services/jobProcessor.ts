@@ -424,6 +424,130 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     
     return loadedDocs;
   }
+
+  async startFeedbackReprocessing(jobId: string, rowsToReprocess: any[]): Promise<void> {
+    const job = await storage.getJob(jobId);
+    if (!job) {
+      throw new Error('Job not found');
+    }
+
+    if (!job.pipelineId) {
+      throw new Error('Job has no associated pipeline');
+    }
+
+    const pipeline = await storage.getPipeline(job.pipelineId);
+    if (!pipeline) {
+      throw new Error('Pipeline not found');
+    }
+
+    console.log(`🔄 Starting feedback reprocessing for job ${jobId} with ${rowsToReprocess.length} rows`);
+    this.activeJobs.set(jobId, true);
+    await storage.updateJob(jobId, { status: 'in_progress' });
+    
+    const updatedJob = await storage.getJob(jobId);
+    this.emit('jobStarted', { jobId, job: updatedJob });
+    
+    try {
+      await this.processFeedbackRows(job, pipeline, rowsToReprocess);
+    } catch (error) {
+      console.error(`Feedback reprocessing ${jobId} failed:`, error);
+      await storage.updateJob(jobId, { 
+        status: 'error',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      });
+      this.emit('jobError', { jobId, error });
+    } finally {
+      this.activeJobs.delete(jobId);
+    }
+  }
+
+  private async processFeedbackRows(job: any, pipeline: any, rowsToReprocess: any[]): Promise<void> {
+    console.log(`🎯 Processing ${rowsToReprocess.length} rows with feedback using o3 model`);
+    
+    for (const rowData of rowsToReprocess) {
+      if (!this.activeJobs.has(job.id)) {
+        console.log(`Job ${job.id} is no longer active, stopping feedback reprocessing`);
+        return;
+      }
+
+      if (this.isPaused(job.id)) {
+        console.log(`Job ${job.id} is paused, stopping feedback reprocessing`);
+        return;
+      }
+
+      try {
+        await this.processFeedbackRow(job, pipeline, rowData);
+        
+        // Mark row as no longer needing reprocessing
+        await storage.updateCsvData(rowData.id, {
+          needsReprocessing: false,
+          reprocessedAt: new Date(),
+          updatedAt: new Date()
+        });
+
+        console.log(`✅ Completed feedback reprocessing for row ${rowData.rowIndex}`);
+      } catch (error) {
+        console.error(`❌ Failed to reprocess row ${rowData.rowIndex}:`, error);
+      }
+    }
+
+    // Update job status to completed
+    await storage.updateJob(job.id, { 
+      status: 'completed',
+      updatedAt: new Date()
+    });
+    
+    this.emit('jobCompleted', { jobId: job.id });
+    console.log(`🎉 Feedback reprocessing completed for job ${job.id}`);
+  }
+
+  private async processFeedbackRow(job: any, pipeline: any, rowData: any): Promise<void> {
+    const contextualQuestion = rowData.fullContextualQuestion + (rowData.feedback ? ` [User Feedback: ${rowData.feedback}]` : '');
+    
+    console.log(`🔄 Reprocessing row ${rowData.rowIndex} with feedback using o3 model`);
+    
+    // Start from Reference Research step (regenerate all 3 steps)
+    const stepsToReprocess = ['Reference Research', 'Generic Draft Generation', 'Tailored RFP Response'];
+    
+    for (const stepName of stepsToReprocess) {
+      if (!this.activeJobs.has(job.id) || this.isPaused(job.id)) {
+        return;
+      }
+
+      const step = pipeline.steps.find((s: any) => s.name === stepName);
+      if (!step) {
+        console.warn(`⚠️ Step "${stepName}" not found in pipeline`);
+        continue;
+      }
+
+      // Use o3 model for feedback reprocessing
+      const feedbackStep = {
+        ...step,
+        model: stepName === 'Tailored RFP Response' ? 'o3-mini' : 'o3-mini' // Use o3 for all feedback reprocessing
+      };
+
+      const stepResult = await this.processRow(job, feedbackStep, rowData, contextualQuestion, true);
+      
+      // Update enriched data with the new result
+      const currentEnrichedData = rowData.enrichedData || {};
+      const updatedEnrichedData = {
+        ...currentEnrichedData,
+        [stepName]: stepResult
+      };
+
+      await storage.updateCsvData(rowData.id, {
+        enrichedData: updatedEnrichedData,
+        updatedAt: new Date()
+      });
+
+      // Update rowData for next step
+      rowData.enrichedData = updatedEnrichedData;
+    }
+  }
+
+  private isPaused(jobId: string): boolean {
+    return this.pausedJobs.has(jobId);
+  }
 }
 
 export const jobProcessor = new JobProcessorService();

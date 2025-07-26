@@ -3,12 +3,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Filter, Search, Download, Edit, ExternalLink, Play, Pause, RotateCcw, RefreshCw } from "lucide-react";
+import { ArrowLeft, Filter, Search, Download, Edit, ExternalLink, Play, Pause, RotateCcw, RefreshCw, MessageSquare, Repeat } from "lucide-react";
 import { StepInspectionPanel } from "@/components/step-inspection-panel";
 import { authService } from "@/lib/auth";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CsvRow {
   id: string;
@@ -16,6 +18,9 @@ interface CsvRow {
   originalData: Record<string, any>;
   enrichedData?: Record<string, any>;
   fullContextualQuestion?: string;
+  feedback?: string;
+  needsReprocessing?: boolean;
+  reprocessedAt?: string;
 }
 
 interface Job {
@@ -41,6 +46,9 @@ export default function Spreadsheet() {
   const [expandedCells, setExpandedCells] = useState<Set<string>>(new Set());
   const [processingLogs, setProcessingLogs] = useState<ProcessingLog[]>([]);
   const [currentProcessingRow, setCurrentProcessingRow] = useState<number | null>(null);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [selectedRowForFeedback, setSelectedRowForFeedback] = useState<CsvRow | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
   const user = authService.getCurrentUser();
   const jobId = params.id;
   const queryClient = useQueryClient();
@@ -220,6 +228,66 @@ export default function Spreadsheet() {
     }
   };
 
+  const handleFeedbackOpen = (row: CsvRow) => {
+    setSelectedRowForFeedback(row);
+    setFeedbackText(row.feedback || '');
+    setFeedbackDialogOpen(true);
+  };
+
+  const handleFeedbackSave = async () => {
+    if (!selectedRowForFeedback || !jobId) return;
+
+    try {
+      await apiRequest(`/api/jobs/${jobId}/rows/${selectedRowForFeedback.rowIndex}/feedback`, {
+        method: 'PATCH',
+        body: { feedback: feedbackText },
+        headers: { 'x-user-id': user?.id || 'user-1' }
+      });
+
+      toast({
+        title: "Success",
+        description: "Feedback saved successfully",
+      });
+
+      // Refresh data to show updated feedback
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId, 'csv-data'] });
+      setFeedbackDialogOpen(false);
+      setSelectedRowForFeedback(null);
+      setFeedbackText('');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save feedback",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFeedbackReprocessing = async () => {
+    if (!jobId) return;
+
+    try {
+      const response = await apiRequest(`/api/jobs/${jobId}/reprocess-feedback`, {
+        method: 'POST',
+        headers: { 'x-user-id': user?.id || 'user-1' }
+      });
+
+      toast({
+        title: "Success",
+        description: `Feedback reprocessing started for ${response.rowsToReprocess} rows`,
+      });
+
+      // Refresh job data to update status
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start feedback reprocessing",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getAllColumns = () => {
     if (!csvData || csvData.length === 0) return [];
     
@@ -251,6 +319,11 @@ export default function Spreadsheet() {
     if (questionColumn) result.push(questionColumn);
     if (contextualQuestionColumn) result.push(contextualQuestionColumn);
     result.push(...otherOriginalColumns, ...orderedEnrichedColumns, ...otherEnrichedColumns);
+    
+    // Add feedback column if any rows have feedback
+    if (csvData.some(row => row.feedback)) {
+      result.push('Feedback');
+    }
     
     return result;
   };
@@ -386,6 +459,18 @@ export default function Spreadsheet() {
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Reprocess
+                </Button>
+              )}
+              
+              {/* Feedback Reprocessing Button */}
+              {csvData.some(row => row.feedback) && (
+                <Button
+                  onClick={handleFeedbackReprocessing}
+                  variant="outline"
+                  className="bg-purple-50 text-purple-600 border-purple-600 hover:bg-purple-100"
+                >
+                  <Repeat className="h-4 w-4 mr-2" />
+                  Reprocess with Feedback
                 </Button>
               )}
               
@@ -556,6 +641,29 @@ export default function Spreadsheet() {
                           }
                         }
                         
+                        // Special handling for Feedback column
+                        if (columnName === 'Feedback') {
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <div className="flex-1 min-w-0">
+                                {row.feedback ? (
+                                  <div className="text-sm text-gray-700 truncate">{row.feedback}</div>
+                                ) : (
+                                  <div className="text-sm text-gray-400 italic">No feedback</div>
+                                )}
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleFeedbackOpen(row)}
+                                className="flex-shrink-0"
+                              >
+                                <MessageSquare className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          );
+                        }
+                        
                         // Default handling for other columns
                         if (typeof val === 'string') return val;
                         if (typeof val === 'object' && val !== null) {
@@ -569,7 +677,7 @@ export default function Spreadsheet() {
                       const value = getDisplayValue(rawValue, column);
                       
                       return (
-                        <td key={column} className={`border border-gray-300 px-4 py-2 text-sm text-gray-900 ${column === 'Reference Research' ? 'max-w-xs' : ''}`}>
+                        <td key={column} className={`border border-gray-300 px-4 py-2 text-sm text-gray-900 ${column === 'Reference Research' ? 'max-w-xs' : ''} ${column === 'Feedback' ? 'w-64' : ''}`}>
                           <div className={`${column === 'Reference Research' ? 'max-w-xs' : 'max-w-md'} break-words`}>
                             {/* Handle JSX elements (like formatted URLs) */}
                             {typeof value === 'object' && value !== null && React.isValidElement(value) ? (
@@ -637,6 +745,65 @@ export default function Spreadsheet() {
         jobId={jobId || null}
         rowIndex={selectedRowIndex}
       />
+
+      {/* Feedback Dialog */}
+      <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add Feedback for Row {selectedRowForFeedback ? selectedRowForFeedback.rowIndex + 1 : ''}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedRowForFeedback && (
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="text-sm font-medium text-gray-700 mb-2">Original Question:</div>
+                <div className="text-sm text-gray-600">
+                  {Object.values(selectedRowForFeedback.originalData)[0] || 'No question text available'}
+                </div>
+                {selectedRowForFeedback.fullContextualQuestion && (
+                  <>
+                    <div className="text-sm font-medium text-gray-700 mb-2 mt-3">Full Contextual Question:</div>
+                    <div className="text-sm text-gray-600">
+                      {selectedRowForFeedback.fullContextualQuestion}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Your Feedback:
+              </label>
+              <Textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Provide specific feedback to improve the AI response. For example: 'Include more technical details about security features' or 'Focus on cost benefits for enterprise customers'..."
+                className="min-h-[120px]"
+              />
+            </div>
+            <div className="text-xs text-gray-500">
+              💡 Tip: Your feedback will be used to regenerate all processing steps (Reference Research, Generic Draft, and Tailored Response) using the o3 model for higher quality results.
+            </div>
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFeedbackDialogOpen(false);
+                  setSelectedRowForFeedback(null);
+                  setFeedbackText('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleFeedbackSave}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                Save Feedback
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -36,6 +36,8 @@ export interface IStorage {
   getCsvDataByRow(jobId: string, rowIndex: number): Promise<CsvData | undefined>;
   createCsvData(data: InsertCsvData): Promise<CsvData>;
   updateCsvData(id: string, updates: Partial<CsvData>): Promise<CsvData>;
+  updateCsvRowFeedback(jobId: string, rowIndex: number, feedback: string): Promise<void>;
+  getRowsWithFeedback(jobId: string): Promise<CsvData[]>;
 
   // Reference Cache - Chunk-based storage
   getAllReferenceChunks(): Promise<ReferenceCache[]>;
@@ -225,6 +227,24 @@ export class DatabaseStorage implements IStorage {
       .where(eq(csvData.id, id))
       .returning();
     return data;
+  }
+
+  async updateCsvRowFeedback(jobId: string, rowIndex: number, feedback: string): Promise<void> {
+    await db
+      .update(csvData)
+      .set({ 
+        feedback, 
+        needsReprocessing: true,
+        updatedAt: new Date() 
+      })
+      .where(and(eq(csvData.jobId, jobId), eq(csvData.rowIndex, rowIndex)));
+  }
+
+  async getRowsWithFeedback(jobId: string): Promise<CsvData[]> {
+    return db
+      .select()
+      .from(csvData)
+      .where(and(eq(csvData.jobId, jobId), eq(csvData.needsReprocessing, true)));
   }
 
   // Reference Cache - Chunk-based storage
