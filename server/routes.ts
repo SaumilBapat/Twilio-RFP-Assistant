@@ -10,9 +10,11 @@ import { urlNormalizer } from "./services/urlNormalizer";
 import { enhancedEmbeddingsService } from "./services/enhancedEmbeddings";
 import { backgroundProcessor } from "./services/backgroundProcessor";
 import multer from "multer";
-import { insertJobSchema, insertPipelineSchema } from "@shared/schema";
+import { insertJobSchema, insertPipelineSchema, csvData } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { z } from "zod";
+import { db } from "./db";
+import { and, eq, isNotNull } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -413,12 +415,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/jobs/:jobId/reprocess-feedback', isAuthenticated, async (req: any, res) => {
     try {
       const { jobId } = req.params;
-      const userId = req.headers['x-user-id'] as string;
+      const userId = req.user?.id || req.headers['x-user-id'] as string;
+
+      console.log(`🔄 Reprocess feedback request for job ${jobId} by user ${userId}`);
 
       // Get rows that need reprocessing (have feedback)
       const rowsToReprocess = await storage.getRowsWithFeedback(jobId);
       
+      console.log(`📋 Found ${rowsToReprocess.length} rows with feedback to reprocess`);
+      
       if (rowsToReprocess.length === 0) {
+        // Also check if there are rows with feedback but needs_reprocessing = false
+        const allFeedbackRows = await db
+          .select()
+          .from(csvData)
+          .where(and(
+            eq(csvData.jobId, jobId), 
+            isNotNull(csvData.feedback)
+          ));
+        
+        console.log(`📊 Total rows with feedback: ${allFeedbackRows.length}`);
+        
         return res.status(400).json({ message: 'No rows with feedback found to reprocess' });
       }
 
