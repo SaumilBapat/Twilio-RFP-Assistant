@@ -547,7 +547,7 @@ Please improve the response based on the user feedback. Use the Generic Draft as
         prompt: enhancedPrompt
       };
 
-      const improvedResponse = await this.processRow(job, feedbackStep, rowData, contextualQuestion);
+      const improvedResponse = await this.processFeedbackStep(feedbackStep, contextualQuestion);
       
       // Update only the final response and reference list if processing succeeded
       if (improvedResponse && typeof improvedResponse === 'string' && improvedResponse.length > 0) {
@@ -654,6 +654,43 @@ Please improve the response based on the user feedback. Use the Generic Draft as
 
   private isPaused(jobId: string): boolean {
     return this.pausedJobs.has(jobId);
+  }
+
+  /**
+   * Process a single feedback step using OpenAI directly (simpler than full pipeline)
+   */
+  private async processFeedbackStep(step: any, contextualQuestion: string): Promise<string> {
+    try {
+      console.log(`🤖 Processing feedback step: ${step.name} with ${step.model}`);
+      
+      const openai = new (await import('openai')).default({ 
+        apiKey: process.env.OPENAI_API_KEY 
+      });
+
+      const response = await openai.chat.completions.create({
+        model: step.model,
+        messages: [
+          {
+            role: "system",
+            content: step.prompt
+          },
+          {
+            role: "user", 
+            content: contextualQuestion
+          }
+        ],
+        temperature: step.temperature || 0.7,
+        max_tokens: step.maxTokens || 2000
+      });
+
+      const result = response.choices[0]?.message?.content || '';
+      console.log(`✅ Feedback step completed: ${result.length} characters generated`);
+      return result;
+      
+    } catch (error) {
+      console.error(`❌ Error processing feedback step:`, error);
+      return '';
+    }
   }
 }
 
