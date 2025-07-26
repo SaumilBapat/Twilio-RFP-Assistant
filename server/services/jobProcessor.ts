@@ -523,6 +523,10 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
       }
 
       const existingResponse = rowData.enrichedData?.['Tailored RFP Response'] || '';
+      const genericDraft = rowData.enrichedData?.['Generic Draft Generation'] || '';
+      
+      // Use Generic Draft as fallback if final response is missing
+      const baseResponse = existingResponse || genericDraft;
       
       // Enhanced prompt for o3 model with feedback context
       const enhancedPrompt = `${finalResponseStep.prompt}
@@ -530,10 +534,12 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
 CONTEXT FOR IMPROVEMENT:
 - Original Question: ${contextualQuestion}
 - User Feedback: ${rowData.feedback}
-- Existing Response: ${existingResponse}
+- Generic Draft: ${genericDraft}
+- Current Final Response: ${existingResponse || 'Not yet generated'}
+- Base Response to Improve: ${baseResponse}
 - Updated References: ${combinedReferences}
 
-Please improve the response based on the user feedback while incorporating any new relevant information from the updated reference list.`;
+Please improve the response based on the user feedback. Use the Generic Draft as foundation and incorporate any new relevant information from the updated reference list. Focus on addressing the specific feedback provided by the user.`;
 
       const feedbackStep = {
         ...finalResponseStep,
@@ -551,6 +557,11 @@ Please improve the response based on the user feedback while incorporating any n
           'Reference Research': combinedReferences,
           'Tailored RFP Response': improvedResponse
         };
+        
+        console.log(`📝 Feedback processing result for row ${rowData.rowIndex}:`);
+        console.log(`   - Additional references found: ${feedbackReferences ? 'Yes' : 'No'}`);
+        console.log(`   - Base response used: ${baseResponse ? (existingResponse ? 'Existing final response' : 'Generic draft') : 'None available'}`);
+        console.log(`   - Improved response length: ${improvedResponse.length} characters`);
 
         await storage.updateCsvData(rowData.id, {
           enrichedData: updatedEnrichedData,
