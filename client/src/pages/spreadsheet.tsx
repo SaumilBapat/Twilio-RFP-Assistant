@@ -176,7 +176,18 @@ export default function Spreadsheet() {
     if (!jobId) return;
     
     try {
-      await apiRequest('POST', `/api/jobs/${jobId}/${action}`);
+      const response = await fetch(`/api/jobs/${jobId}/${action}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || 'user-1'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
       // Handle different action past tense forms correctly
       const actionPastTense = {
@@ -238,11 +249,19 @@ export default function Spreadsheet() {
     if (!selectedRowForFeedback || !jobId) return;
 
     try {
-      await apiRequest(`/api/jobs/${jobId}/rows/${selectedRowForFeedback.rowIndex}/feedback`, {
+      const response = await fetch(`/api/jobs/${jobId}/rows/${selectedRowForFeedback.rowIndex}/feedback`, {
         method: 'PATCH',
-        body: { feedback: feedbackText },
-        headers: { 'x-user-id': user?.id || 'user-1' }
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || 'user-1'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ feedback: feedbackText })
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       toast({
         title: "Success",
@@ -267,14 +286,23 @@ export default function Spreadsheet() {
     if (!jobId) return;
 
     try {
-      const response = await apiRequest(`/api/jobs/${jobId}/reprocess-feedback`, {
+      const response = await fetch(`/api/jobs/${jobId}/reprocess-feedback`, {
         method: 'POST',
-        headers: { 'x-user-id': user?.id || 'user-1' }
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || 'user-1'
+        },
+        credentials: 'include'
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       toast({
         title: "Success",
-        description: `Feedback reprocessing started for ${response.rowsToReprocess} rows`,
+        description: `Feedback reprocessing started for ${result.rowsToReprocess || 'selected'} rows`,
       });
 
       // Refresh job data to update status
@@ -451,14 +479,14 @@ export default function Spreadsheet() {
               
               {(job.status === 'completed' || job.status === 'error') && (
                 <>
-                  {csvData.some(row => row.feedback) ? (
+                  {csvData.some((row: CsvRow) => row.feedback) ? (
                     <Button
                       onClick={handleFeedbackReprocessing}
                       variant="outline"
                       className="bg-purple-50 text-purple-600 border-purple-600 hover:bg-purple-100"
                     >
                       <Repeat className="h-4 w-4 mr-2" />
-                      Reprocess with Feedback ({csvData.filter(row => row.feedback).length} rows)
+                      Reprocess with Feedback ({csvData.filter((row: CsvRow) => row.feedback).length} rows)
                     </Button>
                   ) : (
                     <Button
@@ -748,10 +776,13 @@ export default function Spreadsheet() {
 
       {/* Feedback Dialog */}
       <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" aria-describedby="feedback-dialog-description">
           <DialogHeader>
             <DialogTitle>Add Feedback for Row {selectedRowForFeedback ? selectedRowForFeedback.rowIndex + 1 : ''}</DialogTitle>
           </DialogHeader>
+          <div id="feedback-dialog-description" className="sr-only">
+            Add feedback to improve AI responses for this RFP question
+          </div>
           <div className="space-y-4">
             {selectedRowForFeedback && (
               <div className="p-4 bg-gray-50 rounded-lg">
