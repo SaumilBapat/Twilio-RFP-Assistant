@@ -320,10 +320,8 @@ export default function Spreadsheet() {
     if (contextualQuestionColumn) result.push(contextualQuestionColumn);
     result.push(...otherOriginalColumns, ...orderedEnrichedColumns, ...otherEnrichedColumns);
     
-    // Add feedback column if any rows have feedback
-    if (csvData.some(row => row.feedback)) {
-      result.push('Feedback');
-    }
+    // Always add feedback column for user interaction
+    result.push('Feedback');
     
     return result;
   };
@@ -452,26 +450,27 @@ export default function Spreadsheet() {
               )}
               
               {(job.status === 'completed' || job.status === 'error') && (
-                <Button
-                  onClick={() => handleJobAction('reprocess')}
-                  variant="outline"
-                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reprocess
-                </Button>
-              )}
-              
-              {/* Feedback Reprocessing Button */}
-              {csvData.some(row => row.feedback) && (
-                <Button
-                  onClick={handleFeedbackReprocessing}
-                  variant="outline"
-                  className="bg-purple-50 text-purple-600 border-purple-600 hover:bg-purple-100"
-                >
-                  <Repeat className="h-4 w-4 mr-2" />
-                  Reprocess with Feedback
-                </Button>
+                <>
+                  {csvData.some(row => row.feedback) ? (
+                    <Button
+                      onClick={handleFeedbackReprocessing}
+                      variant="outline"
+                      className="bg-purple-50 text-purple-600 border-purple-600 hover:bg-purple-100"
+                    >
+                      <Repeat className="h-4 w-4 mr-2" />
+                      Reprocess with Feedback ({csvData.filter(row => row.feedback).length} rows)
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => handleJobAction('reprocess')}
+                      variant="outline"
+                      className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Reprocess All
+                    </Button>
+                  )}
+                </>
               )}
               
               <Button 
@@ -568,7 +567,8 @@ export default function Spreadsheet() {
                     <th 
                       key={column}
                       className={`border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase ${
-                        column === 'Reference Research' ? 'w-80' : 'min-w-48'
+                        column === 'Reference Research' ? 'w-80' : 
+                        column === 'Feedback' ? 'w-64' : 'min-w-48'
                       }`}
                     >
                       {column}
