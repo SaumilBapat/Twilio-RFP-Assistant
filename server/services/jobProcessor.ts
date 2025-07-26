@@ -550,7 +550,7 @@ Please improve the response based on the user feedback. Use the Generic Draft as
       const improvedResponse = await this.processRow(job, feedbackStep, rowData, contextualQuestion);
       
       // Update only the final response and reference list if processing succeeded
-      if (improvedResponse) {
+      if (improvedResponse && typeof improvedResponse === 'string' && improvedResponse.length > 0) {
         const currentEnrichedData = rowData.enrichedData || {};
         const updatedEnrichedData = {
           ...currentEnrichedData,
@@ -561,7 +561,7 @@ Please improve the response based on the user feedback. Use the Generic Draft as
         console.log(`📝 Feedback processing result for row ${rowData.rowIndex}:`);
         console.log(`   - Additional references found: ${feedbackReferences ? 'Yes' : 'No'}`);
         console.log(`   - Base response used: ${baseResponse ? (existingResponse ? 'Existing final response' : 'Generic draft') : 'None available'}`);
-        console.log(`   - Improved response length: ${improvedResponse.length} characters`);
+        console.log(`   - Improved response length: ${typeof improvedResponse === 'string' ? improvedResponse.length : 0} characters`);
 
         await storage.updateCsvData(rowData.id, {
           enrichedData: updatedEnrichedData,
@@ -598,7 +598,7 @@ Please improve the response based on the user feedback. Use the Generic Draft as
       
       // Create a search query combining the original question with feedback
       const searchQuery = `${question} ${feedback}`;
-      const relevantChunks = await enhancedEmbeddingsService.semanticSearch(searchQuery, 5, 0.3);
+      const relevantChunks = await enhancedEmbeddingsService.semanticSearch(searchQuery, 5);
       
       if (relevantChunks.length === 0) {
         console.log(`📝 No additional references found for feedback`);
