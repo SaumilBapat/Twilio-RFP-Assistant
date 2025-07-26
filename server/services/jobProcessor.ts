@@ -506,25 +506,26 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
     
     console.log(`🔄 Simplified feedback reprocessing for row ${rowData.rowIndex} using o3 model`);
     
-    // Step 1: Find additional references based on feedback
-    console.log(`🔍 Searching for additional references based on feedback: "${rowData.feedback}"`);
-    const feedbackReferences = await this.findAdditionalReferences(contextualQuestion, rowData.feedback);
-    
-    // Step 2: Combine existing references with new ones
-    const existingReferences = rowData.enrichedData?.['Reference Research'] || '';
-    const combinedReferences = this.combineReferences(existingReferences, feedbackReferences);
-    
-    // Step 3: Reprocess only the final response with o3 model
-    const finalResponseStep = pipeline.steps.find((s: any) => s.name === 'Tailored RFP Response');
-    if (!finalResponseStep) {
-      console.warn(`⚠️ Final response step not found in pipeline`);
-      return;
-    }
+    try {
+      // Step 1: Find additional references based on feedback
+      console.log(`🔍 Searching for additional references based on feedback: "${rowData.feedback}"`);
+      const feedbackReferences = await this.findAdditionalReferences(contextualQuestion, rowData.feedback);
+      
+      // Step 2: Combine existing references with new ones
+      const existingReferences = rowData.enrichedData?.['Reference Research'] || '';
+      const combinedReferences = this.combineReferences(existingReferences, feedbackReferences);
+      
+      // Step 3: Reprocess only the final response with o3 model
+      const finalResponseStep = pipeline.steps.find((s: any) => s.name === 'Tailored RFP Response');
+      if (!finalResponseStep) {
+        console.warn(`⚠️ Final response step not found in pipeline`);
+        return;
+      }
 
-    const existingResponse = rowData.enrichedData?.['Tailored RFP Response'] || '';
-    
-    // Enhanced prompt for o3 model with feedback context
-    const enhancedPrompt = `${finalResponseStep.prompt}
+      const existingResponse = rowData.enrichedData?.['Tailored RFP Response'] || '';
+      
+      // Enhanced prompt for o3 model with feedback context
+      const enhancedPrompt = `${finalResponseStep.prompt}
 
 CONTEXT FOR IMPROVEMENT:
 - Original Question: ${contextualQuestion}
@@ -534,28 +535,47 @@ CONTEXT FOR IMPROVEMENT:
 
 Please improve the response based on the user feedback while incorporating any new relevant information from the updated reference list.`;
 
-    const feedbackStep = {
-      ...finalResponseStep,
-      model: 'o3-mini',
-      prompt: enhancedPrompt
-    };
+      const feedbackStep = {
+        ...finalResponseStep,
+        model: 'o3-mini',
+        prompt: enhancedPrompt
+      };
 
-    const improvedResponse = await this.processRow(job, feedbackStep, rowData, contextualQuestion, true);
-    
-    // Update only the final response and reference list
-    const currentEnrichedData = rowData.enrichedData || {};
-    const updatedEnrichedData = {
-      ...currentEnrichedData,
-      'Reference Research': combinedReferences,
-      'Tailored RFP Response': improvedResponse
-    };
+      const improvedResponse = await this.processRow(job, feedbackStep, rowData, contextualQuestion);
+      
+      // Update only the final response and reference list if processing succeeded
+      if (improvedResponse) {
+        const currentEnrichedData = rowData.enrichedData || {};
+        const updatedEnrichedData = {
+          ...currentEnrichedData,
+          'Reference Research': combinedReferences,
+          'Tailored RFP Response': improvedResponse
+        };
 
-    await storage.updateCsvData(rowData.id, {
-      enrichedData: updatedEnrichedData,
-      updatedAt: new Date()
-    });
-
-    console.log(`✅ Simplified feedback reprocessing completed for row ${rowData.rowIndex}`);
+        await storage.updateCsvData(rowData.id, {
+          enrichedData: updatedEnrichedData,
+          needsReprocessing: false,
+          updatedAt: new Date()
+        });
+        
+        console.log(`✅ Simplified feedback reprocessing completed for row ${rowData.rowIndex}`);
+      } else {
+        console.warn(`⚠️ Failed to generate improved response for row ${rowData.rowIndex}, keeping existing response`);
+        // Still mark as no longer needing reprocessing even if improvement failed
+        await storage.updateCsvData(rowData.id, {
+          needsReprocessing: false,
+          updatedAt: new Date()
+        });
+      }
+    } catch (error) {
+      console.error(`❌ Error in feedback reprocessing for row ${rowData.rowIndex}:`, error);
+      console.log(`🔒 Preserving existing response due to processing error`);
+      // Mark as no longer needing reprocessing even if there was an error
+      await storage.updateCsvData(rowData.id, {
+        needsReprocessing: false,
+        updatedAt: new Date()
+      });
+    }
   }
 
   private async findAdditionalReferences(question: string, feedback: string): Promise<string> {
@@ -563,11 +583,11 @@ Please improve the response based on the user feedback while incorporating any n
     
     try {
       // Use enhanced embeddings service to find relevant content based on feedback
-      const enhancedEmbeddings = await import('./enhancedEmbeddings');
+      const { enhancedEmbeddingsService } = await import('./enhancedEmbeddings');
       
       // Create a search query combining the original question with feedback
       const searchQuery = `${question} ${feedback}`;
-      const relevantChunks = await enhancedEmbeddings.findRelevantChunks(searchQuery, 0.3, 5);
+      const relevantChunks = await enhancedEmbeddingsService.semanticSearch(searchQuery, 5, 0.3);
       
       if (relevantChunks.length === 0) {
         console.log(`📝 No additional references found for feedback`);
@@ -575,7 +595,7 @@ Please improve the response based on the user feedback while incorporating any n
       }
 
       // Extract unique URLs from relevant chunks
-      const additionalUrls = [...new Set(relevantChunks.map(chunk => chunk.url))];
+      const additionalUrls = Array.from(new Set(relevantChunks.map((chunk: any) => chunk.url)));
       console.log(`📚 Found ${additionalUrls.length} additional references based on feedback`);
       
       return JSON.stringify(additionalUrls);
@@ -611,7 +631,7 @@ Please improve the response based on the user feedback while incorporating any n
       }
 
       // Combine and deduplicate
-      const combinedUrls = [...new Set([...existingUrls, ...additionalUrls])];
+      const combinedUrls = Array.from(new Set([...existingUrls, ...additionalUrls]));
       console.log(`🔗 Combined references: ${existingUrls.length} existing + ${additionalUrls.length} new = ${combinedUrls.length} total`);
       
       return JSON.stringify(combinedUrls);
