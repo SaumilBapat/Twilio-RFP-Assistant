@@ -667,7 +667,7 @@ Please improve the response based on the user feedback. Use the Generic Draft as
         apiKey: process.env.OPENAI_API_KEY 
       });
 
-      const response = await openai.chat.completions.create({
+      const params: any = {
         model: step.model,
         messages: [
           {
@@ -679,9 +679,17 @@ Please improve the response based on the user feedback. Use the Generic Draft as
             content: contextualQuestion
           }
         ],
-        temperature: step.temperature || 0.7,
-        max_tokens: step.maxTokens || 2000
-      });
+        temperature: step.temperature || 0.7
+      };
+
+      // o3 models use max_completion_tokens instead of max_tokens
+      if (step.model.includes('o3')) {
+        params.max_completion_tokens = step.maxTokens || 2000;
+      } else {
+        params.max_tokens = step.maxTokens || 2000;
+      }
+
+      const response = await openai.chat.completions.create(params);
 
       const result = response.choices[0]?.message?.content || '';
       console.log(`✅ Feedback step completed: ${result.length} characters generated`);
