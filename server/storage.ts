@@ -233,8 +233,8 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(csvData)
       .set({ 
-        feedback, 
-        needsReprocessing: true,
+        feedback: feedback || null, // Clear feedback if empty string
+        needsReprocessing: feedback ? true : false, // Only mark for reprocessing if feedback exists
         updatedAt: new Date() 
       })
       .where(and(eq(csvData.jobId, jobId), eq(csvData.rowIndex, rowIndex)));

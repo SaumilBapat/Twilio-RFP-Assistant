@@ -245,8 +245,10 @@ export default function Spreadsheet() {
     setFeedbackDialogOpen(true);
   };
 
-  const handleFeedbackSave = async () => {
+  const handleFeedbackSave = async (feedbackValue?: string) => {
     if (!selectedRowForFeedback || !jobId) return;
+
+    const feedback = feedbackValue !== undefined ? feedbackValue : feedbackText;
 
     try {
       const response = await fetch(`/api/jobs/${jobId}/rows/${selectedRowForFeedback.rowIndex}/feedback`, {
@@ -256,7 +258,7 @@ export default function Spreadsheet() {
           'x-user-id': user?.id || 'user-1'
         },
         credentials: 'include',
-        body: JSON.stringify({ feedback: feedbackText })
+        body: JSON.stringify({ feedback })
       });
 
       if (!response.ok) {
@@ -778,7 +780,9 @@ export default function Spreadsheet() {
       <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
         <DialogContent className="max-w-2xl" aria-describedby="feedback-dialog-description">
           <DialogHeader>
-            <DialogTitle>Add Feedback for Row {selectedRowForFeedback ? selectedRowForFeedback.rowIndex + 1 : ''}</DialogTitle>
+            <DialogTitle>
+              {selectedRowForFeedback?.feedback ? 'Edit' : 'Add'} Feedback for Row {selectedRowForFeedback ? selectedRowForFeedback.rowIndex + 1 : ''}
+            </DialogTitle>
           </DialogHeader>
           <div id="feedback-dialog-description" className="sr-only">
             Add feedback to improve AI responses for this RFP question
@@ -814,23 +818,37 @@ export default function Spreadsheet() {
             <div className="text-xs text-gray-500">
               💡 Tip: Your feedback will be used to find additional references and improve the final response using the o3 model. Only the final answer will be regenerated for faster processing.
             </div>
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-between">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setFeedbackDialogOpen(false);
-                  setSelectedRowForFeedback(null);
+                onClick={async () => {
+                  // Clear feedback
                   setFeedbackText('');
+                  await handleFeedbackSave('');
                 }}
+                className="text-red-600 hover:text-red-700"
+                disabled={!selectedRowForFeedback?.feedback}
               >
-                Cancel
+                Clear Feedback
               </Button>
-              <Button
-                onClick={handleFeedbackSave}
-                className="bg-purple-600 hover:bg-purple-700"
-              >
-                Save Feedback
-              </Button>
+              <div className="flex space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFeedbackDialogOpen(false);
+                    setSelectedRowForFeedback(null);
+                    setFeedbackText('');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handleFeedbackSave(feedbackText)}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  Save Feedback
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
