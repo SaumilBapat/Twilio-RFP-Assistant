@@ -678,15 +678,15 @@ Please improve the response based on the user feedback. Use the Generic Draft as
             role: "user", 
             content: contextualQuestion
           }
-        ],
-        temperature: step.temperature || 0.7
+        ]
       };
 
-      // o3 models use max_completion_tokens instead of max_tokens
+      // o3 models use max_completion_tokens instead of max_tokens and don't support temperature
       if (step.model.includes('o3')) {
         params.max_completion_tokens = step.maxTokens || 2000;
       } else {
         params.max_tokens = step.maxTokens || 2000;
+        params.temperature = step.temperature || 0.7;
       }
 
       const response = await openai.chat.completions.create(params);
