@@ -42,6 +42,15 @@ export class OpenAIService {
   private getTokensParam(model: string, maxTokens: number) {
     // o3 and gpt-5 models require max_completion_tokens instead of max_tokens
     if (model.startsWith('o3') || model.startsWith('gpt-5')) {
+      // GPT-5 needs extra tokens for reasoning overhead
+      // The model uses significant tokens for internal reasoning before generating content
+      if (model.startsWith('gpt-5')) {
+        // GPT-5 uses approximately 2000-4000 tokens for reasoning
+        // We need to add extra tokens on top of requested content tokens
+        const gpt5TotalTokens = maxTokens + 6000; // Add 6000 tokens for reasoning overhead
+        console.log(`🎯 GPT-5 Token Allocation: Requested ${maxTokens} content tokens, allocating ${gpt5TotalTokens} total (includes reasoning overhead)`);
+        return { max_completion_tokens: gpt5TotalTokens };
+      }
       return { max_completion_tokens: maxTokens };
     }
     return { max_tokens: maxTokens };
@@ -77,7 +86,8 @@ export class OpenAIService {
 
       // GPT-5 specific parameters
       if (config.model.startsWith('gpt-5')) {
-        requestParams.reasoning_effort = 'medium'; // Options: minimal, low, medium, high
+        requestParams.reasoning_effort = 'low'; // Use 'low' to reduce reasoning token usage
+        console.log(`🔧 GPT-5 Config: reasoning_effort=low, max_completion_tokens=${tokensParam.max_completion_tokens}`);
       }
 
       const response = await openai.chat.completions.create(requestParams);
