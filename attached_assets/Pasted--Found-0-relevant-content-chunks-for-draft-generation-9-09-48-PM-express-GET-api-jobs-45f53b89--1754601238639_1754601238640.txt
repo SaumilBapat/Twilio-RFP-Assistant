@@ -1,0 +1,34 @@
+📊 Found 0 relevant content chunks for draft generation
+9:09:48 PM [express] GET /api/jobs/45f53b89-9fee-4ed4-a93f-c88e3d6bbcad/csv-data 200 in 206ms :: [{"…
+9:09:50 PM [express] GET /api/jobs/45f53b89-9fee-4ed4-a93f-c88e3d6bbcad/csv-data 304 in 105ms :: [{"…
+9:09:52 PM [express] GET /api/jobs/45f53b89-9fee-4ed4-a93f-c88e3d6bbcad/csv-data 304 in 100ms :: [{"…
+🔍 GPT-5 Response Debug:
+   - Model: gpt-5
+   - Response choices count: 1
+   - First choice exists: true
+   - Message exists: true
+   - Content exists: false
+   - Content length: 0
+✅ Generic draft generation completed in 55665ms using 0 semantic chunks
+✅ Completed step "Generic Draft Generation" for row 2 in 55666ms - Result: 0 chars
+🔄 Processing step "Tailored RFP Response" for row 2 - Starting...
+❌ Tailored response generation failed after 1ms: Error: No generic draft found from previous step
+    at OpenAIService.processTailoredResponse (/home/runner/workspace/server/services/openai.ts:414:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async OpenAIService.processWithAgent (/home/runner/workspace/server/services/openai.ts:147:16)
+    at async JobProcessorService.processRow (/home/runner/workspace/server/services/jobProcessor.ts:267:24)
+    at async JobProcessorService.processJob (/home/runner/workspace/server/services/jobProcessor.ts:176:7)
+    at async JobProcessorService.startJob (/home/runner/workspace/server/services/jobProcessor.ts:45:7)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:272:7)
+✅ Completed step "Tailored RFP Response" for row 2 in 3ms - Result: 0 chars
+❌ Step "Tailored RFP Response" failed for row 2: No generic draft found from previous step
+Job 45f53b89-9fee-4ed4-a93f-c88e3d6bbcad failed: Error: Step Tailored RFP Response failed: No generic draft found from previous step
+    at JobProcessorService.processRow (/home/runner/workspace/server/services/jobProcessor.ts:279:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async JobProcessorService.processJob (/home/runner/workspace/server/services/jobProcessor.ts:176:7)
+    at async JobProcessorService.startJob (/home/runner/workspace/server/services/jobProcessor.ts:45:7)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:272:7)
+9:10:24 PM [express] POST /api/jobs/45f53b89-9fee-4ed4-a93f-c88e3d6bbcad/start 200 in 254881ms :: {"…
+9:10:24 PM [express] GET /api/jobs 200 in 72ms :: [{"id":"45f53b89-9fee-4ed4-a93f-c88e3d6bbcad","use…
+9:12:48 PM [express] GET /api/jobs/45f53b89-9fee-4ed4-a93f-c88e3d6bbcad/csv-data 304 in 197ms :: [{"…
+9:13:21 PM [express] GET /api/jobs/45f53b89-9fee-4ed4-a93f-c88e3d6bbcad/csv-da
