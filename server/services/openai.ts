@@ -84,38 +84,84 @@ export class OpenAIService {
 
       const latency = Date.now() - startTime;
       
-      // Debug logging for gpt-5 model responses
+      // EXTENSIVE DEBUG LOGGING FOR GPT-5
       if (config.model.startsWith('gpt-5')) {
-        console.log(`🔍 GPT-5 Response Debug:`);
-        console.log(`   - Model: ${config.model}`);
-        console.log(`   - Response choices count: ${response.choices?.length || 0}`);
-        console.log(`   - First choice exists: ${!!response.choices?.[0]}`);
-        console.log(`   - Message exists: ${!!response.choices?.[0]?.message}`);
-        console.log(`   - Content exists: ${!!response.choices?.[0]?.message?.content}`);
-        console.log(`   - Content length: ${response.choices?.[0]?.message?.content?.length || 0}`);
+        console.log(`\n🔴🔴🔴 GPT-5 FULL RESPONSE DEBUG 🔴🔴🔴`);
+        console.log(`Model: ${config.model}`);
+        console.log(`\n1️⃣ FULL RESPONSE OBJECT:`);
+        console.log(JSON.stringify(response, null, 2));
         
-        if (response.choices?.[0]) {
-          console.log(`   - Choice keys: ${JSON.stringify(Object.keys(response.choices[0]))}`);
+        console.log(`\n2️⃣ RESPONSE TOP-LEVEL KEYS:`);
+        console.log(Object.keys(response));
+        
+        if (response.choices && response.choices[0]) {
+          console.log(`\n3️⃣ FIRST CHOICE OBJECT:`);
+          console.log(JSON.stringify(response.choices[0], null, 2));
+          
+          console.log(`\n4️⃣ FIRST CHOICE KEYS:`);
+          console.log(Object.keys(response.choices[0]));
+          
           if (response.choices[0].message) {
-            console.log(`   - Message keys: ${JSON.stringify(Object.keys(response.choices[0].message))}`);
-            console.log(`   - Full message: ${JSON.stringify(response.choices[0].message)}`);
+            console.log(`\n5️⃣ MESSAGE OBJECT:`);
+            console.log(JSON.stringify(response.choices[0].message, null, 2));
+            
+            console.log(`\n6️⃣ MESSAGE KEYS:`);
+            console.log(Object.keys(response.choices[0].message));
           }
         }
+        
+        // Check all possible locations for content
+        console.log(`\n7️⃣ CONTENT EXTRACTION ATTEMPTS:`);
+        console.log(`  - response.choices[0].message.content: ${response.choices?.[0]?.message?.content || 'EMPTY/NULL'}`);
+        console.log(`  - response.choices[0].message.output: ${(response.choices?.[0]?.message as any)?.output || 'EMPTY/NULL'}`);
+        console.log(`  - response.choices[0].message.reasoning: ${(response.choices?.[0]?.message as any)?.reasoning || 'EMPTY/NULL'}`);
+        console.log(`  - response.choices[0].message.answer: ${(response.choices?.[0]?.message as any)?.answer || 'EMPTY/NULL'}`);
+        console.log(`  - response.choices[0].text: ${(response.choices?.[0] as any)?.text || 'EMPTY/NULL'}`);
+        console.log(`  - response.choices[0].output: ${(response.choices?.[0] as any)?.output || 'EMPTY/NULL'}`);
+        console.log(`  - response.output: ${(response as any)?.output || 'EMPTY/NULL'}`);
+        console.log(`  - response.text: ${(response as any)?.text || 'EMPTY/NULL'}`);
+        console.log(`🔴🔴🔴 END GPT-5 DEBUG 🔴🔴🔴\n`);
       }
       
       // Extract content - GPT-5 might use different field names
       let output = '';
       if (config.model.startsWith('gpt-5')) {
-        // Try multiple possible fields for GPT-5 (using any type for fields that might exist in GPT-5)
-        const choice = response.choices[0] as any;
-        output = choice?.message?.content || 
-                choice?.message?.output || 
-                choice?.output || 
-                (response as any)?.output || 
-                '';
+        console.log(`\n🟡 ATTEMPTING TO EXTRACT GPT-5 CONTENT...`);
+        
+        // Try ALL possible fields for GPT-5
+        const choice = response.choices?.[0] as any;
+        const possibleContents = [
+          choice?.message?.content,
+          choice?.message?.output,
+          choice?.message?.reasoning,
+          choice?.message?.answer,
+          choice?.message?.response,
+          choice?.message?.text,
+          choice?.text,
+          choice?.output,
+          choice?.content,
+          (response as any)?.output,
+          (response as any)?.text,
+          (response as any)?.content
+        ];
+        
+        for (let i = 0; i < possibleContents.length; i++) {
+          if (possibleContents[i]) {
+            output = possibleContents[i];
+            console.log(`✅ FOUND CONTENT at index ${i}: ${output.substring(0, 100)}...`);
+            break;
+          }
+        }
+        
+        if (!output) {
+          console.log(`❌ NO CONTENT FOUND IN ANY EXPECTED LOCATION!`);
+          console.log(`Full response for debugging:`, JSON.stringify(response));
+        }
       } else {
         output = response.choices[0]?.message?.content || '';
       }
+      
+      console.log(`\n📊 FINAL OUTPUT LENGTH: ${output.length} characters`);
 
       return {
         output,

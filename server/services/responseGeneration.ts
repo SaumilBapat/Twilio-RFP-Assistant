@@ -119,30 +119,47 @@ export class ResponseGenerationService {
 
       const response = await openai.chat.completions.create(requestParams);
 
-      // Debug logging for gpt-5 responses
+      // EXTENSIVE DEBUG LOGGING FOR GPT-5 (responseGeneration)
       if (agent.model.startsWith('gpt-5')) {
-        console.log(`🔍 GPT-5 Response Debug (responseGeneration):`);
-        console.log(`   - Response structure: ${JSON.stringify(Object.keys(response))}`);
-        console.log(`   - Choices count: ${response.choices?.length || 0}`);
-        if (response.choices?.[0]) {
-          console.log(`   - Choice keys: ${JSON.stringify(Object.keys(response.choices[0]))}`);
-          if (response.choices[0].message) {
-            console.log(`   - Message keys: ${JSON.stringify(Object.keys(response.choices[0].message))}`);
-            console.log(`   - Full message: ${JSON.stringify(response.choices[0].message)}`);
-          }
-        }
+        console.log(`\n🔵🔵🔵 GPT-5 RESPONSE GEN DEBUG 🔵🔵🔵`);
+        console.log(`FULL RESPONSE:`);
+        console.log(JSON.stringify(response, null, 2));
+        console.log(`🔵🔵🔵 END RESPONSE GEN DEBUG 🔵🔵🔵\n`);
       }
 
       // Extract content - GPT-5 might use different field names
       let output = '';
       if (agent.model.startsWith('gpt-5')) {
-        // Try multiple possible fields for GPT-5 (using any type for fields that might exist in GPT-5)
-        const choice = response.choices[0] as any;
-        output = choice?.message?.content || 
-                choice?.message?.output || 
-                choice?.output || 
-                (response as any)?.output || 
-                '';
+        console.log(`🟢 EXTRACTING GPT-5 CONTENT (responseGeneration)...`);
+        
+        // Try ALL possible fields
+        const choice = response.choices?.[0] as any;
+        const possibleContents = [
+          choice?.message?.content,
+          choice?.message?.output,
+          choice?.message?.reasoning,
+          choice?.message?.answer,
+          choice?.message?.response,
+          choice?.message?.text,
+          choice?.text,
+          choice?.output,
+          choice?.content,
+          (response as any)?.output,
+          (response as any)?.text,
+          (response as any)?.content
+        ];
+        
+        for (let i = 0; i < possibleContents.length; i++) {
+          if (possibleContents[i]) {
+            output = possibleContents[i];
+            console.log(`✅ FOUND at index ${i}: ${output.substring(0, 100)}...`);
+            break;
+          }
+        }
+        
+        if (!output) {
+          console.log(`❌ NO CONTENT FOUND!`);
+        }
       } else {
         output = response.choices[0]?.message?.content || '';
       }
