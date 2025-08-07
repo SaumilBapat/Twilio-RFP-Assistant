@@ -162,12 +162,20 @@ export class OpenAIService {
       }
       
       console.log(`\n📊 FINAL OUTPUT LENGTH: ${output.length} characters`);
-
-      return {
+      
+      const finalResult = {
         output,
         latency,
         inputPrompt: `System: ${config.systemPrompt}\nUser: ${config.userPrompt}`
       };
+      
+      console.log(`\n🎁🎁🎁 CALL OPENAI DIRECT - FINAL RETURN 🎁🎁🎁`);
+      console.log(`  - Returning output of length: ${finalResult.output?.length || 0}`);
+      console.log(`  - Output exists: ${!!finalResult.output}`);
+      console.log(`  - Output preview: ${finalResult.output?.substring(0, 100) || 'EMPTY'}`);
+      console.log(`🎁🎁🎁 END CALL OPENAI DIRECT RETURN 🎁🎁🎁\n`);
+      
+      return finalResult;
 
     } catch (error) {
       const latency = Date.now() - startTime;
@@ -427,7 +435,13 @@ Relevance Score: ${(chunk.similarity * 100).toFixed(1)}%`
       
       console.log(`✅ Generic draft generation completed in ${latency}ms using ${relevantChunks.length} semantic chunks`);
       
-      return {
+      console.log(`\n📦📦📦 GENERIC DRAFT GENERATION - PREPARING RETURN VALUE 📦📦📦`);
+      console.log(`  - result.output exists: ${!!result.output}`);
+      console.log(`  - result.output length: ${result.output?.length || 0}`);
+      console.log(`  - result.output type: ${typeof result.output}`);
+      console.log(`  - result.output preview: ${result.output?.substring(0, 200) || 'EMPTY'}`);
+      
+      const returnValue = {
         output: result.output,
         latency,
         inputPrompt: processedPrompt,
@@ -439,6 +453,11 @@ Relevance Score: ${(chunk.similarity * 100).toFixed(1)}%`
           uniqueUrls: Array.from(new Set(relevantChunks.map((chunk: any) => chunk.url))).length
         }
       };
+      
+      console.log(`  - returnValue.output length: ${returnValue.output?.length || 0}`);
+      console.log(`📦📦📦 END GENERIC DRAFT GENERATION RETURN 📦📦📦\n`);
+      
+      return returnValue;
 
     } catch (error) {
       const latency = Date.now() - startTime;
@@ -464,22 +483,47 @@ Relevance Score: ${(chunk.similarity * 100).toFixed(1)}%`
       const { tailoredResponseService } = await import('./tailoredResponse');
       
       // Extract required data
+      console.log(`\n🔍🔍🔍 TAILORED RESPONSE - EXTRACTING DATA 🔍🔍🔍`);
+      console.log(`Row data keys available: ${Object.keys(rowData).join(', ')}`);
+      console.log(`\nChecking each key:`);
+      Object.keys(rowData).forEach(key => {
+        const value = rowData[key];
+        const preview = typeof value === 'string' ? value.substring(0, 100) : JSON.stringify(value);
+        console.log(`  - ${key}: ${value ? `${String(value).length} chars` : 'EMPTY/NULL'} | Preview: ${preview}`);
+      });
+      
       const firstColumnKey = Object.keys(rowData)[0];
       const question = firstColumnKey ? String(rowData[firstColumnKey] || '') : '';
+      
+      console.log(`\n🎯 Attempting to get Generic Draft Generation:`);
+      console.log(`  - rowData["Generic Draft Generation"] exists: ${rowData.hasOwnProperty("Generic Draft Generation")}`);
+      console.log(`  - rowData["Generic Draft Generation"] value: ${rowData["Generic Draft Generation"]}`);
+      console.log(`  - rowData["Generic Draft Generation"] type: ${typeof rowData["Generic Draft Generation"]}`);
+      console.log(`  - rowData["Generic Draft Generation"] length: ${rowData["Generic Draft Generation"]?.length || 0}`);
+      
       const genericDraft = String(rowData["Generic Draft Generation"] || '');
+      console.log(`  - After String conversion, genericDraft length: ${genericDraft.length}`);
+      console.log(`  - genericDraft preview: ${genericDraft.substring(0, 200)}`);
+      
       const references = String(rowData["Reference Research"] || '');
+      console.log(`\n  - Reference Research length: ${references.length}`);
       
       // Get RFP-specific data from job context (this would be passed from the job processor)
       const rfpInstructions = String(rowData["RFP_INSTRUCTIONS"] || '');
       const additionalDocuments = rowData["ADDITIONAL_DOCUMENTS"] || [];
       
       if (!question) {
+        console.log(`❌ NO QUESTION FOUND!`);
         throw new Error('No question found in input data');
       }
 
       if (!genericDraft) {
+        console.log(`❌❌❌ NO GENERIC DRAFT FOUND! This is the error causing the failure!`);
+        console.log(`Final check - all rowData keys: ${JSON.stringify(Object.keys(rowData))}`);
         throw new Error('No generic draft found from previous step');
       }
+      
+      console.log(`✅ All required data found, proceeding with tailored response generation`);
 
       console.log(`🎯 Using tailored response generation with ${agent.model} for: ${question.substring(0, 100)}...`);
       

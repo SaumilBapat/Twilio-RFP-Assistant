@@ -264,7 +264,24 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
         console.log(`🔄 Processing step "${step.name}" for row ${rowIndex} - Starting...`);
         const startTime = Date.now();
         
+        console.log(`\n📊📊📊 BEFORE CALLING OPENAI SERVICE - Step: ${step.name} 📊📊📊`);
+        console.log(`Current data keys: ${Object.keys(currentData).join(', ')}`);
+        // Log previous step outputs
+        if (currentData['Reference Research']) {
+          console.log(`Reference Research output length: ${currentData['Reference Research']?.length || 0}`);
+        }
+        if (currentData['Generic Draft Generation']) {
+          console.log(`Generic Draft Generation output length: ${currentData['Generic Draft Generation']?.length || 0}`);
+        }
+        
         const result = await openaiService.processWithAgent(step, currentData);
+        
+        console.log(`\n📈📈📈 AFTER CALLING OPENAI SERVICE - Step: ${step.name} 📈📈📈`);
+        console.log(`Result output length: ${result.output?.length || 0}`);
+        console.log(`Result has content: ${!!result.output}`);
+        if (!result.output) {
+          console.log(`⚠️⚠️⚠️ WARNING: No output returned for step ${step.name}!`);
+        }
         
         const duration = Date.now() - startTime;
         console.log(`✅ Completed step "${step.name}" for row ${rowIndex} in ${duration}ms - Result: ${result.output?.length || 0} chars`);
@@ -280,7 +297,11 @@ class JobProcessorService extends EventEmitter implements JobProcessor {
         }
 
         // Create a new column for this step's output
+        console.log(`\n🔑🔑🔑 STORING OUTPUT IN CURRENT DATA 🔑🔑🔑`);
+        console.log(`Setting currentData['${step.name}'] = output of length ${result.output?.length || 0}`);
         currentData[step.name] = result.output;
+        console.log(`Verification: currentData['${step.name}'] length = ${currentData[step.name]?.length || 0}`);
+        console.log(`All keys in currentData: ${Object.keys(currentData).join(', ')}`);
         
         await storage.updateJobStep(jobStep.id, {
           status: 'completed',
