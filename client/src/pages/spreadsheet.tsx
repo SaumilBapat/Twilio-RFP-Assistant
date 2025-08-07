@@ -480,11 +480,6 @@ export default function Spreadsheet() {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              {/* Debug: Current job status */}
-              <div className="text-xs text-gray-500 border px-2 py-1 rounded">
-                Status: "{job.status}" (type: {typeof job.status})
-              </div>
-              
               {/* Job Control Buttons */}
               {job.status === 'not_started' && (
                 <Button
@@ -535,8 +530,7 @@ export default function Spreadsheet() {
                 </>
               )}
               
-              {/* Error state - show retry and reset options */}
-              {(job.status === 'error' || job.status?.toLowerCase() === 'error') && (
+              {job.status === 'error' && (
                 <>
                   <Button
                     onClick={() => handleJobAction('resume')}
@@ -558,8 +552,7 @@ export default function Spreadsheet() {
                 </>
               )}
               
-              {/* Completed state - show reprocessing options */}
-              {(job.status === 'completed' || job.status?.toLowerCase() === 'completed') && (
+              {job.status === 'completed' && (
                 <>
                   {csvData.some((row: CsvRow) => row.feedback) ? (
                     <Button
@@ -587,29 +580,6 @@ export default function Spreadsheet() {
                   >
                     <MessageSquare className="h-4 w-4 mr-2" />
                     Add Feedback to All
-                  </Button>
-                </>
-              )}
-              
-              {/* Fallback for any other status that might need action buttons */}
-              {!['not_started', 'in_progress', 'paused', 'error', 'completed'].includes(job.status?.toLowerCase() || '') && job.status && (
-                <>
-                  <Button
-                    onClick={() => handleJobAction('resume')}
-                    className="bg-success-600 hover:bg-success-700"
-                    data-testid="button-retry-fallback"
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    Continue Processing
-                  </Button>
-                  <Button
-                    onClick={() => handleJobAction('reset')}
-                    variant="outline"
-                    className="text-orange-600 border-orange-600 hover:bg-orange-50"
-                    data-testid="button-reset-fallback"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Reset Job
                   </Button>
                 </>
               )}
