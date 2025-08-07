@@ -88,8 +88,8 @@ export class ResponseGenerationService {
       
       // Helper function to determine correct token parameter based on model
       const getTokensParam = (model: string, maxTokens: number) => {
-        // o3 models require max_completion_tokens instead of max_tokens
-        if (model.startsWith('o3')) {
+        // o3 and gpt-5 models require max_completion_tokens instead of max_tokens
+        if (model.startsWith('o3') || model.startsWith('gpt-5')) {
           return { max_completion_tokens: maxTokens };
         }
         return { max_tokens: maxTokens };

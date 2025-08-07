@@ -1,0 +1,32 @@
+﻿Questions,Answer
+Question PL.SUP.B.01 Does the third party risk management program require business units to notify if there are new or changed subcontractors?,
+Question PL.SUP.B.03 Does the third party risk program require subcontractors to notify if there are changes affecting services rendered?,
+Question D.3.3 Is all media containing scoped data disposed of securely?,
+Question D.3.6 Is scoped data sent or received electronically encrypted in transit while outside the network?,
+"Question D.3.7 Does scoped data sent or received electronically include encryption of e-mail, chat, and other messaging technologies?",
+Question D.3.9 Does scoped data sent or received electronically include content filtering scans performed on incoming/outgoing email to enforce email policy?,
+Question J.4.4 Does the Incident Response Plan require notifying the client if unauthorized access to scoped systems and data is confirmed?,
+"Question PL.SUP.L06 Does your company use any sub-provider that provides services from outside of the United States (i.e., offshoring)? If yes, Please denote countries and services provided from each.",
+"Question PL.SUP.L14 Does your company provide any services from outside of the United States (i.e. offshoring)? If yes, Please denote countries and services provided from each.",
+"Question PL.SUP.L05 Does your company have an information security incident response program, including policies and procedures, that includes requisite notifications in accordance with relevant data privacy regulations?",
+"Question PL.SUP.R.01 Does the arrangement support any services related to Machine Learning (ML) or Artificial Intelligence (AI) capabilities? If yes, Will Pacific Life data be utilized in any way or capacity for Machine Learning/AI capabilities? If yes, What policy and procedures are in place to protect scoped data used in any services related to Machine Learning (ML) or Artificial Intelligence (AI) capabilities?",
+"Question K.3 Are there any dependencies on critical third party service providers?
+Answer: Yes
+
+Question: Please provide documentation confirming that all critical Nth parties have satisfied your internal third party risk management review process.",
+Question PL.SUP.K.05.01 Are any of the PL arrangements for a SaaS application? ,
+"Question PL.SUP.K.05.01.01 For the SaaS application, is PL back up data immutable? If no, is there a compensating control for backup data integrity?",
+"Question PL.SUP.K.05.01.02 For the SaaS application, is PL data backed up following the 3-2-1 backup model?  If no, does your backup strategy minimally cover off-site backups? 
+
+If cloud-hosted, is the backup data in a different availability zone from production?",
+"Question PL.SUP.K.05.02 Is the third data backup physically air gapped? If no, is there a compensating control for data backups being physically air gapped?",
+Question PL.SUP.K.03 What is your RTC (Recovery Time Confirmed) from your most recent Disaster Recovery Test related to any applications which are required as part of this engagement? Please provide a RTC (recovery time confirmed) that follows the format of Min:Hours:Days,
+Question PL.SUP.K.04 Are there outstanding issues from the last review or test of the Business Continuity or Disaster Recovery Plans that could prevent services from being provided within the defined RTO (Recovery Time Objective)?,
+"Question PL.SUP.K.05 Have you activated your BC/DR Plans in the past 24 months for an incident that impacted your business or customers (Including cyber incidents)? If yes, please describe the summary of the incident and if there was any material impact.",
+Question PL.SUP.K.07 What is your RTO for the processes or services included in this engagement? Please provide the longest RTO (recovery time objective) that follows the format of Min:Hours:Days,
+"Question PL.SUP.K.08 Do you rely on third parties to provide any of the services associated with this engagement? If yes, please confirm that your third parties BC capabilities meet the RTOs (recovery time objectives) for the services associated with this engagement.",
+"Question PL.SUP.K.08.01 Do those third party service providers maintain/test their plans annually? If no, please confirm that your third parties maintain their BC plans for the services associated with this engagement.",
+"Question PL.SUP.K.08.02 Are those third party providers contractually obligated to meet your RTOs for services included in this engagement? If no, please provide describe your contingency plans for the services that the third party provides if they fail.",
+"Question PL.SUP.K.09 Do you have a secondary data center? If no, please describe your IT disaster recovery strategy.",
+"Question PL.SUP.K.09.01 Is your secondary data center at least 250 miles from your primary data center? If no, please describe the distance from primary and secondary data centers.",
+"Question PL.SUP.K.10 Do you have redundant infrastructure? (i.e., network redundancy, power) If no, please describe your mitigating controls for lack of redundant infrastructure (i.e., network, redundancy, power)",

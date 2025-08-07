@@ -40,8 +40,8 @@ export class OpenAIService {
 
   // Helper function to determine correct token parameter based on model
   private getTokensParam(model: string, maxTokens: number) {
-    // o3 models require max_completion_tokens instead of max_tokens
-    if (model.startsWith('o3')) {
+    // o3 and gpt-5 models require max_completion_tokens instead of max_tokens
+    if (model.startsWith('o3') || model.startsWith('gpt-5')) {
       return { max_completion_tokens: maxTokens };
     }
     return { max_tokens: maxTokens };
@@ -70,8 +70,8 @@ export class OpenAIService {
         ...tokensParam
       };
 
-      // Only add temperature for non-o3 models
-      if (!config.model.startsWith('o3')) {
+      // Only add temperature for non-o3 and non-gpt-5 models
+      if (!config.model.startsWith('o3') && !config.model.startsWith('gpt-5')) {
         requestParams.temperature = config.temperature || 0.7;
       }
 
@@ -151,8 +151,8 @@ export class OpenAIService {
         ...tokensParam,
       };
 
-      // Some models like gpt-4o-search-preview and o3 models don't support temperature parameter
-      if (!agent.model.includes('search-preview') && !agent.model.startsWith('o3')) {
+      // Some models like gpt-4o-search-preview, o3 models, and gpt-5 don't support temperature parameter
+      if (!agent.model.includes('search-preview') && !agent.model.startsWith('o3') && !agent.model.startsWith('gpt-5')) {
         completionOptions.temperature = agent.temperature;
       }
 

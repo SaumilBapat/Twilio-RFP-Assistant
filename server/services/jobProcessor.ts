@@ -683,8 +683,8 @@ Please improve the response based on the user feedback. Use the Generic Draft as
         ]
       };
 
-      // o3 models use max_completion_tokens instead of max_tokens and don't support temperature
-      if (step.model.includes('o3')) {
+      // o3 and gpt-5 models use max_completion_tokens instead of max_tokens and don't support temperature
+      if (step.model.includes('o3') || step.model.includes('gpt-5')) {
         params.max_completion_tokens = step.maxTokens || 2000;
       } else {
         params.max_tokens = step.maxTokens || 2000;
