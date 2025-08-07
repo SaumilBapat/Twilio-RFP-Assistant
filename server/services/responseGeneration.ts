@@ -97,15 +97,30 @@ export class ResponseGenerationService {
 
       const tokensParam = getTokensParam(agent.model, agent.maxTokens || 2000);
 
-      const response = await openai.chat.completions.create({
+      // Build request parameters - gpt-5 and o3 models don't support temperature
+      const requestParams: any = {
         model: agent.model,
         messages: [
           { role: "system", content: processedSystemPrompt },
           { role: "user", content: processedUserPrompt }
         ],
-        temperature: agent.temperature || 0.3,
         ...tokensParam,
-      });
+      };
+
+      // Only add temperature for models that support it
+      if (!agent.model.startsWith('o3') && !agent.model.startsWith('gpt-5')) {
+        requestParams.temperature = agent.temperature || 0.3;
+      }
+
+      const response = await openai.chat.completions.create(requestParams);
+
+      // Debug logging for gpt-5 responses
+      if (agent.model.startsWith('gpt-5')) {
+        console.log(`🔍 GPT-5 Response Debug (responseGeneration):`);
+        console.log(`   - Response structure: ${JSON.stringify(Object.keys(response))}`);
+        console.log(`   - Choices count: ${response.choices?.length || 0}`);
+        console.log(`   - Content length: ${response.choices[0]?.message?.content?.length || 0}`);
+      }
 
       const output = response.choices[0]?.message?.content || '';
       const latency = Date.now() - startTime;

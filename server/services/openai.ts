@@ -78,7 +78,23 @@ export class OpenAIService {
       const response = await openai.chat.completions.create(requestParams);
 
       const latency = Date.now() - startTime;
-      const output = response.choices[0].message.content || '';
+      
+      // Debug logging for gpt-5 model responses
+      if (config.model.startsWith('gpt-5')) {
+        console.log(`🔍 GPT-5 Response Debug:`);
+        console.log(`   - Model: ${config.model}`);
+        console.log(`   - Response choices count: ${response.choices?.length || 0}`);
+        console.log(`   - First choice exists: ${!!response.choices?.[0]}`);
+        console.log(`   - Message exists: ${!!response.choices?.[0]?.message}`);
+        console.log(`   - Content exists: ${!!response.choices?.[0]?.message?.content}`);
+        console.log(`   - Content length: ${response.choices?.[0]?.message?.content?.length || 0}`);
+        
+        if (response.choices?.[0]?.message?.content) {
+          console.log(`   - Content preview: ${response.choices[0].message.content.substring(0, 100)}...`);
+        }
+      }
+      
+      const output = response.choices[0]?.message?.content || '';
 
       return {
         output,
