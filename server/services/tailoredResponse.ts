@@ -84,6 +84,11 @@ export class TailoredResponseService {
         requestParams.temperature = config.agent.temperature || 0.4;
       }
 
+      // GPT-5 specific parameters
+      if (config.agent.model.startsWith('gpt-5')) {
+        requestParams.reasoning_effort = 'medium'; // Options: minimal, low, medium, high
+      }
+
       const response = await openai.chat.completions.create(requestParams);
 
       const output = response.choices[0]?.message?.content || '';

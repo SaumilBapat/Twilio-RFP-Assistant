@@ -75,6 +75,11 @@ export class OpenAIService {
         requestParams.temperature = config.temperature || 0.7;
       }
 
+      // GPT-5 specific parameters
+      if (config.model.startsWith('gpt-5')) {
+        requestParams.reasoning_effort = 'medium'; // Options: minimal, low, medium, high
+      }
+
       const response = await openai.chat.completions.create(requestParams);
 
       const latency = Date.now() - startTime;

@@ -112,6 +112,11 @@ export class ResponseGenerationService {
         requestParams.temperature = agent.temperature || 0.3;
       }
 
+      // GPT-5 specific parameters
+      if (agent.model.startsWith('gpt-5')) {
+        requestParams.reasoning_effort = 'medium'; // Options: minimal, low, medium, high
+      }
+
       const response = await openai.chat.completions.create(requestParams);
 
       // Debug logging for gpt-5 responses
