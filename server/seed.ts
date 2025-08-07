@@ -12,7 +12,7 @@ async function seedDatabase() {
     steps: [
       {
         name: "Reference Research",
-        model: "gpt-4o",
+        model: "gpt-5",
         temperature: 0.1,
         maxTokens: 2000,
         tools: ["reference_cache", "link_validation"],
@@ -21,7 +21,7 @@ async function seedDatabase() {
       },
       {
         name: "Generic Draft Generation",
-        model: "gpt-4o",
+        model: "gpt-5",
         temperature: 0.3,
         maxTokens: 2000,
         tools: ["response_cache"],
@@ -30,7 +30,7 @@ async function seedDatabase() {
       },
       {
         name: "Tailored RFP Response",
-        model: "o3-mini",
+        model: "gpt-5",
         temperature: 0.4,
         maxTokens: 3000,
         tools: ["no_cache", "additional_documents", "rfp_instructions"],

@@ -545,7 +545,7 @@ Please improve the response based on the user feedback. Use the Generic Draft as
 
       const feedbackStep = {
         ...finalResponseStep,
-        model: 'o3-mini',
+        model: 'gpt-5',
         prompt: enhancedPrompt
       };
 
