@@ -91,7 +91,33 @@ export class TailoredResponseService {
 
       const response = await openai.chat.completions.create(requestParams);
 
-      const output = response.choices[0]?.message?.content || '';
+      // Debug logging for gpt-5 responses
+      if (config.agent.model.startsWith('gpt-5')) {
+        console.log(`🔍 GPT-5 Response Debug (tailoredResponse):`);
+        console.log(`   - Response structure: ${JSON.stringify(Object.keys(response))}`);
+        console.log(`   - Choices count: ${response.choices?.length || 0}`);
+        if (response.choices?.[0]) {
+          console.log(`   - Choice keys: ${JSON.stringify(Object.keys(response.choices[0]))}`);
+          if (response.choices[0].message) {
+            console.log(`   - Message keys: ${JSON.stringify(Object.keys(response.choices[0].message))}`);
+            console.log(`   - Full message: ${JSON.stringify(response.choices[0].message)}`);
+          }
+        }
+      }
+
+      // Extract content - GPT-5 might use different field names
+      let output = '';
+      if (config.agent.model.startsWith('gpt-5')) {
+        // Try multiple possible fields for GPT-5 (using any type for fields that might exist in GPT-5)
+        const choice = response.choices[0] as any;
+        output = choice?.message?.content || 
+                choice?.message?.output || 
+                choice?.output || 
+                (response as any)?.output || 
+                '';
+      } else {
+        output = response.choices[0]?.message?.content || '';
+      }
       const latency = Date.now() - startTime;
 
       console.log(`✅ Tailored response generated in ${latency}ms using ${config.agent.model}`);

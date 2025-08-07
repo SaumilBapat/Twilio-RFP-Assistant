@@ -94,12 +94,28 @@ export class OpenAIService {
         console.log(`   - Content exists: ${!!response.choices?.[0]?.message?.content}`);
         console.log(`   - Content length: ${response.choices?.[0]?.message?.content?.length || 0}`);
         
-        if (response.choices?.[0]?.message?.content) {
-          console.log(`   - Content preview: ${response.choices[0].message.content.substring(0, 100)}...`);
+        if (response.choices?.[0]) {
+          console.log(`   - Choice keys: ${JSON.stringify(Object.keys(response.choices[0]))}`);
+          if (response.choices[0].message) {
+            console.log(`   - Message keys: ${JSON.stringify(Object.keys(response.choices[0].message))}`);
+            console.log(`   - Full message: ${JSON.stringify(response.choices[0].message)}`);
+          }
         }
       }
       
-      const output = response.choices[0]?.message?.content || '';
+      // Extract content - GPT-5 might use different field names
+      let output = '';
+      if (config.model.startsWith('gpt-5')) {
+        // Try multiple possible fields for GPT-5 (using any type for fields that might exist in GPT-5)
+        const choice = response.choices[0] as any;
+        output = choice?.message?.content || 
+                choice?.message?.output || 
+                choice?.output || 
+                (response as any)?.output || 
+                '';
+      } else {
+        output = response.choices[0]?.message?.content || '';
+      }
 
       return {
         output,
