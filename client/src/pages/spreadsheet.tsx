@@ -530,11 +530,12 @@ export default function Spreadsheet() {
                 </>
               )}
               
-              {job.status === 'error' && (
+              {(console.log('Job status:', job.status), (job.status === 'error' || job.status === 'Error')) && (
                 <>
                   <Button
                     onClick={() => handleJobAction('resume')}
                     className="bg-success-600 hover:bg-success-700"
+                    data-testid="button-retry-processing"
                   >
                     <Play className="h-4 w-4 mr-2" />
                     Retry Processing
@@ -543,6 +544,7 @@ export default function Spreadsheet() {
                     onClick={() => handleJobAction('reset')}
                     variant="outline"
                     className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                    data-testid="button-reset-job"
                   >
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Reset Job
