@@ -530,7 +530,27 @@ export default function Spreadsheet() {
                 </>
               )}
               
-              {(job.status === 'completed' || job.status === 'error') && (
+              {job.status === 'error' && (
+                <>
+                  <Button
+                    onClick={() => handleJobAction('resume')}
+                    className="bg-success-600 hover:bg-success-700"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Retry Processing
+                  </Button>
+                  <Button
+                    onClick={() => handleJobAction('reset')}
+                    variant="outline"
+                    className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset Job
+                  </Button>
+                </>
+              )}
+              
+              {job.status === 'completed' && (
                 <>
                   {csvData.some((row: CsvRow) => row.feedback) ? (
                     <Button
