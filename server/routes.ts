@@ -1083,5 +1083,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Q&A API endpoint with API key authentication and streaming
+  app.post('/api/qa', async (req, res) => {
+    // Check API key authentication
+    const authHeader = req.headers.authorization;
+    const providedKey = authHeader?.replace('Bearer ', '');
+    
+    if (!providedKey || providedKey !== process.env.QA_API_KEY) {
+      return res.status(401).json({ error: 'Unauthorized. Please provide a valid API key in the Authorization header.' });
+    }
+
+    const { question } = req.body;
+    
+    if (!question || typeof question !== 'string') {
+      return res.status(400).json({ error: 'Please provide a question in the request body.' });
+    }
+
+    try {
+      // Set up SSE headers for streaming
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no' // Disable nginx buffering
+      });
+
+      // Send initial connection message
+      res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+
+      // Generate response using OpenAI with streaming
+      const result = await openaiService.callOpenAIDirect({
+        model: 'gpt-5',
+        systemPrompt: 'You are a helpful AI assistant. Provide clear, accurate, and concise answers to questions.',
+        userPrompt: question,
+        maxTokens: 2000,
+        temperature: 0.7
+      });
+
+      // Stream the response in chunks
+      const responseText = result.output;
+      const chunkSize = 50; // Characters per chunk
+      
+      for (let i = 0; i < responseText.length; i += chunkSize) {
+        const chunk = responseText.slice(i, i + chunkSize);
+        res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+        
+        // Small delay to simulate streaming
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+
+      // Send completion message
+      res.write(`data: ${JSON.stringify({ type: 'done', fullResponse: responseText })}\n\n`);
+      res.end();
+      
+    } catch (error) {
+      console.error('Q&A API error:', error);
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error instanceof Error ? error.message : 'Failed to generate response' })}\n\n`);
+      res.end();
+    }
+  });
+
+  // Alternative Q&A endpoint without streaming (simpler to use)
+  app.post('/api/qa/simple', async (req, res) => {
+    // Check API key authentication
+    const authHeader = req.headers.authorization;
+    const providedKey = authHeader?.replace('Bearer ', '');
+    
+    if (!providedKey || providedKey !== process.env.QA_API_KEY) {
+      return res.status(401).json({ error: 'Unauthorized. Please provide a valid API key in the Authorization header.' });
+    }
+
+    const { question } = req.body;
+    
+    if (!question || typeof question !== 'string') {
+      return res.status(400).json({ error: 'Please provide a question in the request body.' });
+    }
+
+    try {
+      // Generate response using OpenAI
+      const result = await openaiService.callOpenAIDirect({
+        model: 'gpt-5',
+        systemPrompt: 'You are a helpful AI assistant. Provide clear, accurate, and concise answers to questions.',
+        userPrompt: question,
+        maxTokens: 2000,
+        temperature: 0.7
+      });
+
+      res.json({ 
+        question,
+        answer: result.output,
+        latency: result.latency
+      });
+      
+    } catch (error) {
+      console.error('Q&A API error:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate response',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   return httpServer;
 }

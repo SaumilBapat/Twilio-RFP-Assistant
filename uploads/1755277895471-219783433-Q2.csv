@@ -1,0 +1,11 @@
+﻿Question
+Can you confirm that no Q2 data or Q2 customer data has been exposed to security or privacy events given some of the recent news?
+Do  you conduct background checks on contractors?
+Are vendors required to undergo due diligence prior to be onboarded?
+"We noticed a number of controls related to Data Classification, Record Retention, and Data Destruction were not tested in your SOC 2.  Can you please provide you Data Protection, or similar, policy that outlines requirements associated with these topics?"
+Can you share you policy / controls related to encryption key management?
+Does your company store and/or access Q2 or Q2 customer data in non-US locations?
+"Is any Q2 or Q2 customer data store, accessed, or processed in China?"
+Do you have published RTOs and RPOs?
+Are any AI solutions used in the delivery of services to Q2 or our customers?
+Has Twilio implemented Post Quantum Encryption Standards and if not is there a plan to do so?

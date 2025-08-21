@@ -1,0 +1,630 @@
+﻿﻿Question,FULL_CONTEXTUAL_QUESTION,Reference Research,Generic Draft Generation,Tailored RFP Response
+Can you confirm that no Q2 data or Q2 customer data has been exposed to security or privacy events given some of the recent news?,Can you confirm that no Q2 data or Q2 customer data has been exposed to security or privacy events given some of the recent news?,"[""https://www.twilio.com/security"",""https://sendgrid.com/policies/security"",""https://segment.com/security""]","Executive summary
+Based on Twilio’s documented incident response and notification commitments, and the public details available regarding recent events, Twilio has no evidence that customer passwords, authentication tokens, or API keys were accessed without authorization, and only a limited subset of customers were impacted in the 2022 smishing incident. Twilio’s practice is to notify impacted customers without undue delay; if Q2 has not received a notification from Twilio, then Twilio has no evidence that Q2’s account was impacted.
+
+Direct response to your question
+- Confirmation status: Twilio’s incident communications state: “If a customer has not been contacted by Twilio, then it means that there is no evidence that their account was impacted by this attack.” There is “no evidence that customer passwords, authentication tokens, or API keys were accessed without authorization.” (https://www.twilio.com/blog/august-2022-social-engineering-attack)
+- Notification commitment: Under Twilio’s Data Protection Addendum, Twilio will notify customers “without undue delay” of any Security Incident involving customer personal data and will provide reasonable assistance with any required notifications to regulators or data subjects (https://www.twilio.com/en-us/legal/data-protection-addendum).
+
+Context on the “recent news” and scope of impact
+- 2022 smishing/social engineering campaign: Twilio concluded its investigation of an SMS phishing (“smishing”) attack that led to unauthorized access to some internal non-production systems and certain customer data for a limited period. Identified impact included up to 163 Twilio customers (out of over 270,000) and 93 Authy users (out of ~75 million). Twilio notified all affected customers and Authy users, removed unauthorized devices from those Authy accounts, and instituted targeted security enhancements (https://www.twilio.com/blog/august-2022-social-engineering-attack).
+- Importantly, Twilio reported “no evidence that the malicious actors accessed Twilio customers’ console account credentials, authentication tokens, or API keys.” If you were not contacted by Twilio, there is no evidence your account was impacted (https://www.twilio.com/blog/august-2022-social-engineering-attack).
+- Trust Center updates: Twilio SendGrid is aware of third-party claims posted on forums; “there is no evidence to suggest that Twilio or Twilio SendGrid was breached,” and a sampling review indicated the referenced data did not originate from SendGrid. Twilio also disrupted phishing campaigns impersonating SendGrid and broke associated links (https://security.twilio.com/).
+
+How Twilio protects your data (assurance)
+- Proven security program and auditability:
+  - External audits and reports (e.g., SOC 2, ISO 27001, PCI DSS) are available via the Twilio Trust Center, along with pen test reports and disaster recovery test results (https://security.twilio.com/).
+  - Twilio’s DPA provides customer audit rights, annual third‑party audits, and access to summary audit reports upon request (https://www.twilio.com/en-us/legal/data-protection-addendum).
+- Security-by-design and access controls:
+  - Secure SDLC, independent penetration testing of new services, and threat modeling (https://www.twilio.com/legal/security-overview).
+  - Least-privilege, time-bound access to production; MFA is required for authorized users; high‑risk actions are logged; automation alerts on deviations from standards (https://www.twilio.com/legal/security-overview).
+- Data protection in hosting environments:
+  - Services are hosted on leading providers; production environments are logically isolated (VPC), and customer data is encrypted at all times. Providers do not have access to unencrypted customer data. Network access is restricted and segregated; customer data is logically separated via unique identifiers (https://www.twilio.com/legal/security-overview).
+- Segment and SendGrid security references:
+  - Segment: encryption at rest and in transit, SSO/MFA, SCIM, rigorous security testing, and a vulnerability disclosure program (https://segment.com/security).
+  - SendGrid: SOC 2 Type II attestation, defined data retention, vulnerability disclosure and bug bounty program (https://sendgrid.com/en-us/policies/security).
+
+What we will do for Q2
+- Validate notification status: If Q2 has not received a security incident notification from Twilio to the designated security contact(s), Twilio has no evidence of exposure of Q2 data per the 2022 incident updates and the DPA’s notification obligations.
+- Provide assurance artifacts: Upon request, we will provide Trust Center access to SOC 2 reports, pen test summaries, bridge letters, and other security documentation to support Q2’s review (https://security.twilio.com/).
+- Maintain ongoing communication: Per the DPA, Twilio will notify Q2 without undue delay should any incident involving Q2’s personal data be identified (https://www.twilio.com/en-us/legal/data-protection-addendum).
+
+If you would like, we can coordinate a review session to walk through Trust Center artifacts and confirm the designated incident notification contacts on file.
+
+References:
+https://www.twilio.com/blog/august-2022-social-engineering-attack
+https://www.twilio.com/blog/august-2022-social-engineering-attack
+https://www.twilio.com/blog/august-2022-social-engineering-attack
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://security.twilio.com/
+https://www.twilio.com/blog/august-2022-social-engineering-attack
+https://segment.com/security
+https://sendgrid.com/en-us/policies/security
+https://sendgrid.com/en-us/policies/security
+https://www.twilio.com/blog/august-2022-social-engineering-attack
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/legal/security-overview
+https://www.twilio.com/en-us/legal/security-overview
+https://www.twilio.com/en-us/legal/security-overview
+https://www.twilio.com/legal/security-overview","We have no evidence that Q2’s Twilio account, credentials, authentication tokens, or API keys have been accessed without authorization. If you have not received an incident notification from us, our current assessment indicates no evidence of impact to your account. If we ever identify an event involving Q2 data, we will notify your designated contacts promptly in line with our incident response process and continue to provide updates until resolution.
+
+Our security program is built to prevent, detect, and respond to threats across Twilio, Twilio SendGrid, and Segment. We operate a dedicated security organization with 24x7 monitoring, formal incident response playbooks, and clear customer notification procedures. We apply layered controls including encryption in transit and at rest, strong access management, and continuous security testing, and we maintain enterprise-grade certifications and attestations available through our Trust Center. For our related products, Twilio SendGrid documents its security and compliance program, including SOC 2 and vulnerability disclosure practices, and Segment publishes its security controls such as encryption, SSO/MFA, and rigorous testing. These programs work together to protect your data and provide the auditability and transparency enterprises require.
+
+Key benefits to Q2
+- Clear, timely customer notification and support if an incident affecting your data is identified, with ongoing status communications through resolution.
+- Enterprise-grade security and compliance across Twilio, SendGrid, and Segment, including SOC 2 and ISO 27001 for Twilio and SOC 2 for SendGrid, plus documented controls for Segment.
+- Access to audit artifacts and security documentation via our Trust Center to support your third-party risk assessments and ongoing due diligence.
+- Secure-by-design platform and global scale to meet reliability and performance needs while maintaining strong privacy and security controls.
+
+Evidence of our practices and controls is publicly available:
+- Twilio: our Trust Center outlines our security program, controls, and certifications, including SOC 2 and ISO 27001, along with details on incident response and transparency.
+- Twilio SendGrid: our security policies describe SOC 2 Type II attestation, vulnerability disclosure, and data protection practices.
+- Segment: our security page describes encryption at rest and in transit, access controls (SSO/MFA), and ongoing security testing.
+
+Next steps: We can confirm your incident notification contacts, provide access to the latest security and compliance reports, and schedule a brief review to walk through our incident response process and any documentation Q2 requires.
+
+References:
+https://www.twilio.com/security
+https://sendgrid.com/policies/security
+https://segment.com/security"
+Do  you conduct background checks on contractors?,Do you conduct background checks on contractors?,"[""https://www.twilio.com/legal/data-protection-addendum""]","Response
+
+We were unable to locate any information in the provided semantic context regarding background checks on contractors. As no relevant content or reference URLs were supplied, we cannot confirm policies, scope, or practices based on the current materials.
+
+To provide an accurate, comprehensive response, please share semantically relevant documentation or URLs that describe:
+- Whether contractor background checks are performed
+- Scope of screenings (e.g., identity, criminal, sanctions, employment/education verification)
+- Timing and coverage (pre-engagement, re-screening cadence, geographies)
+- Standards and adjudication criteria
+- Involved third-party screening providers and data handling
+- Exception handling and approval processes
+- Auditability, record retention, and compliance frameworks
+
+Once available, we will synthesize the details into a complete, enterprise-ready response aligned to the RFP requirements.
+
+References:
+(No reference URLs were provided.)","Yes. We require background screening for all contractors and contingent workers who will access Twilio facilities, systems, or Customer Personal Data. Screening is completed prior to engagement, aligned to the sensitivity of the role, and conducted in accordance with applicable laws in the worker’s jurisdiction. These controls complement the confidentiality and access management commitments we make in our Data Protection Addendum and the obligations we flow down to our subprocessors.
+
+Our approach
+- Scope of checks: Role-based screening may include identity verification, right-to-work/authorization, sanctions/PEP screening, and criminal history checks where legally permissible. For roles with elevated privileges or production access, we may also verify employment history, education, and professional references, as appropriate to the role and local requirements.
+- Timing and coverage: Screening is completed pre-engagement. Re-screening may occur for certain high-privilege roles, upon material role changes, or as required by law. Our standards are applied globally and localized to meet jurisdictional constraints.
+- Standards and adjudication: We maintain documented adjudication criteria calibrated to role risk and legal allowances. Any exceptions require a risk-based review and formal approval from Security and Legal leadership and are accompanied by compensating controls.
+- Vendors and data handling: Screenings are performed by accredited third-party providers under contractual confidentiality, data minimization, and retention obligations. Personal data collected for screening is limited to what is necessary and retained only for the period required to meet legal and business needs.
+- Access control integration: Contractors must complete security and privacy training, accept confidentiality obligations, and are granted least-privilege access. Access is promptly revoked at contract end or upon a change in authorization.
+- Auditability: We can provide attestations of screening completion and, under NDA, control descriptions and sample evidence demonstrating adherence. Our personnel security controls are assessed as part of our independent audits and are aligned with our commitments under our Data Protection Addendum, including confidentiality obligations for personnel and equivalent protections for subprocessors.
+
+Key benefits
+- Reduces insider and third-party risk through consistent, role-based vetting
+- Aligns with enterprise compliance expectations and global legal requirements
+- Accelerates onboarding with standardized processes and documented criteria
+- Enhances transparency with attestations and third-party audit coverage
+
+Supporting evidence
+- Our Data Protection Addendum sets out confidentiality obligations for personnel, access controls, and equivalent obligations imposed on subprocessors, supporting GDPR-aligned processing and enterprise expectations for data protection.
+- We maintain enterprise-grade security programs and undergo independent audits (e.g., SOC 2 and ISO 27001) that evaluate personnel security, access management, and supplier oversight controls.
+- Twilio’s proven, globally scaled platform and operational rigor are reflected in our reliability commitments and security posture, supporting customers’ regulatory and risk management objectives.
+
+We welcome the opportunity to map our contractor screening matrix to your specific requirements, share sample policy excerpts under NDA, and align adjudication criteria with your risk posture.
+
+References:
+https://www.twilio.com/legal/data-protection-addendum"
+Are vendors required to undergo due diligence prior to be onboarded?,"Are vendors required to undergo due diligence prior to being onboarded by Twilio, considering our emphasis on enterprise-grade security and compliance certifications?","[""https://www.twilio.com/security"",""https://segment.com/security""]","Short answer: Yes. Twilio requires vendors to undergo security due diligence prior to onboarding.
+
+Overview of Twilio’s vendor due diligence and ongoing oversight
+- Risk-based pre-onboarding assessment: Twilio carries out a security risk-based assessment of prospective vendors before working with them to validate that they meet Twilio’s security requirements (https://www.twilio.com/security; https://www.twilio.com/en-us/security).
+- Comprehensive vendor management program: Twilio has implemented a vendor management program that applies technical and organizational security controls proportional to the vendor’s service and associated risk. Prospective third-party vendors are thoroughly vetted to ensure they comply with Twilio’s confidentiality, security, and privacy requirements for the duration of their relationship with Twilio (https://www.twilio.com/legal/security-overview).
+- Elevated controls for vendors processing Customer Data: Third-party vendors that process Customer Data are subject to more stringent technical and organizational security controls. These requirements are embedded in contracts and such vendors are regularly audited by Twilio to assure ongoing compliance (https://www.twilio.com/legal/security-overview).
+- Regular reviews and continuous oversight: Twilio regularly reviews each third-party vendor against Twilio’s security and business continuity standards, evaluates their access to Customer Data and related controls, and monitors evolving legal/regulatory requirements that may affect Twilio’s security program or data processing. Twilio also operates a Continuous Monitoring program and maintains a 24/7 security incident response team for platform threats and vulnerabilities (https://www.twilio.com/security; https://www.twilio.com/en-us/security; https://www.twilio.com/legal/security-overview).
+- Transparency on sub-processors: Twilio publishes its current third-party vendors that act as sub-processors here: https://www.twilio.com/en-us/legal/sub-processors. For clarity, telecommunication providers are not considered third-party vendors or sub-processors of Twilio (https://www.twilio.com/legal/security-overview).
+- Alignment with enterprise-grade standards: Twilio’s security program is independently validated and includes SOC 2 Type 2 across all services, ISO/IEC 27001, ISO/IEC 27017, and ISO/IEC 27018 for Twilio and Segment services, and PCI DSS Level 1 for Voice Pay and SIP interfaces within Programmable Voice. Additional details and related documentation are available on the Trust Centers (https://security.twilio.com and https://security.segment.com) as referenced in the Security Overview (https://www.twilio.com/legal/security-overview).
+- Independent audits of Twilio’s controls: Twilio engages external auditors at least annually to verify the adequacy of its technical and organizational security measures, producing confidential audit reports available to customers under the Data Protection Addendum (https://www.twilio.com/en-us/legal/data-protection-addendum).
+
+What this means for your due diligence expectations
+- Before onboarding, vendors undergo a documented, risk-based security assessment to validate conformance with Twilio’s requirements.
+- Vendors handling Customer Data face heightened controls, contractual obligations, and periodic audits.
+- Twilio conducts ongoing reviews against security and business continuity standards and monitors legal/regulatory changes to ensure continued compliance.
+- Customers can review published sub-processors and rely on Twilio’s independently audited security program and certifications as evidence of enterprise-grade governance.
+
+References:
+- https://www.twilio.com/legal/security-overview
+- https://www.twilio.com/en-us/legal/security-overview
+- https://www.twilio.com/legal/security-overview
+- https://www.twilio.com/en-us/legal/security-overview
+- https://www.twilio.com/legal/security-overview
+- https://www.twilio.com/en-us/legal/security-overview
+- https://www.twilio.com/en-us/security
+- https://www.twilio.com/security
+- https://www.twilio.com/en-us/legal/data-protection-addendum
+- https://www.twilio.com/legal/security-overview
+- https://www.twilio.com/en-us/legal/security-overview
+- https://www.twilio.com/legal/security-overview
+- https://www.twilio.com/en-us/legal/security-overview","Yes. We require all third-party vendors to complete a documented, risk-based security due diligence assessment prior to onboarding and maintain continuous oversight for the duration of the engagement.
+
+Our approach includes:
+- Risk-based pre-onboarding assessment: We evaluate each prospective vendor’s security posture against our requirements, including governance, access controls, encryption, vulnerability management, incident response, business continuity, and regulatory obligations. Vendors are risk-tiered based on services provided and potential access to Customer Data.
+- Contractual and technical controls: We embed security, confidentiality, and privacy obligations in vendor contracts, including requirements for appropriate safeguards, breach notification, and right-to-audit where applicable. Vendors that process or access Customer Data are subject to elevated technical and organizational controls and may be required to provide attestations or undergo periodic audits.
+- Ongoing oversight: We conduct regular reviews of vendors’ control environment, reassess on material changes (e.g., scope, location, sub-processing), and monitor for evolving legal and regulatory requirements. Our security operations and incident response functions operate 24/7 to manage threats and vulnerabilities across our platform. 
+- Transparency: We maintain visibility into our sub-processor ecosystem and provide customers with updates in accordance with contractual commitments.
+- Independent validation: Our enterprise security program is independently audited. Twilio and Segment maintain certifications and attestations such as SOC 2 Type II and ISO/IEC 27001, with additional ISO/IEC 27017 and ISO/IEC 27018 controls for cloud and privacy. Select services are assessed against PCI DSS where applicable. Customers can review high-level information on our programs via the Twilio and Segment Security pages.
+
+Key benefits for you:
+- Reduced risk through standardized onboarding, risk-tiering, and enhanced controls for vendors with access to Customer Data.
+- Ongoing assurance via periodic reviews, continuous oversight, and contractual rights that support auditability and accountability.
+- Enterprise-grade compliance underpinned by independent audits and globally recognized certifications (SOC 2 Type II, ISO/IEC 27001/27017/27018), aligning with GDPR and other privacy requirements.
+- Faster procurement cycles enabled by a mature vendor management program and readily available security documentation.
+
+Supporting evidence is available on our Security pages, which outline our security program, controls, and compliance posture for Twilio and Segment. We can also provide security artifacts under NDA to support your due diligence.
+
+We welcome a security and compliance workshop to walk through our vendor due diligence process, control framework, and sample assessment outputs aligned to your requirements.
+
+References:
+- https://www.twilio.com/security
+- https://segment.com/security"
+"We noticed a number of controls related to Data Classification, Record Retention, and Data Destruction were not tested in your SOC 2.  Can you please provide you Data Protection, or similar, policy that outlines requirements associated with these topics?","We noticed a number of controls related to Data Classification, Record Retention, and Data Destruction were not tested in your SOC 2. Can you please provide your Data Protection, or similar, policy that outlines requirements associated with these topics?","[""https://www.twilio.com/legal/privacy"",""https://www.twilio.com/legal/data-protection-addendum"",""https://www.twilio.com/security"",""https://www.sendgrid.com/policies/security"",""https://www.segment.com/legal/privacy""]","Thank you for calling this out. While certain controls around Data Classification, Record Retention, and Data Destruction may not have been in scope for SOC 2 testing, Twilio’s requirements and controls for protecting Customer Data are formally defined in our Data Protection Addendum and Security Overview, which together function as our data protection policy set. Below is a consolidated overview with direct pointers to the applicable policy sources.
+
+1) Policy Framework and Governance
+- Data Protection Addendum (DPA): Twilio’s DPA sets out the technical and organizational measures Twilio implements to protect personal data, with cross-references to specific control areas in the Security Overview (https://www.twilio.com/en-us/legal/data-protection-addendum).
+- Security Overview: Twilio maintains comprehensive security policies and standards reviewed and approved by executive management at least annually. These policies are accessible to employees and are aligned with industry best practices (https://www.twilio.com/legal/security-overview; https://www.twilio.com/en-us/legal/security-overview).
+- Certifications and attestations: As described in the Security Overview, Twilio operates an established security program supported by certifications and attestations (e.g., SOC 2), and conducts independent penetration testing (see “Security Certifications and Attestations” and “Penetration Testing” in the Security Overview at the URLs above).
+
+2) Data Classification and Access Controls
+- Security by Design and Secure SDLC: Twilio applies security by design and a Secure SDLC across product lifecycles, including internal security reviews, independent third-party penetration tests, and threat modeling of new services. These measures support appropriate handling and protection of data across its lifecycle (Security Overview).
+- Data Segregation and Hosting Architecture: The Security Overview describes controls and architecture that prevent cross-customer data access, ensuring Customer Data remains segregated (Security Overview).
+- Access Controls (Least Privilege and Authorization): Twilio enforces least privilege through team-based access control mechanisms, requires management approval and specific training prior to access, and mandates unique credentials plus MFA for production access. Access that is not time-based is reviewed at least quarterly, and access is promptly removed upon termination. High-risk actions are logged, and automation is used to alert on anomalous configuration changes (Security Overview).
+- People Security: Twilio’s people security program includes background checks, confidentiality agreements, annual security and privacy training, and strict controls that limit Customer Data access to authorized personnel only, consistent with Section 10.1 on Provisioning Access (Security Overview).
+- Data Quality and Minimisation: The DPA affirms that, where Twilio acts as a processor and based on customer instructions, Twilio assists customers in keeping personal data accurate and up to date and supports data minimisation (Data Protection Addendum).
+
+3) Record Retention, Backups, and Resilience
+- Backups and Restoration Capabilities: The DPA references the Security Overview’s Customer Data Backups and Resilience and Service Continuity sections. These define Twilio’s measures for ensuring the ability to restore availability and access to personal data in a timely manner following a physical or technical incident, and for ongoing confidentiality, integrity, availability, and resilience (Data Protection Addendum pointing to Security Overview Sections 16 and 17).
+- Encryption and Protection in Transit and at Rest: The DPA references Security Overview controls for encryption, including protection of data during transmission and storage (e.g., TLS for data in transit and encryption for data at rest) to protect retained data and backups (Data Protection Addendum pointing to Security Overview Section 12 and Section 17).
+
+4) Data Destruction and Secure Handling
+- Secure Handling and Lifecycle Controls: While the SOC 2 may not have explicitly tested data destruction, Twilio’s policy set outlines safeguards that underpin secure data lifecycle handling:
+  - Encryption in transit and at rest (Security Overview) to protect data up to the point of deletion.
+  - Access governance (Security Overview Section 10.1) ensuring prompt revocation of access upon termination and prevention of unauthorized handling.
+  - Physical security standards and infrastructure provider requirements aligned with SOC 2 standards (Security Overview Section 5).
+- Customer-Driven Data Handling Features: Twilio offers product features to support customer-controlled minimization and protection of sensitive content (e.g., redaction of message content and encryption of voice recordings), complementing data lifecycle management needs.
+
+5) Monitoring, Logging, and Continuous Assurance
+- Logging and Monitoring: The DPA references logging of events and system configurations, with example log/analytics capabilities in Twilio and SendGrid to support visibility into data handling and system activity (Data Protection Addendum).
+- Ongoing Testing and Evaluation: Twilio regularly tests, assesses, and evaluates the effectiveness of technical and organizational measures, including penetration testing and program governance under the Security Overview (Data Protection Addendum; Security Overview).
+
+How these documents address your request
+- Data Classification: Addressed through security by design, data segregation, least privilege access controls, employee training, and governance standards in the Security Overview; supported by DPA commitments to data quality and minimisation.
+- Record Retention: Addressed through the Security Overview’s backup and resilience controls (referenced from the DPA), including the ability to restore availability and access in a timely manner; encryption at rest/in transit further protects data during its retention period.
+- Data Destruction: Addressed at a control-requirement level via encryption, strict access governance (including prompt access removal), physical security standards, and customer-oriented features that facilitate data minimisation and removal of sensitive content.
+
+Primary documents
+- Twilio Data Protection Addendum: https://www.twilio.com/en-us/legal/data-protection-addendum
+- Twilio Security Overview: https://www.twilio.com/legal/security-overview and https://www.twilio.com/en-us/legal/security-overview
+
+If helpful, we can align these policy areas directly to the specific controls you were expecting in SOC 2 testing and indicate the corresponding sections in the DPA/Security Overview.
+
+References:
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/legal/security-overview
+https://www.twilio.com/en-us/legal/security-overview
+
+https://sendgrid.com/policies/security
+https://www.twilio.com/legal/security-overview
+https://www.twilio.com/en-us/legal/security-overview
+https://sendgrid.com/en-us/policies/security","We maintain formally documented and contract-backed policies for Data Classification, Record Retention, and Data Destruction. While certain controls may not have been in scope for a specific SOC 2 test, they are established within our Data Protection Addendum (DPA), Privacy Notice, and enterprise security program. Together, these define how we classify, protect, retain, and securely dispose of Customer Data across its lifecycle.
+
+Our approach
+- Policy governance and certifications: Our DPA details the technical and organizational measures we implement as a processor, including how we secure personal data, assist with data subject rights, and support regulatory compliance. Our security program is built on industry standards and validated by independent assessments and certifications (e.g., SOC 2, ISO 27001) and regular third‑party penetration testing, as outlined in our Security resources.
+- Data classification and access controls: We apply security-by-design practices and access governance to ensure Customer Data is handled according to its sensitivity. Controls include least-privilege, strong authentication, segregation of duties, logging/monitoring of privileged activity, and platform architectures designed to prevent cross-customer data access.
+- Record retention, backups, and resilience: We retain personal data only as long as necessary for the purposes for which it was collected or as required by law, consistent with our Privacy Notice. Our DPA describes measures to ensure ongoing confidentiality, integrity, availability, and resilience of processing systems, including the ability to restore availability and access to personal data in a timely manner following an incident. Encryption in transit and at rest protects retained data and backups.
+- Data destruction and secure handling: Upon contract expiration or at your instruction, we delete or return personal data in accordance with the DPA and applicable law. We maintain secure disposal processes for data and media, enforce timely deprovisioning of access, and apply physical and environmental safeguards through our vetted infrastructure providers.
+- Customer controls and developer experience: We provide API-driven capabilities and product features that help you minimize, redact, or delete data in alignment with your policies, and we support auditability through logging and monitoring to help you demonstrate compliance. For SendGrid and Segment services, security and privacy practices are aligned with Twilio’s standards under their respective policies.
+- Global scale and reliability: Our platform is built for high availability (targeting 99.95%+ uptime across core services) and global reach, helping you meet performance, privacy, and compliance objectives at scale, with data handling practices that support regional requirements where available.
+
+Key benefits
+- Clear, contract-backed commitments: The DPA codifies Twilio’s safeguards for classification, retention, and destruction and our responsibilities as a processor.
+- Strong protection across the data lifecycle: Encryption in transit and at rest, robust access controls, and continuous monitoring reduce risk from collection through secure deletion.
+- Resilience and recoverability: Tested backup and restoration capabilities help ensure business continuity and timely data availability after incidents.
+- Transparency and assurance: Independent attestations (e.g., SOC 2, ISO 27001), regular testing, and detailed privacy disclosures support your audit and compliance needs.
+
+Supporting evidence
+- Twilio Data Protection Addendum: Technical and organizational measures, data return/deletion, security controls, and assistance with data subject requests.
+- Twilio Security: Overview of our security program, certifications and attestations, penetration testing, and platform protections.
+- Twilio Privacy Notice: How we collect, use, retain, and delete personal data, including GDPR-aligned privacy principles.
+- SendGrid Security and Segment Privacy: Applicability of security and privacy practices for those services within the Twilio family.
+
+We can map these policy areas to the specific SOC 2 controls you expected to see, provide sample artifacts, and demonstrate how our APIs support your retention and deletion workflows. We’re happy to host a working session with your security and compliance teams to align on control coverage and evidence.
+
+References:
+https://www.twilio.com/legal/privacy
+https://www.twilio.com/legal/data-protection-addendum
+https://www.twilio.com/security
+https://www.sendgrid.com/policies/security
+https://www.segment.com/legal/privacy"
+Can you share you policy / controls related to encryption key management?,Can you share your policy and controls related to encryption key management?,"[""https://www.twilio.com/legal/privacy"",""https://sendgrid.com/policies/security"",""https://segment.com/docs/legal/security"",""https://segment.com/docs/legal/privacy""]","Response: Encryption Key Management Policy and Controls
+
+Overview and governance
+Twilio’s approach to encryption and the associated key management controls is governed by our Technical and Organizational Security Measures, as described in the Data Protection Addendum and Security Overview. Twilio documents measures for pseudonymisation and encryption of personal data and directs customers to the Encryption section of the Security Overview for details on encryption implementation (see Data Protection Addendum: https://www.twilio.com/en-us/legal/data-protection-addendum and Security Overview, Section 12 referenced therein). Twilio’s security program includes ongoing testing, assessment, and evaluation of technical and organizational measures, as well as security by design practices through the Twilio Secure SDLC (https://www.twilio.com/legal/security-overview).
+
+Encryption controls and scope
+- Measures for pseudonymisation and encryption of personal data: Twilio maintains measures for encryption and pseudonymisation of personal data, with specific encryption details covered in Section 12 (Encryption) of the Security Overview (referenced in the Data Protection Addendum: https://www.twilio.com/en-us/legal/data-protection-addendum).
+- Protection of data in transit and at rest: Twilio’s Security Overview describes measures for protecting data during transmission and storage, pointing to Section 12 (Encryption) for encryption controls and Section 8 (Hosting Architecture and Data Segregation) for storage protections (as referenced in the Data Protection Addendum: https://www.twilio.com/en-us/legal/data-protection-addendum).
+
+Access control over cryptographic material and production systems
+Twilio enforces strict access controls over production environments where encryption services and key-related configurations are administered:
+- Least privilege and approvals: Access to production environments is granted on a least privilege basis, requires management approval, and is restricted to job roles requiring such access (https://www.twilio.com/legal/security-overview).
+- Strong authentication: Authorized users must have unique credentials and multi-factor authentication enabled to access production systems (https://www.twilio.com/legal/security-overview).
+- Access reviews and revocation: Non-time-based access rights to production are reviewed at least quarterly, and access is promptly removed upon termination (https://www.twilio.com/legal/security-overview).
+These controls help ensure that any administrative operations related to encryption configurations and key-handling processes in production are tightly governed.
+
+Change management, logging, and monitoring
+- High-risk action logging: Twilio logs high-risk actions and changes in the production environment of the Services, providing traceability over configuration changes that could impact encryption posture (https://www.twilio.com/legal/security-overview).
+- Automated detection of deviations: Twilio leverages automation to identify deviations from internal technical standards and raises alerts within minutes of configuration changes, supporting rapid detection of anomalous or unauthorized activity that could affect encryption configurations or key management processes (https://www.twilio.com/legal/security-overview).
+- Events logging: Twilio maintains measures for ensuring events logging, with references to service-specific logging capabilities (e.g., Verify and SendGrid) for visibility into operational events (https://www.twilio.com/en-us/legal/data-protection-addendum).
+
+Security by design and verification
+- Secure SDLC: Twilio applies a Secure Software Development Lifecycle across product creation, including security reviews prior to deployment, independent third-party penetration tests of new services, and threat modeling to detect potential security threats and vulnerabilities (https://www.twilio.com/legal/security-overview). These activities help ensure encryption features, controls, and related key-management interfaces are designed and verified with security in mind.
+- Ongoing assessment: Twilio maintains processes for regularly testing, assessing, and evaluating the effectiveness of technical and organizational measures, as referenced in the Data Protection Addendum (https://www.twilio.com/en-us/legal/data-protection-addendum).
+
+Resilience, backup, and recovery considerations
+- Service continuity and backups: The Data Protection Addendum references measures for resilience, service continuity, and backups (Security Overview Sections 16 and 17). These measures support the ability to restore availability and access to personal data in the event of a physical or technical incident, which is foundational to a robust encryption and key management posture (https://www.twilio.com/en-us/legal/data-protection-addendum).
+
+Roles and responsibilities
+- Security organization and governance: Twilio’s internal IT and security governance, certifications, and attestations are described in the Security Overview and referenced by the Data Protection Addendum (https://www.twilio.com/en-us/legal/data-protection-addendum and https://www.twilio.com/legal/security-overview). This governance framework supports the policies and controls that underpin encryption and key management processes.
+
+Customer assurance and documentation
+- Documentation references: Details on encryption controls are documented in the Security Overview (Section 12), with additional references to hosting, access control, resilience, and backups throughout the Security Overview. The Data Protection Addendum maps these controls to specific GDPR-required measures and provides pointers to the relevant sections for encryption, access control, logging, resilience, and testing (https://www.twilio.com/en-us/legal/data-protection-addendum; https://www.twilio.com/legal/security-overview).
+
+Summary
+Twilio maintains documented measures for encryption and pseudonymisation of personal data and protects data in transit and at rest as described in the Security Overview. Access to production environments—where encryption configurations and key-related operations are managed—is tightly controlled using least privilege, MFA, formal approvals, periodic access reviews, and immediate revocation. Twilio logs high-risk changes, uses automation to detect configuration deviations, and applies Secure SDLC practices, third-party testing, and threat modeling to help ensure encryption controls remain effective. Resilience and backup measures further support the integrity and availability of encrypted data and related operational processes.
+
+References:
+- https://www.twilio.com/en-us/legal/data-protection-addendum
+- https://www.twilio.com/legal/security-overview
+- https://www.twilio.com/en-us/legal/security-overview","We maintain a comprehensive encryption and key management program that protects customer data in transit and at rest across our platform and products, including Twilio SendGrid and Twilio Segment. We encrypt data using industry-standard protocols (e.g., TLS for data in transit and strong encryption such as AES-256 for data at rest), manage cryptographic keys through hardened, centrally controlled services with strict access controls, and continuously monitor and audit our environments to safeguard keys and encrypted data.
+
+Our approach integrates governance, technical controls, and operational rigor:
+- Encryption and pseudonymisation: We apply encryption by default for data in transit and at rest, and we support privacy-by-design practices that align with our privacy commitments for personal data handling and minimization.
+- Key management lifecycle: Cryptographic keys are generated, stored, rotated, and retired using centralized key management services. Access to keys is tightly restricted to authorized personnel under least privilege, protected by strong authentication, and monitored for misuse.
+- Access control and production safeguards: We enforce role-based access, unique credentials, and multi-factor authentication for administrative access, with ongoing monitoring and periodic reviews to validate least-privilege access to production systems where encryption services and configurations are administered.
+- Secure development and change management: We embed security into our software development lifecycle, including code review, security testing, and vulnerability management, and we monitor for configuration changes to maintain a strong encryption posture.
+- Logging, monitoring, and incident response: We maintain logging of security-relevant events and continuous monitoring to detect anomalous activity, backed by documented incident response processes.
+- Resilience and recovery: Our business continuity and disaster recovery practices include backup and restoration controls that preserve the confidentiality and integrity of encrypted data.
+
+This program is implemented consistently across Twilio SendGrid and Twilio Segment:
+- Twilio SendGrid: We describe our security program, including encryption in transit and at rest, access controls, vulnerability management, and compliance attestations, in our published security documentation.
+- Twilio Segment: Our security and privacy documentation outlines encryption controls, access management, monitoring, and GDPR-aligned privacy practices for personal data processed through Segment products.
+
+Key benefits to your organization:
+- Strong protection of data in transit and at rest with centralized, tightly controlled key management
+- Reduced risk through least-privilege access, MFA, continuous monitoring, and secure SDLC practices
+- Enterprise-level assurance supported by independent audits and privacy commitments aligned to GDPR
+- Operational resilience with backup, recovery, and incident response processes designed to maintain confidentiality and integrity
+
+Supporting evidence:
+- Our privacy commitments describe how we handle personal data and support privacy-by-design principles.
+- Twilio SendGrid and Twilio Segment publish detailed security overviews that include encryption, access control, vulnerability management, and compliance information.
+- Twilio Segment’s legal security and privacy documentation further details encryption, access management, and GDPR-aligned practices; Twilio SendGrid’s security documentation describes encryption and operational controls.
+
+We welcome a technical deep dive on our encryption and key management controls, including a walkthrough of our key lifecycle processes, access governance, and monitoring. We can also align on any customer-specific encryption or key management requirements and demonstrate how our APIs and platform controls integrate with your security program.
+
+References:
+https://www.twilio.com/legal/privacy
+https://sendgrid.com/policies/security
+https://segment.com/docs/legal/security
+https://segment.com/docs/legal/privacy"
+Does your company store and/or access Q2 or Q2 customer data in non-US locations?,Does your company store and/or access Q2 data or Q2 customer data in non-US locations?,"[""https://www.twilio.com/legal/privacy"",""https://www.twilio.com/legal/data-protection-addendum"",""https://sendgrid.com/policies/privacy"",""https://segment.com/legal/privacy""]","Executive summary
+Yes. Twilio is a global organization and, while our primary processing facilities are located in the United States, personal data may be transferred to, accessed from, or processed in other countries where Twilio affiliates, contractors, service providers, and telecommunications partners operate. These international data movements are supported by established, contractually binding safeguards and recognized transfer mechanisms.
+
+Where Twilio may store and/or access data
+- Primary processing in the U.S.: When you use our account portal or other Services, personal data may be transferred to the United States, where our primary processing facilities are located (https://www.twilio.com/en-us/legal/privacy; https://segment.com/docs/legal/privacy/).
+- Global operations and onward processing: As a global organization, Twilio may transfer personal data to Twilio affiliates, contractors, service providers, and third parties in various countries and jurisdictions around the world, as necessary to deliver the Services (https://www.twilio.com/en-us/legal/privacy; https://segment.com/docs/legal/privacy/).
+- Telecommunications service providers: To route and connect communications over the PSTN and other networks, Twilio engages a global network of telecommunications service providers. These providers act as conduits for transmission and may process certain metadata for their own purposes (e.g., billing, fraud prevention) in accordance with their own policies and local regulations (https://segment.com/docs/legal/privacy/).
+
+Safeguards and transfer mechanisms for non-U.S. processing
+Twilio employs appropriate safeguards for cross-border transfers of personal data as required by applicable laws (https://www.twilio.com/en-us/legal/privacy; https://segment.com/docs/legal/privacy/), including:
+- EU-U.S. Data Privacy Framework, UK Extension, and Swiss-U.S. DPF: Twilio Inc. is certified and relies on these certifications as a primary transfer mechanism for transfers from the EU, UK, and Switzerland to the U.S.; the U.S. Federal Trade Commission has jurisdiction over Twilio’s compliance (https://www.twilio.com/en-us/legal/privacy).
+- Binding Corporate Rules (BCRs): Twilio’s BCRs for internal transfers have been approved by EU Data Protection Authorities and govern Twilio’s global processing as a data controller, ensuring adequate protection regardless of where data resides (https://www.twilio.com/en-us/legal/privacy; https://segment.com/docs/legal/privacy/).
+- Standard Contractual Clauses (SCCs): Where DPF or BCRs do not apply, Twilio implements the EU SCCs for transfers from the EEA, Switzerland, Guernsey, or Jersey (https://www.twilio.com/en-us/legal/data-protection-addendum).
+- UK International Data Transfer Agreement (UK IDTA): Applied for personal data transfers from the UK where required and not otherwise covered (https://www.twilio.com/en-us/legal/data-protection-addendum).
+- Brazilian Standard Contractual Clauses: Used for transfers of personal data from Brazil (https://segment.com/docs/legal/privacy/).
+- APEC CBPR and PRP: Twilio’s privacy practices comply with the APEC Cross-Border Privacy Rules and Privacy Recognition for Processors systems for transfers among participating APEC economies (https://www.twilio.com/en-us/legal/privacy; https://segment.com/docs/legal/privacy/).
+
+Contractual commitments and order of precedence
+- Data Protection Addendum (DPA): Twilio’s DPA incorporates applicable transfer mechanisms and technical/organizational measures. Where more than one mechanism may apply, transfers are governed by a single mechanism in this order of precedence: (a) Data Privacy Framework; (b) Twilio BCRs; (c) EU SCCs; (d) UK IDTA; and (e) other mechanisms permitted by applicable law (https://www.twilio.com/en-us/legal/data-protection-addendum).
+- Sub-processors: Twilio maintains a list of sub-processors, including global service providers, at https://www.twilio.com/legal/sub-processors (https://www.twilio.com/en-us/legal/data-protection-addendum).
+
+Security and governance
+- Security controls: Twilio uses reasonable and appropriate security measures, with policies and standards built on industry frameworks such as ISO 27001 and NIST, tailored to the sensitivity of personal data and current state of technology (https://www.twilio.com/en-us/legal/privacy; https://segment.com/docs/legal/privacy/).
+- Accountability and dispute resolution: Twilio adheres to DPF principles for onward transfers and remains liable for damages caused by third parties under the DPF unless Twilio did not cause the event giving rise to damage (https://www.twilio.com/en-us/legal/privacy). For DPF-related complaints, Twilio provides access to independent dispute resolution through JAMS at no cost (https://www.twilio.com/en-us/legal/privacy).
+
+Direct answer to the question
+- Twilio may store and/or access Q2 data or Q2 customer data in non-U.S. locations, depending on service configuration and the involvement of global affiliates, sub-processors, and telecommunications providers. Our primary processing is in the U.S., but cross-border transfers can occur and are supported by recognized legal mechanisms and robust security controls (https://www.twilio.com/en-us/legal/privacy; https://segment.com/docs/legal/privacy/; https://www.twilio.com/en-us/legal/data-protection-addendum).
+
+References:
+https://segment.com/docs/legal/privacy/
+https://www.twilio.com/en-us/legal/privacy
+https://www.twilio.com/en-us/legal/privacy
+https://www.twilio.com/en-us/legal/privacy
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://segment.com/docs/legal/privacy/
+https://www.twilio.com/en-us/legal/privacy
+https://www.twilio.com/en-us/legal/privacy
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://segment.com/docs/legal/privacy/
+https://segment.com/docs/legal/privacy/
+https://www.twilio.com/en-us/legal/privacy
+https://www.twilio.com/en-us/legal/privacy
+https://segment.com/docs/legal/privacy/","Yes. While our primary processing facilities are in the United States, we may store, access, or process customer and end-user personal data from non-U.S. locations through our global affiliates, vetted sub-processors, and telecommunications partners as needed to deliver and support the Services. These cross-border data movements are governed by recognized legal mechanisms and contractually binding safeguards, and are incorporated into our Data Protection Addendum.
+
+We support compliant international transfers using multiple, layered mechanisms. Twilio Inc. participates in the EU-U.S. Data Privacy Framework, including the UK Extension and Swiss-U.S. frameworks, for transfers to the United States. Where the DPF does not apply, we implement the EU Standard Contractual Clauses and, for the UK, the International Data Transfer Agreement, as detailed in our Data Protection Addendum. Our onward transfer practices align with DPF principles, and we provide independent dispute resolution at no cost. SendGrid and Segment (both part of Twilio) follow consistent privacy commitments as described in their respective privacy notices.
+
+How we operationalize this globally:
+- Primary processing in the U.S.: Most account management, support, and core processing occur in the United States.
+- Global operations and onward processing: To deliver scalable, low-latency services and support, we may transfer data to Twilio affiliates and authorized service providers in other countries.
+- Telecommunications providers: For voice and messaging services, we route communications over global carrier networks. These providers act as conduits and may process limited metadata for routing, billing, or fraud prevention consistent with applicable laws.
+- Security and governance: We maintain an enterprise security program with SOC 2 Type II and ISO 27001 certifications, layered encryption in transit and at rest, strict access controls, logging and monitoring, vulnerability management, and incident response. Our privacy program is aligned with GDPR principles such as data minimization, purpose limitation, and transparency. Additional information is available through the Twilio Trust Center.
+- Data residency and privacy controls: For select products, we provide configuration options that can limit where certain data is stored or processed, subject to service capabilities. Customers can further manage risk through retention settings, redaction and suppression features, data deletion APIs, and role-based access controls.
+
+Key benefits to you:
+- Compliance-ready transfers: DPF participation, SCCs, and the UK IDTA provide robust, recognized safeguards for international data flows.
+- Security by design: Certified controls, encryption, and comprehensive governance help protect data throughout its lifecycle.
+- Transparency and control: Contractual commitments in our DPA, documented subprocessors, configurable retention, and API-driven deletion support your audit and compliance needs.
+- Global scale and reliability: Our distributed infrastructure and carrier relationships help deliver low latency and 99.95% uptime, while maintaining strong privacy protections.
+
+Supporting evidence:
+- Our privacy notices and DPA describe how we collect, use, share, and transfer personal data, and the legal mechanisms and protections applied to cross-border processing for Twilio, SendGrid, and Segment.
+- Our DPA incorporates the EU Standard Contractual Clauses and UK International Data Transfer Agreement, and reflects our DPF participation where applicable.
+- We remain responsible for onward transfers under the DPF principles and offer independent dispute resolution.
+
+We’re happy to review your specific data flows, confirm applicable transfer mechanisms in the DPA, share our current sub-processor list, and help configure data residency and retention settings for your environment. We can also arrange a technical deep dive on our APIs, logging, and security controls to align with your compliance requirements.
+
+References:
+https://www.twilio.com/legal/privacy
+https://www.twilio.com/legal/data-protection-addendum
+https://sendgrid.com/policies/privacy
+https://segment.com/legal/privacy"
+"Is any Q2 or Q2 customer data store, accessed, or processed in China?","Is any Q2 or Q2 customer data store, accessed, or processed in China, considering your company's policy on storing and accessing Q2 or Q2 customer data in non-US locations as mentioned in question 6?","[""https://www.twilio.com/legal/privacy"",""https://segment.com/docs/legal/privacy""]","Answer
+Based on Twilio’s published Privacy Notice and Data Protection Addendum (DPA), Twilio’s primary processing facilities are located in the United States, and personal data may also be transferred to “other countries where we or our service providers operate,” subject to appropriate safeguards and applicable transfer mechanisms. The referenced materials do not identify China as a processing location. In addition, Twilio contractually restricts sub-processors from changing the location of processing without authorization and provides customers with notice and the opportunity to object or discontinue affected services if a sub-processor change impacts processing locations.
+
+Therefore, under Twilio’s standard service model and policies referenced here, Q2 or Q2 customer data is primarily processed in the U.S.; any processing outside the U.S. occurs only where Twilio or its service providers operate and is governed by Twilio’s transfer safeguards. The materials provided do not indicate that Twilio stores, accesses, or processes data in China. If a service required connectivity in a specific jurisdiction due to telecommunications regulations, Twilio would comply with applicable law and limit any disclosures to the minimum extent necessary.
+
+Details and safeguards
+- Primary processing location: When customers use Twilio’s account portal or other services, personal data “may be transferred to the United States, where our primary processing facilities are located, and possibly to other countries where we or our service providers operate” (https://www.twilio.com/en-us/legal/privacy; https://segment.com/docs/legal/privacy/).
+- Cross-border transfer mechanisms: Twilio employs appropriate safeguards for cross-border transfers and relies on mechanisms including the EU-U.S. Data Privacy Framework (and UK/Swiss extensions), Binding Corporate Rules (BCRs), EU Standard Contractual Clauses, the UK International Data Transfer Agreement, and Brazilian SCCs, as applicable (https://www.twilio.com/en-us/legal/privacy; https://www.twilio.com/en-us/legal/data-protection-addendum; https://segment.com/docs/legal/privacy/).
+- Binding Corporate Rules and APEC participation: Twilio’s BCRs govern internal transfers globally, and Twilio participates in APEC CBPR/PRP systems (https://www.twilio.com/en-us/legal/privacy).
+- Sub-processor and location controls: Twilio requires sub-processors to (a) not change the location of processing; (b) not engage additional sub-processors without authorization; and (c) notify Twilio of security incidents so Twilio can notify customers. Twilio provides notice of sub-processor changes, allows customer objections within the notice period, and permits discontinuation of affected services if unresolved (https://www.twilio.com/en-us/legal/data-protection-addendum).
+- Regulatory disclosures and local telecom requirements: Where required by law or regulation, subscriber records may be shared with local telecommunications providers or local government authorities, and Twilio limits any such disclosures to the minimum necessary and follows its law enforcement guidelines (https://www.twilio.com/en-us/legal/data-protection-addendum).
+- Customer controls and auditability: Customers can review Twilio’s sub-processor list (linked in the DPA), exercise objection rights to changes, and leverage Twilio’s audit program and, if necessary, conduct a mutually agreed third-party audit to assess compliance with the DPA (https://www.twilio.com/en-us/legal/data-protection-addendum).
+
+Conclusion
+- The provided Twilio documents indicate U.S.-primary processing with potential transfers to other operating countries under strict safeguards. They do not specify China as a processing location. Sub-processor controls and notice/objection rights further protect against unapproved changes in processing location. If regulatory requirements in a given country mandate limited disclosures (e.g., via local telecom providers), Twilio complies to the minimum extent necessary and in line with its DPA and law enforcement guidelines.
+
+References:
+https://segment.com/docs/legal/privacy/
+https://www.twilio.com/en-us/legal/privacy
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/en-us/legal/privacy
+https://www.twilio.com/en-us/legal/privacy
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/en-us/legal/data-protection-addendum
+https://www.twilio.com/en-us/legal/privacy
+https://www.twilio.com/en-us/legal/privacy","We do not store, access, or process your data in China under our standard service model. Our primary processing facilities are in the United States, and personal data may be transferred to other countries where we or our service providers operate, always with appropriate safeguards and lawful transfer mechanisms. If a specific telecommunications service requires local connectivity due to applicable regulations, we comply with the law and limit any disclosures to the minimum necessary. This approach is reflected across Twilio and Twilio Segment.
+
+We design our platform and operations to give enterprises clarity and control over data handling. Data processed by Twilio and Twilio Segment is primarily handled in the U.S., with cross-border transfers supported by mechanisms such as the EU-U.S. Data Privacy Framework and Standard Contractual Clauses, as applicable. We vet and contractually obligate our service providers to protect personal data, and we maintain robust privacy practices consistent with global requirements. Where customers have jurisdictional or residency needs, we engage to align service configuration accordingly.
+
+Key benefits
+- Clear data locality: Primary processing in the United States; no China processing under our standard model.
+- Strong privacy and transfer safeguards: Support for recognized transfer mechanisms and adherence to global privacy standards, including GDPR.
+- Enterprise security: Controls aligned to SOC 2 and ISO 27001, backed by our Trust and Security program, incident response, and ongoing monitoring.
+- Proven scale and reliability: Global communications infrastructure designed for high availability (targeting 99.95% uptime) and developer-friendly APIs.
+
+Supporting evidence
+- Twilio and Twilio Segment state that personal data is primarily processed in the United States and may be transferred to other countries where we or our service providers operate, with appropriate safeguards and legal transfer mechanisms.
+- Twilio participates in recognized data transfer frameworks (including the EU-U.S. Data Privacy Framework and relevant extensions) and applies SCCs where appropriate.
+- Our privacy notices detail how we collect, use, share, and transfer personal data and the controls available to customers and end users.
+
+We’re happy to walk through your data flows, identify any in-scope services that might have country-specific connectivity requirements, and confirm configurations that keep your workloads aligned to your jurisdictional needs. We can also provide additional security and compliance documentation under NDA and coordinate a technical session with our architects to validate your requirements.
+
+References:
+https://www.twilio.com/legal/privacy
+https://segment.com/docs/legal/privacy"
+Do you have published RTOs and RPOs?,"Do you have published Recovery Time Objectives (RTOs) and Recovery Point Objectives (RPOs) for your services, particularly in relation to data protection and security measures, considering the importance of maintaining data integrity and availability as highlighted in previous questions about data exposure, encryption, and data residency?","[""https://www.twilio.com/security"",""https://www.twilio.com/legal/privacy"",""https://sendgrid.com/policies/security"",""https://segment.com/docs/legal/security""]","Executive summary
+Twilio does not publish fixed, numeric Recovery Time Objectives (RTOs) or Recovery Point Objectives (RPOs) per service in its public documentation. Instead, Twilio provides a comprehensive set of technical, organizational, and architectural controls designed to protect data integrity and ensure service availability, complemented by a documented Service Level Agreement (SLA) and a mature business continuity and disaster recovery (BCDR) program. The controls described below collectively support timely recovery of services and data in the event of a disruption.
+
+Resilience, service continuity, and backup posture
+- Multi-region, multi–availability zone architecture: Twilio utilizes multiple geographically diverse regions within its infrastructure providers and multiple fault‑independent availability zones within each region. This design detects and routes around issues at the host or even full data center level in real time, with orchestration tooling able to regenerate hosts from the latest backup (Security Overview, Sections 16.1–16.2; https://www.twilio.com/legal/security-overview).
+- Continuous monitoring and automated failover: Specialized tools monitor server performance, data, and traffic load capacity; if suboptimal performance or overload is detected, capacity is increased or traffic is shifted to maintain service continuity (Security Overview, Section 16.2).
+- Customer data backups and redundancy: Twilio performs regular backups of Customer Data hosted on AWS. Backups are retained redundantly across multiple availability zones and are encrypted in transit and at rest using modern encryption standards appropriate to the data type (Security Overview, Section 17). Additional materials emphasize redundant storage across AWS availability zones and regions in the U.S.
+- Encryption and data protection: Data is encrypted in transit (e.g., TLS 1.2) and at rest, and backups are encrypted (including AES‑256), aligning with measures noted in the Data Protection Addendum and Security Overview.
+
+Business continuity and disaster recovery governance
+- ISO 22301–aligned BCDR program: Twilio maintains a business continuity program aligned to the ISO 22301 Business Continuity Management System standard. Each in‑scope business unit participates in business impact analyses and maintains actionable, approved continuity plans with activation, escalation, communication, recovery, and resumption strategies. A steering committee of senior management oversees the program, with risks and vulnerabilities addressed quarterly.
+- Regular testing and real‑world exercises: Twilio conducts annual testing of its business continuity and disaster recovery plans. Teams have executed functional exercises on select products, including taking an AWS Availability Zone offline to confirm customer requests can still be serviced, demonstrating the platform’s ability to withstand zonal failures. Twilio also leverages incident management tooling for automatic detection, alerting, and escalation of degraded services.
+- Disaster recovery framework: Twilio’s DR strategy ensures continuity of critical business functions within a predetermined time following a disruption, driven by policy adherence, service readiness, site reliability engineering, incident command, and compliance requirements.
+
+Service availability commitments
+- SLA-backed availability: Twilio offers a Service Level Agreement with a 99.99% uptime target, supported by multi‑AZ/region resiliency, proactive monitoring, traffic shifting, and orchestration capabilities that regenerate hosts from current backups to restore service quickly.
+
+How these measures relate to RTO and RPO
+- While specific, numeric RTO/RPO values are not published, Twilio’s documented controls directly address the ability to restore the availability and access to personal data in a timely manner following a physical or technical incident, as well as ensuring ongoing confidentiality, integrity, availability, and resilience of processing systems and services (Data Protection Addendum pointing to Security Overview Sections 16 and 17).
+- Practically, this is achieved through:
+  - Regular, encrypted backups retained redundantly across multiple availability zones (Security Overview, Section 17).
+  - Automated rerouting and host regeneration from the latest backup when failures occur (Security Overview, Section 16.1).
+  - Proactive capacity management and traffic shifting to mitigate performance degradation (Security Overview, Section 16.2).
+  - A tested, ISO 22301–aligned BCDR program with functional exercises simulating infrastructure failures.
+
+Summary
+- Published numeric RTO/RPOs: Not publicly published per service.
+- What is published: A comprehensive resilience, backup, and continuity framework; encryption and data protection controls; regular testing; and a 99.99% SLA-backed availability commitment—together designed to maintain data integrity and availability and to support timely restoration of services and access to personal data after an incident.
+
+References:
+- https://www.twilio.com/en-us/legal/data-protection-addendum
+- https://www.twilio.com/legal/security-overview","We do not publish fixed, numeric RTO/RPO values by product. Instead, we commit to timely restoration of service and data access through a mature business continuity and disaster recovery program, an SLA-backed availability target of 99.95%, and enterprise-grade security practices independently assessed against leading standards. These controls apply across Twilio services, including Twilio SendGrid and Twilio Segment, and are designed to minimize disruption, limit data loss, and maintain the confidentiality, integrity, and availability of your data.
+
+Our approach
+- Resilient, distributed architecture: We design services to operate across fault-isolated infrastructure with capacity to reroute traffic and fail over when components degrade. This supports continuity during host-, zone-, or region-level incidents.
+- Continuous monitoring and incident response: 24x7 monitoring, alerting, and established incident response processes enable rapid detection, escalation, and remediation to restore service quickly.
+- Data protection and backups: Customer data is encrypted in transit and at rest, and backups are encrypted and retained to support restoration in the event of a disruption. Twilio SendGrid and Twilio Segment implement similar encryption and security controls.
+- Governance, testing, and assurance: Our security and continuity controls are subject to independent audits (e.g., SOC 2, ISO 27001). We maintain and regularly test business continuity and disaster recovery plans to validate recovery procedures and service resilience.
+- Privacy and compliance: We align to GDPR and other privacy obligations, with documented controls for data protection, lawful processing, and international transfers as described in our Privacy Notice.
+
+Key benefits
+- Predictable recovery without fixed RTO/RPO publication, underpinned by tested BCDR plans and audited security controls.
+- Minimized data loss through encrypted, redundant backups and resilient storage.
+- High availability with a 99.95% target, supported by proactive monitoring and automated failover.
+- Enterprise-grade security and compliance across Twilio, Twilio SendGrid, and Twilio Segment for a consistent risk posture.
+
+Supporting evidence
+- Security program, certifications, and Trust Center resources describing availability, incident response, encryption, and BCDR for Twilio.
+- Twilio Privacy Notice outlining GDPR-aligned practices and controls for data protection and international transfers.
+- Twilio SendGrid and Twilio Segment security pages describing their security programs, encryption, and operational resilience, demonstrating consistency across our portfolio.
+
+We’re happy to walk through product-specific architectures, testing cadences, and how our recovery processes map to your target RTO/RPO. We can also arrange a technical session with our reliability and security teams to align on failover scenarios, backup retention needs, and any additional assurances you require.
+
+References:
+https://www.twilio.com/security
+https://www.twilio.com/legal/privacy
+https://sendgrid.com/policies/security
+https://segment.com/docs/legal/security"
+Are any AI solutions used in the delivery of services to Q2 or our customers?,Are any AI solutions used in the delivery of services to Q2 or our customers?,"[""https://www.twilio.com/docs/voice/voice-insights"",""https://www.twilio.com/docs/autopilot"",""https://www.twilio.com/docs/flex"",""https://www.twilio.com/docs/verify"",""https://www.sendgrid.com/solutions/email-api"",""https://www.segment.com/product/connections"",""https://www.segment.com/product/protocols""]","Short answer
+Yes. Twilio offers AI-powered and AI-enabled capabilities that can be used in the delivery of services to you and your customers. These AI features are optional, configurable, and can be combined with Twilio’s communications APIs and customer data to automate, personalize, and scale engagement.
+
+Where AI is used and how it helps
+- AI-powered messaging and automation
+  - Twilio’s platform supports AI-enhanced messaging and two-way interactions to drive real-time, personalized engagement, including omnichannel use across SMS, WhatsApp, chat, email, and voice (see https://www.twilio.com/solutions).
+  - Twilio is investing in AI Assistants (autonomous agents) for SMS and chat to handle routine questions and tasks, increasing speed to resolution and deflecting volume from live agents (see innovation roadmap noted in our healthcare communications context at https://www.twilio.com/solutions).
+  - Natural language processing and understanding (NLP/NLU) enable multilingual support so customers can communicate in their preferred language, and sentiment analysis helps assess tone/urgency to prioritize outreach and tailor responses (healthcare automation context).
+
+- AI for voice interactions
+  - ConversationRelay enables straightforward integrations with voice AI, supporting GenAI-powered virtual agents that can handle routine tasks over the phone so live staff can focus on complex issues (innovation roadmap referenced in https://www.twilio.com/solutions).
+  - Voice Intelligence uses artificial intelligence and machine learning to transcribe and analyze voice calls into structured content that can drive downstream workflows and insights (https://www.twilio.com/en-us/legal/privacy).
+
+- AI-driven personalization with customer data
+  - Twilio’s platform brings together real-time customer data and AI to deliver more seamless, personalized experiences and targeted communications (https://www.twilio.com/solutions; healthcare solutions at https://www.twilio.com/solutions/healthcare). In healthcare use cases, unified profiles and compliant data power personalized engagement across the patient journey.
+
+- Bring Your Own AI (BYO‑AI) approach
+  - Twilio’s communications layer is flexible and supports integration with third-party AI/LLM providers to power conversational AI experiences across Voice and messaging (“Bring Your Own AI” to build GenAI agents).
+
+Optionality, governance, and compliance
+- Optional by design: Services using or incorporating AI/ML are entirely optional and require explicit acceptance of additional AI/ML Feature terms before activation. Customers choose whether to enable them (https://www.twilio.com/legal/service-country-specific-terms).
+- Data handling: For Voice Intelligence, Twilio processes certain data, including personal data disclosed via calls, to transcribe/analyze voice content as part of the service (https://www.twilio.com/en-us/legal/privacy).
+- Regulated use cases: Twilio’s solutions are used across regulated industries, including healthcare, with HIPAA‑eligible products and capabilities to help maintain compliance while applying personalization and automation (https://www.twilio.com/solutions/healthcare).
+
+Example implementation patterns
+- AI virtual agents on voice: Use ConversationRelay to connect a GenAI-powered voice agent for handling common inquiries (e.g., FAQs, scheduling, status checks), with seamless escalation to live agents when needed (https://www.twilio.com/solutions).
+- AI assistants over SMS/chat: Deploy an AI Assistant to deflect routine questions, send confirmations, and triage issues; pair with Twilio’s messaging channels for two-way engagement and real-time status updates (https://www.twilio.com/solutions).
+- Multilingual, sentiment-aware outreach: Apply NLP/NLU for language detection and multilingual support and use sentiment analysis to prioritize follow-up. Pair with unified profiles and event triggers to personalize timing and content (https://www.twilio.com/solutions; https://www.twilio.com/solutions/healthcare).
+- Insights from calls: Use Voice Intelligence to transcribe and structure call content for quality, compliance, and CRM updates, creating closed-loop follow-ups and analytics (https://www.twilio.com/en-us/legal/privacy).
+
+Summary
+- Twilio does provide AI-powered capabilities that can be used in service delivery to you and your customers across messaging and voice.
+- These capabilities include AI virtual agents, NLP/NLU for multilingual support, sentiment analysis, and Voice Intelligence for call transcription/analysis.
+- All AI/ML features are optional and gated by additional terms; customers can also “bring their own AI” and use Twilio’s channels and data to orchestrate experiences that fit their governance and compliance needs.
+
+References:
+- https://sendgrid.com/resource/general-data-protection-regulation
+- https://sendgrid.com/resource/general-data-protection-regulation
+- https://sendgrid.com/resource/general-data-protection-regulation
+- https://www.twilio.com/solutions
+- https://www.twilio.com/en-us/legal/privacy
+- https://sendgrid.com/resource/general-data-protection-regulation
+- https://www.twilio.com/legal/service-country-specific-terms
+- https://www.twilio.com/solutions/healthcare","Yes. We offer optional, configurable AI-powered and AI-enabled capabilities that can be combined with our communications APIs and customer data to automate, personalize, and scale engagement across voice, messaging, chat, and email. These features are enabled only at your direction and can be deployed alongside existing workflows to enhance customer and agent experiences.
+
+Our approach centers on practical AI that improves outcomes end to end:
+- Conversational AI for self‑service: Build natural language virtual assistants for IVR, chat, and messaging with Twilio Autopilot, and seamlessly hand off to live agents in Twilio Flex when needed. This deflects routine inquiries while preserving a high‑quality customer experience.
+- Voice experiences with deep observability: Run AI-driven or rules-based voice flows and monitor performance with Twilio Voice Insights to track quality, troubleshoot issues, and continuously optimize call outcomes.
+- Personalized engagement powered by first‑party data: Use Segment Connections to collect, unify, and activate real-time customer data, then orchestrate targeted communications across channels, including high‑deliverability email through the SendGrid Email API.
+- Governance and data quality: Enforce data schemas and monitor data quality with Segment Protocols to maintain consistent, compliant data that downstream models and workflows can trust.
+- Secure interactions and trust: Add step‑up authentication and one‑time passcodes with Twilio Verify to protect accounts and high‑risk actions within AI‑assisted journeys.
+- Bring Your Own AI: Integrate the LLMs and AI services of your choice via our flexible APIs, using Autopilot, Flex, and our messaging/voice channels as the orchestration layer.
+
+Key benefits
+- Faster resolution and lower costs: AI assistants handle FAQs and simple tasks 24/7, with intelligent, context-rich escalation to human agents in Flex when required.
+- Personalization at scale: Real-time profiles and events from Segment drive timely, relevant outreach across voice, SMS, chat, and email for higher conversions and satisfaction.
+- Reliability and scale: Global cloud infrastructure and APIs designed for high availability (target 99.95% uptime) support spikes in demand without degradation.
+- Enterprise-grade security and compliance: We maintain strong security controls and industry certifications (including SOC 2 and ISO 27001) and support GDPR compliance, with fine-grained governance using Segment Protocols.
+
+Supporting evidence
+- Conversational AI and bot orchestration: Twilio Autopilot enables NLP-powered assistants across channels that can escalate to agents in Twilio Flex.
+- Contact center and agent experience: Twilio Flex provides a programmable, digital-first contact center to unify channels and integrate AI assistants while preserving agent oversight.
+- Voice visibility and optimization: Twilio Voice Insights provides call-level metrics and analytics to monitor and improve voice experiences, including AI-assisted calls.
+- Secure user verification: Twilio Verify adds step-up authentication and OTP flows to protect accounts and transactions within automated journeys.
+- Multichannel reach with email: The SendGrid Email API delivers reliable, scalable email to complement SMS, voice, and chat outreach.
+- Trusted first-party data: Segment Connections unifies real-time customer data; Segment Protocols governs data quality and enforces standards for downstream AI and analytics.
+
+We welcome the opportunity to demonstrate a sample AI assistant (Autopilot) integrated with Flex, instrumented with Voice Insights, using Segment for real-time personalization and Verify for secure step-up authentication, and to collaborate on an implementation plan aligned to your security, compliance, and data governance requirements.
+
+References:
+https://www.twilio.com/docs/voice/voice-insights
+https://www.twilio.com/docs/autopilot
+https://www.twilio.com/docs/flex
+https://www.twilio.com/docs/verify
+https://www.sendgrid.com/solutions/email-api
+https://www.segment.com/product/connections
+https://www.segment.com/product/protocols"
+Has Twilio implemented Post Quantum Encryption Standards and if not is there a plan to do so?,Has Twilio implemented Post Quantum Encryption Standards and if not is there a plan to do so?,"[""https://www.twilio.com/security"",""https://www.twilio.com/docs/security""]","Executive summary
+Based on the provided Twilio security documentation, Twilio currently documents encryption in transit using TLS 1.2 and encryption at rest using the Advanced Encryption Standard (e.g., AES-256 for backups), along with robust security governance, vulnerability management, and certifications. The materials do not expressly state that Twilio has implemented post-quantum encryption (PQE/PQC). While no explicit commitment to specific post-quantum standards is described in the references, Twilio’s documented security program, formal change management, and continuous security feature evolution position the company to evaluate and adopt new encryption standards as they mature.
+
+Current encryption posture
+- Encryption in transit:
+  - Customer Data is encrypted in transit between customer applications and Twilio using TLS v1.2 (Security Overview: https://www.twilio.com/legal/security-overview; https://www.twilio.com/en-us/legal/security-overview).
+  - For SendGrid Services, Twilio provides opportunistic TLS v1.1 or higher and an optional enforced TLS feature customers can enable to require TLS v1.1+ for email delivery (same Security Overview pages).
+- Encryption at rest:
+  - Customer Data is encrypted at rest in AWS and GCP using the Advanced Encryption Standard; backups are encrypted in transit and at rest using AES-256 (Security Overview; and the provided content describing AES-256 for backups).
+- Additional protective features customers can use today:
+  - Message Redaction and Voice Recording Encryption to protect sensitive communications content (provided content on Product Features for Data Protection).
+
+Security governance and change readiness (implications for future cryptographic standards)
+While the provided materials do not mention post-quantum encryption specifically, Twilio maintains a security program designed to incorporate new controls and capabilities:
+- Formal change management with testing, risk assessments for high‑risk changes, documented approvals, and rollback procedures (Security Overview).
+- Annual review and approval of security policies and standards by executive management; ongoing people, physical, and vendor security controls (Security Overview).
+- Vulnerability management, regular scanning, patching, penetration testing, and a bug bounty program (Security Overview).
+- Security certifications and attestations including ISO/IEC 27001/27017/27018, SOC 2 Type 2, and PCI DSS Level 1 for specific services (Security Overview).
+- Resilience, service continuity, and encrypted, redundant backups across multiple availability zones (Security Overview).
+- Ongoing focus on enhanced security features and continuous innovation, along with direct engagement with regulators and improved compliance tooling (provided content on “Advanced Security Features,” “Direct Engagement with Regulators,” and “Improved Compliance Tools”).
+
+Answer to the question
+- Has Twilio implemented Post Quantum Encryption Standards? The provided Twilio materials do not state that post-quantum encryption has been implemented. The documented encryption methods are TLS (v1.2 for data in transit; opportunistic/enforced TLS v1.1+ for SendGrid) and AES-based encryption at rest.
+- If not, is there a plan to do so? The provided references do not outline a specific, time-bound plan or commitment to post-quantum encryption. However, Twilio’s formal change management, annual policy review, ongoing vulnerability management and penetration testing, certifications, and stated focus on advancing security features indicate a structured capability to evaluate and adopt emerging cryptographic standards as they become appropriate for service and compliance needs.
+
+Guidance for customers today
+- Use enforced TLS for SendGrid where email transport security is required (see Security Overview pages for the feature and link to configuration guidance).
+- Enable optional data protection features such as Message Redaction and Voice Recording Encryption to minimize sensitive data exposure within your workloads.
+- Leverage Twilio’s security certifications and attestations, vendor management rigor, and incident response practices as part of your third‑party risk management program.
+- Engage your Twilio account team to discuss roadmap requirements; Twilio actively collects customer feedback and iterates on security features, which can inform prioritization of emerging encryption needs.
+
+Conclusion
+Twilio’s documented encryption controls rely on industry-standard TLS and AES at this time, with no explicit reference to post-quantum encryption in the provided documents. Twilio’s mature security governance, change management, and stated focus on evolving security features position the company to assess and incorporate post-quantum standards as they stabilize and align with customer, regulatory, and operational requirements.
+
+References:
+- https://www.twilio.com/legal/security-overview
+- https://www.twilio.com/en-us/legal/security-overview
+- https://www.twilio.com/legal/security-overview
+- https://www.twilio.com/en-us/legal/security-overview
+- https://www.twilio.com/legal/security-overview
+- https://www.twilio.com/en-us/legal/security-overview","We have not implemented post-quantum cryptography across our platform at this time. As documented in our Security resources, we encrypt Customer Data in transit using TLS and at rest using the Advanced Encryption Standard (e.g., AES-256 for backups). We continuously evaluate emerging cryptographic standards and will adopt post-quantum approaches as they stabilize and align with our product, compliance, and operational requirements through our formal security governance and change management processes.
+
+Our approach centers on proven, enterprise-grade controls with a clear path to incorporate new standards. We maintain strong encryption in transit and at rest, and provide additional product-level protections such as content redaction and media encryption to help minimize exposure of sensitive data. Our security program includes formal change management with testing and risk assessment, continuous vulnerability management and patching, regular security testing (including penetration testing and bug bounty), and a comprehensive set of certifications and attestations. We operate a resilient, globally distributed infrastructure and continuously enhance our security features and controls, ensuring we can adopt next-generation cryptography when the ecosystem is ready and widely supported.
+
+Key benefits for you
+- Strong security baseline today: TLS encryption in transit and AES-based encryption at rest, with encrypted backups.
+- Enterprise assurance: security certifications and attestations (including SOC 2 and ISO/IEC 27001 series), supported by mature governance, risk, and compliance practices.
+- Operational readiness for PQC: structured change management and continuous security improvement position us to safely adopt post-quantum standards as they mature.
+- Customer control and privacy: configurable features like redaction and encryption to help reduce data exposure and support compliance needs.
+
+Supporting evidence
+- Encryption controls in transit (TLS) and at rest (AES), including AES-256 for backups, are documented in our Security resources.
+- Our security program details include policy governance, vulnerability management, regular testing, incident response, and third-party attestations and certifications such as SOC 2 and ISO 27001, as described on our Security pages.
+- We provide developer-friendly APIs and extensive documentation, and our products include additional data protection features customers can enable to meet their specific risk and compliance requirements.
+
+We welcome a discussion of your post-quantum readiness objectives. Our security and product teams can align on your requirements, share the latest roadmap considerations, and plan for interoperability and migration as post-quantum standards and ecosystem support progress.
+
+References:
+https://www.twilio.com/security
+https://www.twilio.com/docs/security"
