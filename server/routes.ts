@@ -1162,7 +1162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Generate response using OpenAI
       const result = await openaiService.callOpenAIDirect({
-        model: 'gpt-5',
+        model: 'gpt-4o',
         systemPrompt: 'You are a helpful AI assistant. Provide clear, accurate, and concise answers to questions.',
         userPrompt: question,
         maxTokens: 2000,
