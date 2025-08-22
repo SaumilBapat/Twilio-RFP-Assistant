@@ -1205,6 +1205,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (topChunks.length > 0) {
               csvContext = topChunks.map((chunk: any) => chunk.textContent).join('\n\n');
               console.log(`Found ${topChunks.length} relevant CSV chunks with similarity > 0.7`);
+              
+              // Debug: Show first chunk to verify it has status data
+              console.log('\n📋 DEBUG: Sample CSV chunk content:');
+              const sampleChunk = topChunks[0].textContent;
+              console.log(sampleChunk.substring(0, 500) + '...');
             }
           }
         }
@@ -1281,20 +1286,31 @@ Based on the above requirements, provide:
 
 CRITICAL: For each recommended number, you MUST extract the SMS Status or Voice Status from the CSV data provided in the context above. Look for status values like "Available", "Beta", "Not Supported", etc. in the country data.
 
-IMPORTANT: You must format your response as valid JSON with exactly this structure:
+IMPORTANT: You must format your response as valid JSON with EXACTLY this structure (status field is MANDATORY):
 {
   "answer": "Your detailed explanation and guidance here",
   "recommendedNumbers": [
     {
-      "geo": "Country/region code (e.g., US, GB, CA)",
-      "type": "Number type (e.g., 10DLC, Toll-Free, Short Code, Local)",
-      "status": "REQUIRED - Extract the actual status from the CSV data (e.g., 'Available', 'Beta', 'Not Supported')",
-      "smsEnabled": true or false,
-      "voiceEnabled": true or false,
+      "geo": "US",
+      "type": "10DLC",
+      "status": "Available",  // <-- THIS FIELD IS REQUIRED! Extract from CSV data
+      "smsEnabled": true,
+      "voiceEnabled": true,
       "considerations": "Important setup or compliance notes",
       "restrictions": "Any limitations or restrictions"
     }
   ]
+}
+
+EXAMPLE with status field (YOU MUST INCLUDE STATUS):
+{
+  "geo": "BR",
+  "type": "Local",
+  "status": "Available",  // <-- MANDATORY field from SMS Status or Voice Status in CSV
+  "smsEnabled": true,
+  "voiceEnabled": true,
+  "considerations": "...",
+  "restrictions": "..."
 }
 
 MANDATORY: The "status" field MUST be included for every recommendation. Extract this from the SMS Status or Voice Status columns in the CSV data. If you cannot find a status, use "Unknown" but still include the field.
@@ -1320,13 +1336,33 @@ Focus on number types actually supported by Twilio in the specified regions. Pro
         parsedResponse = JSON.parse(result.output);
         answer = parsedResponse.answer || result.output;
         
+        // Debug logging
+        console.log('\n🔍 DEBUG: Parsed response recommendedNumbers:');
+        if (parsedResponse.recommendedNumbers) {
+          parsedResponse.recommendedNumbers.forEach((num: any, idx: number) => {
+            console.log(`  [${idx}] geo: ${num.geo}, type: ${num.type}, status: ${num.status || 'MISSING'}`);
+          });
+        }
+        
         // Validate and structure the recommendedNumbers array
         if (parsedResponse.recommendedNumbers && Array.isArray(parsedResponse.recommendedNumbers)) {
           recommendedNumbers = parsedResponse.recommendedNumbers
+            .map((num: any) => {
+              // If status is missing, add a default
+              if (!num.status) {
+                console.log(`⚠️ WARNING: No status field for ${num.geo} ${num.type}, defaulting to 'Unknown'`);
+                num.status = 'Unknown';
+              }
+              return num;
+            })
             .filter((num: any) => {
               // Filter out only unavailable numbers
               const status = num.status || 'Unavailable';
-              return status !== 'Unavailable';
+              const keep = status !== 'Unavailable';
+              if (!keep) {
+                console.log(`❌ Filtering out ${num.geo} ${num.type} with status: ${status}`);
+              }
+              return keep;
             })
             .slice(0, 5)
             .map((num: any) => ({
@@ -1338,6 +1374,8 @@ Focus on number types actually supported by Twilio in the specified regions. Pro
               considerations: num.considerations || '',
               restrictions: num.restrictions || ''
             }));
+          
+          console.log(`✅ Final recommendedNumbers count: ${recommendedNumbers.length}`);
         }
       } catch (parseError) {
         console.log('Error parsing JSON response, returning plain text:', parseError);
