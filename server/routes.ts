@@ -1262,13 +1262,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 CRITICAL: You MUST respond ONLY with valid JSON in the exact format specified. Do not add any text before or after the JSON object.
 
+CRITICAL FILTERING RULE: Only recommend phone numbers where the status in the data shows as "Available", "Beta", or similar positive indicators. NEVER recommend numbers marked as "Unavailable", "Not Supported", or where status is unknown. Always include the actual status value from the data in your response.
+
 ${csvContext ? `TWILIO PHONE NUMBER CAPABILITIES BY COUNTRY:
 ${csvContext}
 
 ` : ''}${twilioDocsContext ? `TWILIO REGULATORY GUIDELINES:
 ${twilioDocsContext}
 
-` : ''}Use this authoritative data to make accurate recommendations. Only recommend number types that are explicitly supported according to this data.`;
+` : ''}Use this authoritative data to make accurate recommendations. Only recommend number types that are explicitly supported and available according to this data. Check the SMS Status and Voice Status columns to verify availability.`;
 
       // Enhance the user prompt with specific instructions
       const enhancedPrompt = `${question}
@@ -1284,6 +1286,7 @@ IMPORTANT: You must format your response as valid JSON with exactly this structu
     {
       "geo": "Country/region code (e.g., US, GB, CA)",
       "type": "Number type (e.g., 10DLC, Toll-Free, Short Code, Local)",
+      "status": "Available/Beta/etc (from the CSV data)",
       "smsEnabled": true or false,
       "voiceEnabled": true or false,
       "considerations": "Important setup or compliance notes",
@@ -1315,14 +1318,22 @@ Focus on number types actually supported by Twilio in the specified regions. Pro
         
         // Validate and structure the recommendedNumbers array
         if (parsedResponse.recommendedNumbers && Array.isArray(parsedResponse.recommendedNumbers)) {
-          recommendedNumbers = parsedResponse.recommendedNumbers.slice(0, 5).map((num: any) => ({
-            geo: num.geo || 'Unknown',
-            type: num.type || 'Unknown',
-            smsEnabled: Boolean(num.smsEnabled),
-            voiceEnabled: Boolean(num.voiceEnabled),
-            considerations: num.considerations || '',
-            restrictions: num.restrictions || ''
-          }));
+          recommendedNumbers = parsedResponse.recommendedNumbers
+            .filter((num: any) => {
+              // Filter out unavailable numbers
+              const status = num.status || 'Unavailable';
+              return status !== 'Unavailable' && status !== 'Not Supported';
+            })
+            .slice(0, 5)
+            .map((num: any) => ({
+              geo: num.geo || 'Unknown',
+              type: num.type || 'Unknown',
+              status: num.status || 'Unavailable',
+              smsEnabled: Boolean(num.smsEnabled),
+              voiceEnabled: Boolean(num.voiceEnabled),
+              considerations: num.considerations || '',
+              restrictions: num.restrictions || ''
+            }));
         }
       } catch (parseError) {
         console.log('Error parsing JSON response, returning plain text:', parseError);
