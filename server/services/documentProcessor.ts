@@ -155,127 +155,218 @@ class DocumentProcessor {
         const csvString = fileBuffer.toString('utf-8');
         
         // Parse CSV using proper parser that handles quoted fields, escapes, etc.
-        let records: any[];
-        try {
-          // Try tab-delimited first (common for telecom data exports)
-          records = parse(csvString, {
+        let records: any[] = [];
+        let parseSuccessful = false;
+        
+        // Try multiple parsing strategies
+        const parsingStrategies = [
+          // Strategy 1: Tab-delimited (common for exports)
+          {
             delimiter: '\t',
-            columns: true, // Use first row as headers
+            columns: true,
             skip_empty_lines: true,
-            relax_column_count: true, // Handle inconsistent column counts
-            trim: true
-          });
+            relax_column_count: true,
+            trim: true,
+            quote: '"',
+            escape: '"',
+            relax_quotes: true
+          },
+          // Strategy 2: Comma-delimited with quotes
+          {
+            delimiter: ',',
+            columns: true,
+            skip_empty_lines: true,
+            relax_column_count: true,
+            trim: true,
+            quote: '"',
+            escape: '"',
+            relax_quotes: true
+          },
+          // Strategy 3: More relaxed parsing for complex files
+          {
+            delimiter: ',',
+            columns: true,
+            skip_empty_lines: true,
+            relax_column_count: true,
+            trim: true,
+            quote: false, // Disable quote parsing if causing issues
+            escape: false,
+            relax_quotes: true
+          }
+        ];
+        
+        for (const strategy of parsingStrategies) {
+          try {
+            console.log(`Trying CSV parsing strategy with delimiter: ${strategy.delimiter}, quote: ${strategy.quote}`);
+            records = parse(csvString, strategy);
+            
+            // Check if parsing was successful (got meaningful data)
+            if (records.length > 0 && Object.keys(records[0]).length > 1) {
+              parseSuccessful = true;
+              console.log(`✅ CSV parsed successfully: ${records.length} records, ${Object.keys(records[0]).length} columns`);
+              break;
+            }
+          } catch (parseError: any) {
+            console.log(`CSV parsing strategy failed: ${parseError.message}`);
+            continue;
+          }
+        }
+        
+        // If all parsing strategies fail, try a manual fallback approach
+        if (!parseSuccessful) {
+          console.log('All CSV parsing strategies failed, attempting manual parsing fallback');
           
-          // If we only get one record or columns look wrong, try comma-delimited
-          if (records.length <= 1 || Object.keys(records[0]).length <= 2) {
-            records = parse(csvString, {
-              delimiter: ',',
-              columns: true,
-              skip_empty_lines: true,
-              relax_column_count: true,
-              trim: true
+          try {
+            const lines = csvString.split('\n').filter(line => line.trim());
+            if (lines.length > 0) {
+              // Manual parsing as last resort
+              const headerLine = lines[0];
+              // Try to detect delimiter
+              const tabCount = (headerLine.match(/\t/g) || []).length;
+              const commaCount = (headerLine.match(/,/g) || []).length;
+              const delimiter = tabCount > commaCount ? '\t' : ',';
+              
+              const headers = headerLine.split(delimiter).map(h => h.replace(/^["']|["']$/g, '').trim());
+              
+              records = [];
+              for (let i = 1; i < Math.min(lines.length, 100); i++) { // Limit to first 100 rows for large files
+                try {
+                  const values = lines[i].split(delimiter).map(v => v.replace(/^["']|["']$/g, '').trim());
+                  if (values.length >= headers.length * 0.5) { // Allow some missing columns
+                    const record: any = {};
+                    headers.forEach((header, idx) => {
+                      record[header] = values[idx] || '';
+                    });
+                    records.push(record);
+                  }
+                } catch (rowError) {
+                  console.log(`Skipping problematic row ${i}`);
+                  continue;
+                }
+              }
+              
+              if (records.length > 0) {
+                parseSuccessful = true;
+                console.log(`✅ Manual CSV parsing recovered ${records.length} records`);
+              }
+            }
+          } catch (manualParseError) {
+            console.error('Manual CSV parsing also failed:', manualParseError);
+          }
+        }
+        
+        if (!parseSuccessful || records.length === 0) {
+          // Last resort: treat as plain text with structure hints
+          console.log('Unable to parse CSV structure, treating as structured text');
+          textContent = `CSV Document: ${(fileBuffer.length / 1024).toFixed(1)}KB\n\n`;
+          textContent += `This appears to be a complex CSV file that could not be fully parsed.\n`;
+          textContent += `Raw content preview:\n\n`;
+          textContent += csvString.substring(0, 10000); // First 10KB of content
+          
+          // Still try to provide some structure
+          const lines = csvString.split('\n').slice(0, 20);
+          if (lines.length > 0) {
+            textContent += `\n\nStructured preview of first 20 lines:\n`;
+            lines.forEach((line, idx) => {
+              textContent += `Line ${idx + 1}: ${line.substring(0, 500)}\n`;
             });
           }
-        } catch (parseError) {
-          console.error('CSV parsing error:', parseError);
-          throw new Error('Failed to parse CSV file');
-        }
-        
-        if (records.length === 0) {
-          throw new Error('No data records found in CSV file');
-        }
-        
-        const headers = Object.keys(records[0]);
-        
-        // Build contextual representation optimized for telecommunications data
-        let contextualContent = `Telecommunications Dataset: ${records.length} entries with ${headers.length} attributes\n\n`;
-        
-        // Identify key fields for better context
-        const localeField = headers.find(h => h.toLowerCase().includes('locale') || h.toLowerCase().includes('country'));
-        const capabilityFields = headers.filter(h => 
-          h.toLowerCase().includes('support') || 
-          h.toLowerCase().includes('available') || 
-          h.toLowerCase().includes('enabled') ||
-          h.toLowerCase().includes('allow')
-        );
-        
-        contextualContent += `Key Attributes: ${headers.join(', ')}\n\n`;
-        contextualContent += `=== Detailed Service Specifications ===\n\n`;
-        
-        // Process each record with intelligent grouping
-        records.forEach((record, index) => {
-          const primaryIdentifier = localeField ? record[localeField] : `Entry ${index + 1}`;
+        } else {
+          // Successfully parsed - continue with normal processing
+          console.log(`Processing ${records.length} CSV records`);
           
-          // Start with primary identifier
-          contextualContent += `${primaryIdentifier}:\n`;
+          const headers = Object.keys(records[0]);
           
-          // Group attributes by category for better semantic understanding
-          const capabilities = [];
-          const specifications = [];
-          const restrictions = [];
-          const identifiers = [];
+          // Build contextual representation optimized for telecommunications data
+          let contextualContent = `Telecommunications Dataset: ${records.length} entries with ${headers.length} attributes\n\n`;
           
-          for (const [header, value] of Object.entries(record)) {
-            // Skip empty or placeholder values
-            if (!value || value === '---' || value === 'N/A' || value === '' || value === 'null') {
-              continue;
+          // Identify key fields for better context
+          const localeField = headers.find(h => h.toLowerCase().includes('locale') || h.toLowerCase().includes('country'));
+          const capabilityFields = headers.filter(h => 
+            h.toLowerCase().includes('support') || 
+            h.toLowerCase().includes('available') || 
+            h.toLowerCase().includes('enabled') ||
+            h.toLowerCase().includes('allow')
+          );
+          
+          contextualContent += `Key Attributes: ${headers.join(', ')}\n\n`;
+          contextualContent += `=== Detailed Service Specifications ===\n\n`;
+          
+          // Process each record with intelligent grouping
+          records.forEach((record, index) => {
+            const primaryIdentifier = localeField ? record[localeField] : `Entry ${index + 1}`;
+            
+            // Start with primary identifier
+            contextualContent += `${primaryIdentifier}:\n`;
+            
+            // Group attributes by category for better semantic understanding
+            const capabilities = [];
+            const specifications = [];
+            const restrictions = [];
+            const identifiers = [];
+            
+            for (const [header, value] of Object.entries(record)) {
+              // Skip empty or placeholder values
+              if (!value || value === '---' || value === 'N/A' || value === '' || value === 'null') {
+                continue;
+              }
+              
+              const headerLower = header.toLowerCase();
+              const valueStr = String(value).trim();
+              
+              // Categorize attributes for better context
+              if (headerLower.includes('support') || headerLower.includes('available') || headerLower.includes('enabled')) {
+                if (valueStr.toLowerCase() === 'yes' || valueStr.toLowerCase() === 'supported' || valueStr.toLowerCase() === 'true') {
+                  capabilities.push(`${header} is supported`);
+                } else if (valueStr.toLowerCase() === 'no' || valueStr.toLowerCase() === 'not supported' || valueStr.toLowerCase() === 'false') {
+                  restrictions.push(`${header} is not supported`);
+                } else {
+                  specifications.push(`${header}: ${valueStr}`);
+                }
+              } else if (headerLower.includes('code') || headerLower.includes('dialing') || headerLower.includes('iso') || headerLower.includes('region')) {
+                identifiers.push(`${header}: ${valueStr}`);
+              } else if (headerLower.includes('consideration') || headerLower.includes('restriction') || headerLower.includes('limit')) {
+                // For compliance and restrictions, include more context
+                if (valueStr.length > 200) {
+                  restrictions.push(`${header}: ${valueStr.substring(0, 200)}...`);
+                } else {
+                  restrictions.push(`${header}: ${valueStr}`);
+                }
+              } else {
+                // General specifications
+                if (valueStr.length > 150) {
+                  specifications.push(`${header}: ${valueStr.substring(0, 150)}...`);
+                } else {
+                  specifications.push(`${header}: ${valueStr}`);
+                }
+              }
             }
             
-            const headerLower = header.toLowerCase();
-            const valueStr = String(value).trim();
-            
-            // Categorize attributes for better context
-            if (headerLower.includes('support') || headerLower.includes('available') || headerLower.includes('enabled')) {
-              if (valueStr.toLowerCase() === 'yes' || valueStr.toLowerCase() === 'supported' || valueStr.toLowerCase() === 'true') {
-                capabilities.push(`${header} is supported`);
-              } else if (valueStr.toLowerCase() === 'no' || valueStr.toLowerCase() === 'not supported' || valueStr.toLowerCase() === 'false') {
-                restrictions.push(`${header} is not supported`);
-              } else {
-                specifications.push(`${header}: ${valueStr}`);
-              }
-            } else if (headerLower.includes('code') || headerLower.includes('dialing') || headerLower.includes('iso') || headerLower.includes('region')) {
-              identifiers.push(`${header}: ${valueStr}`);
-            } else if (headerLower.includes('consideration') || headerLower.includes('restriction') || headerLower.includes('limit')) {
-              // For compliance and restrictions, include more context
-              if (valueStr.length > 200) {
-                restrictions.push(`${header}: ${valueStr.substring(0, 200)}...`);
-              } else {
-                restrictions.push(`${header}: ${valueStr}`);
-              }
-            } else {
-              // General specifications
-              if (valueStr.length > 150) {
-                specifications.push(`${header}: ${valueStr.substring(0, 150)}...`);
-              } else {
-                specifications.push(`${header}: ${valueStr}`);
-              }
+            // Build comprehensive entry description
+            if (identifiers.length > 0) {
+              contextualContent += `Identifiers: ${identifiers.join(', ')}\n`;
             }
-          }
+            if (capabilities.length > 0) {
+              contextualContent += `Supported Features: ${capabilities.join(', ')}\n`;
+            }
+            if (specifications.length > 0) {
+              contextualContent += `Specifications: ${specifications.join(', ')}\n`;
+            }
+            if (restrictions.length > 0) {
+              contextualContent += `Restrictions and Considerations: ${restrictions.join(', ')}\n`;
+            }
+            
+            contextualContent += '\n';
+          });
           
-          // Build comprehensive entry description
-          if (identifiers.length > 0) {
-            contextualContent += `Identifiers: ${identifiers.join(', ')}\n`;
-          }
-          if (capabilities.length > 0) {
-            contextualContent += `Supported Features: ${capabilities.join(', ')}\n`;
-          }
-          if (specifications.length > 0) {
-            contextualContent += `Specifications: ${specifications.join(', ')}\n`;
-          }
-          if (restrictions.length > 0) {
-            contextualContent += `Restrictions and Considerations: ${restrictions.join(', ')}\n`;
-          }
+          // Add searchable summary
+          contextualContent += `\n=== Search Index ===\n`;
+          contextualContent += `This telecommunications dataset contains detailed specifications for ${records.length} service configurations.\n`;
+          contextualContent += `Coverage includes capabilities, restrictions, compliance requirements, and technical specifications.\n`;
+          contextualContent += `Each entry can be matched against specific requirements for service availability, feature support, and regulatory compliance.\n`;
           
-          contextualContent += '\n';
-        });
-        
-        // Add searchable summary
-        contextualContent += `\n=== Search Index ===\n`;
-        contextualContent += `This telecommunications dataset contains detailed specifications for ${records.length} service configurations.\n`;
-        contextualContent += `Coverage includes capabilities, restrictions, compliance requirements, and technical specifications.\n`;
-        contextualContent += `Each entry can be matched against specific requirements for service availability, feature support, and regulatory compliance.\n`;
-        
-        textContent = contextualContent;
+          textContent = contextualContent;
+        }
       } else if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
                  fileType === 'application/vnd.ms-excel.sheet.macroEnabled.12') {
         // Handle Excel files (.xlsx and .xlsm)
