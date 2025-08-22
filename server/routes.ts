@@ -1205,11 +1205,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             console.log('📊 Step 3: Calculated similarity scores for all chunks');
             
-            // Sort by similarity and take top 15
+            // Sort by similarity and take top 25
             const topChunks = chunksWithScores
-              .filter((chunk: any) => chunk.similarity > 0.7)
+              .filter((chunk: any) => chunk.similarity > 0.5)
               .sort((a: any, b: any) => b.similarity - a.similarity)
-              .slice(0, 15);
+              .slice(0, 25);
             
             console.log(`🎯 Step 4: Found ${topChunks.length} chunks with similarity > 0.7`);
             
