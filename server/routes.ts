@@ -1149,6 +1149,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authHeader = req.headers.authorization;
     const providedKey = authHeader?.replace('Bearer ', '');
     
+    // Debug: Log what we're comparing (remove in production)
+    console.log('QA API Auth Debug:', {
+      providedKey: providedKey,
+      expectedKey: process.env.QA_API_KEY,
+      match: providedKey === process.env.QA_API_KEY
+    });
+    
     if (!providedKey || providedKey !== process.env.QA_API_KEY) {
       return res.status(401).json({ error: 'Unauthorized. Please provide a valid API key in the Authorization header.' });
     }
