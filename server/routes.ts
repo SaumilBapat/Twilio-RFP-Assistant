@@ -1171,6 +1171,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let twilioDocsContext = '';
       
       try {
+        console.log('\n\n🔍🔍🔍 DEBUG: START Q&A API PROCESSING 🔍🔍🔍');
+        console.log('Question:', question);
+        
         // Get chunks from the specific CSV documents
         const csvChunks: any[] = [];
         for (const docId of csvDocumentIds) {
@@ -1178,10 +1181,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           csvChunks.push(...chunks);
         }
         
+        console.log(`📚 Step 1: Retrieved ${csvChunks.length} total CSV chunks from documents`);
+        
         if (csvChunks.length > 0) {
           // Create an embedding for the question to find most relevant chunks
           const { embeddingsService } = await import('./services/embeddings');
           const questionEmbedding = await embeddingsService.generateEmbedding(question);
+          
+          console.log('🧮 Step 2: Created embedding for question');
           
           if (questionEmbedding.embedding) {
             // Calculate similarity scores for each chunk
@@ -1196,20 +1203,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             });
             
+            console.log('📊 Step 3: Calculated similarity scores for all chunks');
+            
             // Sort by similarity and take top 15
             const topChunks = chunksWithScores
               .filter((chunk: any) => chunk.similarity > 0.7)
               .sort((a: any, b: any) => b.similarity - a.similarity)
               .slice(0, 15);
             
+            console.log(`🎯 Step 4: Found ${topChunks.length} chunks with similarity > 0.7`);
+            
+            // Show top 3 chunks with their similarity scores
+            console.log('\n📋 Top 3 relevant chunks:');
+            topChunks.slice(0, 3).forEach((chunk: any, idx: number) => {
+              console.log(`\n  Chunk ${idx + 1} (similarity: ${chunk.similarity.toFixed(3)}):`);
+              const preview = chunk.textContent.substring(0, 200);
+              console.log(`  ${preview}...`);
+            });
+            
             if (topChunks.length > 0) {
               csvContext = topChunks.map((chunk: any) => chunk.textContent).join('\n\n');
-              console.log(`Found ${topChunks.length} relevant CSV chunks with similarity > 0.7`);
+              console.log(`\n✅ Step 5: Combined ${topChunks.length} chunks into context (${csvContext.length} chars)`);
               
-              // Debug: Show first chunk to verify it has status data
-              console.log('\n📋 DEBUG: Sample CSV chunk content:');
-              const sampleChunk = topChunks[0].textContent;
-              console.log(sampleChunk.substring(0, 500) + '...');
+              // Check if context contains specific country/status mentions
+              const contextLower = csvContext.toLowerCase();
+              console.log('\n🔎 Context analysis:');
+              console.log(`  - Contains 'india': ${contextLower.includes('india')}`);
+              console.log(`  - Contains 'short code': ${contextLower.includes('short code')}`);
+              console.log(`  - Contains 'status: ga': ${contextLower.includes('status: ga')}`);
+              console.log(`  - Contains 'status: available': ${contextLower.includes('status: available')}`);
+              console.log(`  - Contains 'status: beta': ${contextLower.includes('status: beta')}`);
+              
+              // Show a sample of the actual context being sent
+              console.log('\n📄 First 500 chars of context being sent to GPT-5:');
+              console.log(csvContext.substring(0, 500) + '...');
+            } else {
+              console.log('⚠️ No chunks passed similarity threshold');
             }
           }
         }
@@ -1258,7 +1287,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       } catch (contextError) {
-        console.log('Error fetching context:', contextError);
+        console.log('❌ ERROR fetching context:', contextError);
+        console.log('Stack trace:', (contextError as any).stack);
         // Continue without context if there's an error
       }
 
@@ -1317,6 +1347,8 @@ MANDATORY: The "status" field MUST be included for every recommendation. Extract
 
 Focus on number types actually supported by Twilio in the specified regions. Provide up to 5 specific recommendations based on the requirements.`;
 
+      console.log('\n🤖 Step 6: Sending to GPT-5 with context length:', csvContext.length + twilioDocsContext.length);
+      
       // Generate response using OpenAI with JSON mode
       const result = await openaiService.callOpenAIDirect({
         model: 'gpt-5-nano',
@@ -1327,6 +1359,9 @@ Focus on number types actually supported by Twilio in the specified regions. Pro
         responseFormat: { type: 'json_object' }
       });
 
+      console.log('\n📝 Step 7: Received response from GPT-5');
+      console.log('Response length:', result.output.length);
+      
       // Parse the JSON response
       let parsedResponse;
       let recommendedNumbers = [];
@@ -1336,8 +1371,10 @@ Focus on number types actually supported by Twilio in the specified regions. Pro
         parsedResponse = JSON.parse(result.output);
         answer = parsedResponse.answer || result.output;
         
+        console.log('\n✅ Step 8: Successfully parsed JSON response');
+        
         // Debug logging
-        console.log('\n🔍 DEBUG: Parsed response recommendedNumbers:');
+        console.log('\n🔍 Step 9: Extracted recommendedNumbers:');
         if (parsedResponse.recommendedNumbers) {
           parsedResponse.recommendedNumbers.forEach((num: any, idx: number) => {
             console.log(`  [${idx}] geo: ${num.geo}, type: ${num.type}, status: ${num.status || 'MISSING'}`);
@@ -1375,7 +1412,13 @@ Focus on number types actually supported by Twilio in the specified regions. Pro
               restrictions: num.restrictions || ''
             }));
           
-          console.log(`✅ Final recommendedNumbers count: ${recommendedNumbers.length}`);
+          console.log(`\n✅ Step 10: Final recommendedNumbers after filtering:`);
+          console.log(`  Total count: ${recommendedNumbers.length}`);
+          recommendedNumbers.forEach((num: any, idx: number) => {
+            console.log(`  [${idx}] ${num.geo} ${num.type} - Status: ${num.status}`);
+          });
+          
+          console.log('\n🔍🔍🔍 END Q&A API PROCESSING 🔍🔍🔍\n');
         }
       } catch (parseError) {
         console.log('Error parsing JSON response, returning plain text:', parseError);
