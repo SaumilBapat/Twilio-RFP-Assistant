@@ -1312,55 +1312,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 CRITICAL: You MUST respond ONLY with valid JSON in the exact format specified. Do not add any text before or after the JSON object.
 
-CRITICAL FILTERING RULE: Do NOT recommend phone numbers where the status in the data shows as "Unavailable". You can recommend all other statuses (Available, Beta, Not Supported, etc.). Always include the actual status value from the data in your response.
-
-${csvContext ? `TWILIO PHONE NUMBER CAPABILITIES BY COUNTRY:
+${csvContext ? `TWILIO PHONE NUMBER CAPABILITIES BY COUNTRY (PRIMARY SOURCE):
 ${csvContext}
 
+EXTRACT STATUS VALUES: Look for patterns like "Status: GA", "Status: Available", "Status: Beta", "Status: Private Offering", "SMS Status:", "Voice Status:" in the data above.
 ` : ''}${twilioDocsContext ? `TWILIO REGULATORY GUIDELINES:
 ${twilioDocsContext}
 
-` : ''}Use this authoritative data to make accurate recommendations. Only recommend number types that are explicitly supported and available according to this data. Check the SMS Status and Voice Status columns to verify availability.`;
+` : ''}Use this authoritative data to make accurate recommendations. ALWAYS provide EXACTLY 5 recommendations (or maximum available if less than 5 exist in the data).`;
 
       // Enhance the user prompt with specific instructions
       const enhancedPrompt = `${question}
 
-Based on the above requirements, provide:
-1. A detailed explanation of the best phone number options
-2. Specific recommendations (maximum 5) of number types that match these requirements
+RESPONSE STRUCTURE REQUIREMENTS:
 
-CRITICAL: For each recommended number, you MUST extract the SMS Status or Voice Status from the CSV data provided in the context above. Look for status values like "Available", "Beta", "Not Supported", etc. in the country data.
+For your "answer" field, provide a comprehensive response with these sections (use ## markdown headers):
 
-IMPORTANT: You must format your response as valid JSON with EXACTLY this structure (status field is MANDATORY):
+## Country/Region Overview
+Provide 2-3 sentences about the telecommunications landscape in the requested region, including major carriers and market characteristics.
+
+## Compliance Considerations
+Detail regulatory requirements, registration needs (like 10DLC, A2P, DLT), opt-in/opt-out rules, and legal considerations. Include specific agencies or regulations (e.g., TRAI for India, TCPA for US, CASL for Canada).
+
+## Number Type Recommendations
+Explain which number types work best for the use case and why, considering factors like deliverability rates, throughput capabilities, and cost implications.
+
+## Technical Limits & Restrictions
+Cover throughput limits (messages per second), character limits, sender ID restrictions, content filtering rules, and carrier-specific limitations.
+
+## Best Practices
+Provide actionable recommendations for success in this region with the specified use case, including setup tips and common pitfalls to avoid.
+
+For your "recommendedNumbers" array, provide EXACTLY 5 recommendations (or maximum available):
+
+PRIORITY ORDER:
+1. Perfect matches: Exact country + exact use case + available status
+2. Good matches: Exact country + partial use case match + available status  
+3. Regional options: Exact country + any status except "Unavailable"
+4. Alternative regions: Similar region + good use case match
+5. Fallback options: Any relevant option to reach 5 recommendations
+
+Each recommendation MUST include ALL these fields:
+- geo: Country code from CSV (e.g., "US", "IN", "GB", "CA")
+- type: Exact type name from CSV (e.g., "Local", "Toll-Free", "Short Code", "10DLC", "Sender ID pre-registered")
+- status: EXACT status from CSV data (e.g., "GA", "Available", "Beta", "Private Offering", "Not Supported"). Use "Unknown" ONLY if no status found.
+- smsEnabled: boolean (true if SMS capability mentioned)
+- voiceEnabled: boolean (true if Voice capability mentioned)
+- considerations: Detailed explanation (minimum 2 sentences) about when/why to use this option, including use cases and benefits
+- restrictions: Specific limitations (minimum 2 sentences) including regulatory requirements, setup complexity, and operational constraints
+
+REQUIRED JSON FORMAT:
 {
-  "answer": "Your detailed explanation and guidance here",
+  "answer": "Multi-paragraph response with ## Headers covering all sections above",
   "recommendedNumbers": [
     {
-      "geo": "US",
-      "type": "10DLC",
-      "status": "Available",  // <-- THIS FIELD IS REQUIRED! Extract from CSV data
-      "smsEnabled": true,
-      "voiceEnabled": true,
-      "considerations": "Important setup or compliance notes",
-      "restrictions": "Any limitations or restrictions"
+      "geo": "XX",
+      "type": "Exact type from CSV",
+      "status": "Exact status from CSV",
+      "smsEnabled": true/false,
+      "voiceEnabled": true/false,
+      "considerations": "Detailed use case explanation. Additional context about benefits.",
+      "restrictions": "Specific limitations and requirements. Additional warnings or constraints."
     }
+    // ... exactly 5 items total
   ]
-}
-
-EXAMPLE with status field (YOU MUST INCLUDE STATUS):
-{
-  "geo": "BR",
-  "type": "Local",
-  "status": "Available",  // <-- MANDATORY field from SMS Status or Voice Status in CSV
-  "smsEnabled": true,
-  "voiceEnabled": true,
-  "considerations": "...",
-  "restrictions": "..."
-}
-
-MANDATORY: The "status" field MUST be included for every recommendation. Extract this from the SMS Status or Voice Status columns in the CSV data. If you cannot find a status, use "Unknown" but still include the field.
-
-Focus on number types actually supported by Twilio in the specified regions. Provide up to 5 specific recommendations based on the requirements.`;
+}`;
 
       console.log('\n🤖 Step 6: Sending to GPT-5 with context length:', csvContext.length + twilioDocsContext.length);
       
@@ -1398,34 +1414,44 @@ Focus on number types actually supported by Twilio in the specified regions. Pro
         
         // Validate and structure the recommendedNumbers array
         if (parsedResponse.recommendedNumbers && Array.isArray(parsedResponse.recommendedNumbers)) {
-          recommendedNumbers = parsedResponse.recommendedNumbers
+          // First, normalize all recommendations
+          const allRecommendations = parsedResponse.recommendedNumbers
             .map((num: any) => {
               // If status is missing, add a default
               if (!num.status) {
                 console.log(`⚠️ WARNING: No status field for ${num.geo} ${num.type}, defaulting to 'Unknown'`);
                 num.status = 'Unknown';
               }
-              return num;
-            })
-            .filter((num: any) => {
-              // Filter out unavailable and unknown numbers
-              const status = num.status || 'Unavailable';
-              const keep = status !== 'Unavailable' && status !== 'Unknown';
-              if (!keep) {
-                console.log(`❌ Filtering out ${num.geo} ${num.type} with status: ${status}`);
-              }
-              return keep;
-            })
-            .slice(0, 5)
-            .map((num: any) => ({
-              geo: num.geo || 'Unknown',
-              type: num.type || 'Unknown',
-              status: num.status || 'Unavailable',
-              smsEnabled: Boolean(num.smsEnabled),
-              voiceEnabled: Boolean(num.voiceEnabled),
-              considerations: num.considerations || '',
-              restrictions: num.restrictions || ''
-            }));
+              return {
+                geo: num.geo || 'Unknown',
+                type: num.type || 'Unknown',
+                status: num.status || 'Unknown',
+                smsEnabled: Boolean(num.smsEnabled),
+                voiceEnabled: Boolean(num.voiceEnabled),
+                considerations: num.considerations || '',
+                restrictions: num.restrictions || ''
+              };
+            });
+          
+          // Separate recommendations by quality
+          const goodRecommendations = allRecommendations.filter((num: any) => 
+            num.status !== 'Unavailable' && num.status !== 'Unknown'
+          );
+          const unknownRecommendations = allRecommendations.filter((num: any) => 
+            num.status === 'Unknown'
+          );
+          
+          // Build final list: prefer good recommendations, then add unknown if needed to reach 5
+          recommendedNumbers = [
+            ...goodRecommendations.slice(0, 5),
+            ...unknownRecommendations.slice(0, Math.max(0, 5 - goodRecommendations.length))
+          ].slice(0, 5);
+          
+          // Log filtering decisions
+          console.log(`📊 Recommendation filtering:`);
+          console.log(`  - Good recommendations (non-Unknown/Unavailable): ${goodRecommendations.length}`);
+          console.log(`  - Unknown status recommendations: ${unknownRecommendations.length}`);
+          console.log(`  - Final recommendations returned: ${recommendedNumbers.length}`);
           
           console.log(`\n✅ Step 10: Final recommendedNumbers after filtering:`);
           console.log(`  Total count: ${recommendedNumbers.length}`);
