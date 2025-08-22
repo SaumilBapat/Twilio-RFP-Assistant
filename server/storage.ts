@@ -273,6 +273,19 @@ export class DatabaseStorage implements IStorage {
     await db.delete(referenceCache);
   }
 
+  async getReferenceChunksByDocumentId(documentId: string): Promise<ReferenceCache[]> {
+    const chunks = await db.select().from(referenceCache)
+      .where(eq(referenceCache.documentId, documentId))
+      .orderBy(referenceCache.chunkIndex);
+    
+    // Map to consistent field names for the route handler
+    return chunks.map(chunk => ({
+      ...chunk,
+      textContent: chunk.chunkText,
+      embedding: chunk.chunkEmbedding
+    }));
+  }
+
 
 
   // Response Cache
@@ -399,11 +412,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteReferenceDocument(id: string): Promise<void> {
     await db.delete(referenceDocuments).where(eq(referenceDocuments.id, id));
-  }
-
-  async getReferenceChunksByDocumentId(documentId: string): Promise<ReferenceCache[]> {
-    return await db.select().from(referenceCache)
-      .where(eq(referenceCache.documentId, documentId));
   }
 
   async getReferenceDocumentByHash(fileHash: string): Promise<ReferenceDocument | undefined> {

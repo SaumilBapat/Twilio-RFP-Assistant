@@ -1170,15 +1170,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let csvContext = '';
       let twilioDocsContext = '';
       
+      console.log('\n\n🔍🔍🔍 DEBUG: START Q&A API PROCESSING 🔍🔍🔍');
+      console.log('Question:', question);
+      
       try {
-        console.log('\n\n🔍🔍🔍 DEBUG: START Q&A API PROCESSING 🔍🔍🔍');
-        console.log('Question:', question);
         
         // Get chunks from the specific CSV documents
         const csvChunks: any[] = [];
         for (const docId of csvDocumentIds) {
-          const chunks = await storage.getReferenceChunksByDocumentId(docId);
-          csvChunks.push(...chunks);
+          console.log(`Fetching chunks for document ID: ${docId}`);
+          try {
+            const chunks = await storage.getReferenceChunksByDocumentId(docId);
+            console.log(`Retrieved ${chunks.length} chunks for document ${docId}`);
+            if (chunks.length > 0) {
+              console.log('Sample chunk fields:', Object.keys(chunks[0]));
+            }
+            csvChunks.push(...chunks);
+          } catch (err) {
+            console.log(`❌ Error fetching chunks for ${docId}:`, err);
+          }
         }
         
         console.log(`📚 Step 1: Retrieved ${csvChunks.length} total CSV chunks from documents`);
@@ -1194,6 +1204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Calculate similarity scores for each chunk
             const chunksWithScores = csvChunks.map((chunk: any) => {
               try {
+                // The storage function now maps chunkEmbedding to embedding
                 const chunkEmbedding = chunk.embedding ? JSON.parse(chunk.embedding) : null;
                 const similarity = chunkEmbedding ? 
                   embeddingsService.cosineSimilarity(questionEmbedding.embedding!, chunkEmbedding) : 0;
@@ -1205,13 +1216,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             console.log('📊 Step 3: Calculated similarity scores for all chunks');
             
+            // Sort all chunks by similarity to see what scores we're getting
+            const sortedChunks = chunksWithScores.sort((a: any, b: any) => b.similarity - a.similarity);
+            console.log('🔍 Top 5 similarity scores:', sortedChunks.slice(0, 5).map((c: any) => c.similarity.toFixed(4)));
+            
             // Sort by similarity and take top 25
             const topChunks = chunksWithScores
-              .filter((chunk: any) => chunk.similarity > 0.5)
+              .filter((chunk: any) => chunk.similarity > 0.3)
               .sort((a: any, b: any) => b.similarity - a.similarity)
               .slice(0, 25);
             
-            console.log(`🎯 Step 4: Found ${topChunks.length} chunks with similarity > 0.7`);
+            console.log(`🎯 Step 4: Found ${topChunks.length} chunks with similarity > 0.3`);
             
             // Show top 3 chunks with their similarity scores
             console.log('\n📋 Top 3 relevant chunks:');
