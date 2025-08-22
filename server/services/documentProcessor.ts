@@ -3,6 +3,7 @@ import { enhancedEmbeddingsService } from "./enhancedEmbeddings";
 import { contentChunkerService } from "./contentChunker";
 import crypto from "crypto";
 import { CachingStatus, ReferenceDocument } from "@shared/schema";
+import { parse } from 'csv-parse/sync';
 
 // PDF parsing will be imported dynamically to avoid initialization issues
 
@@ -147,8 +148,134 @@ class DocumentProcessor {
             return;
           }
         }
-      } else if (fileType === 'text/plain' || fileType === 'text/csv') {
+      } else if (fileType === 'text/plain') {
         textContent = fileBuffer.toString('utf-8');
+      } else if (fileType === 'text/csv') {
+        // Intelligent CSV handling with contextual row representations
+        const csvString = fileBuffer.toString('utf-8');
+        
+        // Parse CSV using proper parser that handles quoted fields, escapes, etc.
+        let records: any[];
+        try {
+          // Try tab-delimited first (common for telecom data exports)
+          records = parse(csvString, {
+            delimiter: '\t',
+            columns: true, // Use first row as headers
+            skip_empty_lines: true,
+            relax_column_count: true, // Handle inconsistent column counts
+            trim: true
+          });
+          
+          // If we only get one record or columns look wrong, try comma-delimited
+          if (records.length <= 1 || Object.keys(records[0]).length <= 2) {
+            records = parse(csvString, {
+              delimiter: ',',
+              columns: true,
+              skip_empty_lines: true,
+              relax_column_count: true,
+              trim: true
+            });
+          }
+        } catch (parseError) {
+          console.error('CSV parsing error:', parseError);
+          throw new Error('Failed to parse CSV file');
+        }
+        
+        if (records.length === 0) {
+          throw new Error('No data records found in CSV file');
+        }
+        
+        const headers = Object.keys(records[0]);
+        
+        // Build contextual representation optimized for telecommunications data
+        let contextualContent = `Telecommunications Dataset: ${records.length} entries with ${headers.length} attributes\n\n`;
+        
+        // Identify key fields for better context
+        const localeField = headers.find(h => h.toLowerCase().includes('locale') || h.toLowerCase().includes('country'));
+        const capabilityFields = headers.filter(h => 
+          h.toLowerCase().includes('support') || 
+          h.toLowerCase().includes('available') || 
+          h.toLowerCase().includes('enabled') ||
+          h.toLowerCase().includes('allow')
+        );
+        
+        contextualContent += `Key Attributes: ${headers.join(', ')}\n\n`;
+        contextualContent += `=== Detailed Service Specifications ===\n\n`;
+        
+        // Process each record with intelligent grouping
+        records.forEach((record, index) => {
+          const primaryIdentifier = localeField ? record[localeField] : `Entry ${index + 1}`;
+          
+          // Start with primary identifier
+          contextualContent += `${primaryIdentifier}:\n`;
+          
+          // Group attributes by category for better semantic understanding
+          const capabilities = [];
+          const specifications = [];
+          const restrictions = [];
+          const identifiers = [];
+          
+          for (const [header, value] of Object.entries(record)) {
+            // Skip empty or placeholder values
+            if (!value || value === '---' || value === 'N/A' || value === '' || value === 'null') {
+              continue;
+            }
+            
+            const headerLower = header.toLowerCase();
+            const valueStr = String(value).trim();
+            
+            // Categorize attributes for better context
+            if (headerLower.includes('support') || headerLower.includes('available') || headerLower.includes('enabled')) {
+              if (valueStr.toLowerCase() === 'yes' || valueStr.toLowerCase() === 'supported' || valueStr.toLowerCase() === 'true') {
+                capabilities.push(`${header} is supported`);
+              } else if (valueStr.toLowerCase() === 'no' || valueStr.toLowerCase() === 'not supported' || valueStr.toLowerCase() === 'false') {
+                restrictions.push(`${header} is not supported`);
+              } else {
+                specifications.push(`${header}: ${valueStr}`);
+              }
+            } else if (headerLower.includes('code') || headerLower.includes('dialing') || headerLower.includes('iso') || headerLower.includes('region')) {
+              identifiers.push(`${header}: ${valueStr}`);
+            } else if (headerLower.includes('consideration') || headerLower.includes('restriction') || headerLower.includes('limit')) {
+              // For compliance and restrictions, include more context
+              if (valueStr.length > 200) {
+                restrictions.push(`${header}: ${valueStr.substring(0, 200)}...`);
+              } else {
+                restrictions.push(`${header}: ${valueStr}`);
+              }
+            } else {
+              // General specifications
+              if (valueStr.length > 150) {
+                specifications.push(`${header}: ${valueStr.substring(0, 150)}...`);
+              } else {
+                specifications.push(`${header}: ${valueStr}`);
+              }
+            }
+          }
+          
+          // Build comprehensive entry description
+          if (identifiers.length > 0) {
+            contextualContent += `Identifiers: ${identifiers.join(', ')}\n`;
+          }
+          if (capabilities.length > 0) {
+            contextualContent += `Supported Features: ${capabilities.join(', ')}\n`;
+          }
+          if (specifications.length > 0) {
+            contextualContent += `Specifications: ${specifications.join(', ')}\n`;
+          }
+          if (restrictions.length > 0) {
+            contextualContent += `Restrictions and Considerations: ${restrictions.join(', ')}\n`;
+          }
+          
+          contextualContent += '\n';
+        });
+        
+        // Add searchable summary
+        contextualContent += `\n=== Search Index ===\n`;
+        contextualContent += `This telecommunications dataset contains detailed specifications for ${records.length} service configurations.\n`;
+        contextualContent += `Coverage includes capabilities, restrictions, compliance requirements, and technical specifications.\n`;
+        contextualContent += `Each entry can be matched against specific requirements for service availability, feature support, and regulatory compliance.\n`;
+        
+        textContent = contextualContent;
       } else if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
                  fileType === 'application/vnd.ms-excel.sheet.macroEnabled.12') {
         // Handle Excel files (.xlsx and .xlsm)
