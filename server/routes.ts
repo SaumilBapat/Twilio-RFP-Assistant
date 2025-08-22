@@ -1262,7 +1262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 CRITICAL: You MUST respond ONLY with valid JSON in the exact format specified. Do not add any text before or after the JSON object.
 
-CRITICAL FILTERING RULE: Only recommend phone numbers where the status in the data shows as "Available", "Beta", or similar positive indicators. NEVER recommend numbers marked as "Unavailable", "Not Supported", or where status is unknown. Always include the actual status value from the data in your response.
+CRITICAL FILTERING RULE: Do NOT recommend phone numbers where the status in the data shows as "Unavailable". You can recommend all other statuses (Available, Beta, Not Supported, etc.). Always include the actual status value from the data in your response.
 
 ${csvContext ? `TWILIO PHONE NUMBER CAPABILITIES BY COUNTRY:
 ${csvContext}
@@ -1320,9 +1320,9 @@ Focus on number types actually supported by Twilio in the specified regions. Pro
         if (parsedResponse.recommendedNumbers && Array.isArray(parsedResponse.recommendedNumbers)) {
           recommendedNumbers = parsedResponse.recommendedNumbers
             .filter((num: any) => {
-              // Filter out unavailable numbers
+              // Filter out only unavailable numbers
               const status = num.status || 'Unavailable';
-              return status !== 'Unavailable' && status !== 'Not Supported';
+              return status !== 'Unavailable';
             })
             .slice(0, 5)
             .map((num: any) => ({
