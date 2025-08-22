@@ -1356,9 +1356,9 @@ Focus on number types actually supported by Twilio in the specified regions. Pro
               return num;
             })
             .filter((num: any) => {
-              // Filter out only unavailable numbers
+              // Filter out unavailable and unknown numbers
               const status = num.status || 'Unavailable';
-              const keep = status !== 'Unavailable';
+              const keep = status !== 'Unavailable' && status !== 'Unknown';
               if (!keep) {
                 console.log(`❌ Filtering out ${num.geo} ${num.type} with status: ${status}`);
               }
