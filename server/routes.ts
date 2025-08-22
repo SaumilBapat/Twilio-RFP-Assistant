@@ -1149,13 +1149,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authHeader = req.headers.authorization;
     const providedKey = authHeader?.replace('Bearer ', '');
     
-    // Debug: Log what we're comparing (remove in production)
-    console.log('QA API Auth Debug:', {
-      providedKey: providedKey,
-      expectedKey: process.env.QA_API_KEY,
-      match: providedKey === process.env.QA_API_KEY
-    });
-    
     if (!providedKey || providedKey !== process.env.QA_API_KEY) {
       return res.status(401).json({ error: 'Unauthorized. Please provide a valid API key in the Authorization header.' });
     }
@@ -1167,19 +1160,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // Generate response using OpenAI
+      // Specific CSV document IDs for Twilio phone number data
+      const csvDocumentIds = [
+        '4be0c228-465e-4d9c-9eab-4f5308e00faa', // Twilio Phone Numbers by Country.csv
+        '832914f8-b53a-4502-b8c0-cbe49fe599a7'  // TwilioGlobalSMSGuidelines.csv
+      ];
+
+      // Fetch relevant content from the cached CSV documents and URLs
+      let csvContext = '';
+      let twilioDocsContext = '';
+      
+      try {
+        // Get chunks from the specific CSV documents
+        const csvChunks: any[] = [];
+        for (const docId of csvDocumentIds) {
+          const chunks = await storage.getReferenceChunksByDocumentId(docId);
+          csvChunks.push(...chunks);
+        }
+        
+        if (csvChunks.length > 0) {
+          // Create an embedding for the question to find most relevant chunks
+          const { embeddingsService } = await import('./services/embeddings');
+          const questionEmbedding = await embeddingsService.generateEmbedding(question);
+          
+          if (questionEmbedding.embedding) {
+            // Calculate similarity scores for each chunk
+            const chunksWithScores = csvChunks.map((chunk: any) => {
+              try {
+                const chunkEmbedding = chunk.embedding ? JSON.parse(chunk.embedding) : null;
+                const similarity = chunkEmbedding ? 
+                  embeddingsService.cosineSimilarity(questionEmbedding.embedding!, chunkEmbedding) : 0;
+                return { ...chunk, similarity };
+              } catch (e) {
+                return { ...chunk, similarity: 0 };
+              }
+            });
+            
+            // Sort by similarity and take top 15
+            const topChunks = chunksWithScores
+              .filter((chunk: any) => chunk.similarity > 0.7)
+              .sort((a: any, b: any) => b.similarity - a.similarity)
+              .slice(0, 15);
+            
+            if (topChunks.length > 0) {
+              csvContext = topChunks.map((chunk: any) => chunk.textContent).join('\n\n');
+              console.log(`Found ${topChunks.length} relevant CSV chunks with similarity > 0.7`);
+            }
+          }
+        }
+        
+        // Get chunks from Twilio regulatory URLs
+        const twilioUrls = [
+          'https://www.twilio.com/en-us/guidelines/regulatory',
+          'https://www.twilio.com/en-us/guidelines/sms',
+          'https://www.twilio.com/en-us/guidelines/voice'
+        ];
+        
+        const urlChunks: any[] = [];
+        for (const url of twilioUrls) {
+          const chunks = await storage.getReferenceChunksByUrl(url);
+          urlChunks.push(...chunks);
+        }
+        
+        if (urlChunks.length > 0) {
+          // Create an embedding for the question if not already created
+          const { embeddingsService } = await import('./services/embeddings');
+          const questionEmbedding = await embeddingsService.generateEmbedding(question);
+          
+          if (questionEmbedding.embedding) {
+            // Calculate similarity scores for URL chunks
+            const urlChunksWithScores = urlChunks.map((chunk: any) => {
+              try {
+                const chunkEmbedding = chunk.embedding ? JSON.parse(chunk.embedding) : null;
+                const similarity = chunkEmbedding ? 
+                  embeddingsService.cosineSimilarity(questionEmbedding.embedding!, chunkEmbedding) : 0;
+                return { ...chunk, similarity };
+              } catch (e) {
+                return { ...chunk, similarity: 0 };
+              }
+            });
+            
+            // Sort by similarity and take top 10
+            const topUrlChunks = urlChunksWithScores
+              .filter((chunk: any) => chunk.similarity > 0.7)
+              .sort((a: any, b: any) => b.similarity - a.similarity)
+              .slice(0, 10);
+            
+            if (topUrlChunks.length > 0) {
+              twilioDocsContext = topUrlChunks.map((chunk: any) => chunk.textContent).join('\n\n');
+              console.log(`Found ${topUrlChunks.length} relevant Twilio documentation chunks with similarity > 0.7`);
+            }
+          }
+        }
+      } catch (contextError) {
+        console.log('Error fetching context:', contextError);
+        // Continue without context if there's an error
+      }
+
+      // Build the system prompt with Twilio expertise
+      const systemPrompt = `You are a Twilio compliance and phone number expert API that MUST respond with valid JSON. You help customers choose the right phone numbers for their specific use cases using deep knowledge of telecommunications regulations, number capabilities, and regional requirements.
+
+CRITICAL: You MUST respond ONLY with valid JSON in the exact format specified. Do not add any text before or after the JSON object.
+
+${csvContext ? `TWILIO PHONE NUMBER CAPABILITIES BY COUNTRY:
+${csvContext}
+
+` : ''}${twilioDocsContext ? `TWILIO REGULATORY GUIDELINES:
+${twilioDocsContext}
+
+` : ''}Use this authoritative data to make accurate recommendations. Only recommend number types that are explicitly supported according to this data.`;
+
+      // Enhance the user prompt with specific instructions
+      const enhancedPrompt = `${question}
+
+Based on the above requirements, provide:
+1. A detailed explanation of the best phone number options
+2. Specific recommendations (maximum 5) of number types that match these requirements
+
+IMPORTANT: You must format your response as valid JSON with exactly this structure:
+{
+  "answer": "Your detailed explanation and guidance here",
+  "recommendedNumbers": [
+    {
+      "geo": "Country/region code (e.g., US, GB, CA)",
+      "type": "Number type (e.g., 10DLC, Toll-Free, Short Code, Local)",
+      "smsEnabled": true or false,
+      "voiceEnabled": true or false,
+      "considerations": "Important setup or compliance notes",
+      "restrictions": "Any limitations or restrictions"
+    }
+  ]
+}
+
+Focus on number types actually supported by Twilio in the specified regions. Provide up to 5 specific recommendations based on the requirements.`;
+
+      // Generate response using OpenAI with JSON mode
       const result = await openaiService.callOpenAIDirect({
         model: 'gpt-5-nano',
-        systemPrompt: 'You are a helpful AI assistant. Provide clear, accurate, and concise answers to questions.',
-        userPrompt: question,
-        maxTokens: 2000,
-        temperature: 0.7
+        systemPrompt: systemPrompt,
+        userPrompt: enhancedPrompt,
+        maxTokens: 3000,
+        temperature: 0.3, // Lower temperature for more consistent structured output
+        responseFormat: { type: 'json_object' }
       });
+
+      // Parse the JSON response
+      let parsedResponse;
+      let recommendedNumbers = [];
+      let answer = result.output;
+      
+      try {
+        parsedResponse = JSON.parse(result.output);
+        answer = parsedResponse.answer || result.output;
+        
+        // Validate and structure the recommendedNumbers array
+        if (parsedResponse.recommendedNumbers && Array.isArray(parsedResponse.recommendedNumbers)) {
+          recommendedNumbers = parsedResponse.recommendedNumbers.slice(0, 5).map((num: any) => ({
+            geo: num.geo || 'Unknown',
+            type: num.type || 'Unknown',
+            smsEnabled: Boolean(num.smsEnabled),
+            voiceEnabled: Boolean(num.voiceEnabled),
+            considerations: num.considerations || '',
+            restrictions: num.restrictions || ''
+          }));
+        }
+      } catch (parseError) {
+        console.log('Error parsing JSON response, returning plain text:', parseError);
+        // If JSON parsing fails, return the plain text response
+      }
 
       res.json({ 
         question,
-        answer: result.output,
-        latency: result.latency
+        answer: answer,
+        recommendedNumbers: recommendedNumbers,
+        latency: result.latency,
+        sourcesUsed: {
+          csvDocuments: csvDocumentIds,
+          twilioGuidelines: ['regulatory', 'sms', 'voice']
+        }
       });
       
     } catch (error) {

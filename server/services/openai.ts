@@ -63,6 +63,7 @@ export class OpenAIService {
     userPrompt: string;
     temperature?: number;
     maxTokens?: number;
+    responseFormat?: { type: 'json_object' | 'text' };
   }): Promise<ProcessingResult> {
     const startTime = Date.now();
     
@@ -88,6 +89,11 @@ export class OpenAIService {
       if (config.model.startsWith('gpt-5')) {
         requestParams.reasoning_effort = 'low'; // Use 'low' to reduce reasoning token usage
         console.log(`🔧 GPT-5 Config: reasoning_effort=low, max_completion_tokens=${tokensParam.max_completion_tokens}`);
+      }
+
+      // Add response format if specified
+      if (config.responseFormat) {
+        requestParams.response_format = config.responseFormat;
       }
 
       const response = await openai.chat.completions.create(requestParams);
