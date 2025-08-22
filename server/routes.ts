@@ -1279,6 +1279,8 @@ Based on the above requirements, provide:
 1. A detailed explanation of the best phone number options
 2. Specific recommendations (maximum 5) of number types that match these requirements
 
+CRITICAL: For each recommended number, you MUST extract the SMS Status or Voice Status from the CSV data provided in the context above. Look for status values like "Available", "Beta", "Not Supported", etc. in the country data.
+
 IMPORTANT: You must format your response as valid JSON with exactly this structure:
 {
   "answer": "Your detailed explanation and guidance here",
@@ -1286,7 +1288,7 @@ IMPORTANT: You must format your response as valid JSON with exactly this structu
     {
       "geo": "Country/region code (e.g., US, GB, CA)",
       "type": "Number type (e.g., 10DLC, Toll-Free, Short Code, Local)",
-      "status": "Available/Beta/etc (from the CSV data)",
+      "status": "REQUIRED - Extract the actual status from the CSV data (e.g., 'Available', 'Beta', 'Not Supported')",
       "smsEnabled": true or false,
       "voiceEnabled": true or false,
       "considerations": "Important setup or compliance notes",
@@ -1294,6 +1296,8 @@ IMPORTANT: You must format your response as valid JSON with exactly this structu
     }
   ]
 }
+
+MANDATORY: The "status" field MUST be included for every recommendation. Extract this from the SMS Status or Voice Status columns in the CSV data. If you cannot find a status, use "Unknown" but still include the field.
 
 Focus on number types actually supported by Twilio in the specified regions. Provide up to 5 specific recommendations based on the requirements.`;
 
